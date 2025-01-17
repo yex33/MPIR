@@ -17,43 +17,132 @@
 \maketitle
 
 \begin{table}[hp]
-\caption{Revision History} \label{TblRevisionHistory}
-\begin{tabularx}{\textwidth}{llX}
-\toprule
-\textbf{Date} & \textbf{Developer(s)} & \textbf{Change}\\
-\midrule
-Date1 & Name(s) & Description of changes\\
-Date2 & Name(s) & Description of changes\\
-... & ... & ...\\
-\bottomrule
-\end{tabularx}
+  \caption{Revision History} \label{TblRevisionHistory}
+  \begin{tabularx}{\textwidth}{llX}
+    \toprule
+    \textbf{Date} & \textbf{Developer(s)} & \textbf{Change}\\
+    \midrule
+    \date{16 January 2025} & Xunzhou & Initial draft \\
+    \bottomrule
+  \end{tabularx}
 \end{table}
 
 \section{Problem Statement}
 
 \wss{You should check your problem statement with the
 \href{https://github.com/smiths/capTemplate/blob/main/docs/Checklists/ProbState-Checklist.pdf}
-{problem statement checklist}.} 
+{problem statement checklist}.}
 
 \wss{You can change the section headings, as long as you include the required
 information.}
 
 \subsection{Problem}
 
+In numerical computing, mixed precision \emph{iterative refinement (IR)} is a
+technique to solve systems of linear equations efficiently while maintaining
+high accuracy. It combines computations in lower precision (e.g., single or half
+precision) for speed and resource efficiency, with higher precision (e.g.,
+double precision) for key operations to ensure numerical stability and accuracy.
+In sparse matrix solvers, where computational costs and memory access patterns
+are critical, mixed precision IR balances speed and precision, making it ideal
+for large-scale simulations, finite element methods, or optimization problems.
+Lower precision calculations performed in the refinement process require less
+memory bandwidth and storage, enabling better utilization of memory hierarchies
+and allowing larger problems to fit into limited memory. These calculations also
+run faster on modern hardware, particularly GPUs and tensor cores.
+
+Dr. N. Nedialkov and his student Yiqi Huang have done some preliminary works in
+developing a linear solver for quasi-definite matrices using mixed precision IR,
+where the internal refinement steps utilizes the \emph{Generalized Minimal
+  Residual (GMRES)} iterative method. The scope of this project is to refactor
+and improve on the existing implementations.
+
 \subsection{Inputs and Outputs}
 
-\wss{Characterize the problem in terms of ``high level'' inputs and outputs.  
+\wss{Characterize the problem in terms of ``high level'' inputs and outputs.
 Use abstraction so that you can avoid details.}
 
+\paragraph{Inputs}
+
+Like any general purposed numeric linear solver, this solver attempts to solve
+\(x\) satisfying the equation \(\matr{A}x = b\) for some given matrix
+\(\matr{A}\) and vector \(b\) within certain tolerance \(\epsilon\). With the
+added feature of employing a mixed precision technique, the user can customize
+on the precision on which they wish to perform matrix factorizations, triangular
+solves, and computing residuals. The list of inputs is summarized in table
+\ref{tab:inputs}.
+
+\begin{table}[hp]
+  \centering
+  \caption{List of inputs and parameters}
+  \label{tab:inputs}
+  \begin{tabularx}{1.0\linewidth}{rX}
+    \toprule
+    \textbf{Variable}  & \textbf{Description} \\
+    \midrule
+    \(\matr{A}\) & the linear system to be solved \\
+    \(b\)        & one or many right-hand side vector describing the problem \\
+    \(\epsilon\)        & a solution is found if the residual is less than this number \\
+    FACTPREC     & matrix factorization precision \\
+    WORKPREC     & working precision used in triangular solves \\
+    RESPREC      & precision on which the residuals are computed \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\paragraph{outputs}
+
+This solver outputs a numerical solution \(x\) to the problem \(\matr{A}x = b\).
+
 \subsection{Stakeholders}
+
+\begin{itemize}
+\item Supervisor of the project, Dr. N. Nedialkov.
+\item As the library will be publicly released under an open source license, it is
+  relevant to any individual who is interested in and can make use of
+  high-performance sparse linear solvers for either academic or commercial
+  purposes.
+\end{itemize}
 
 \subsection{Environment}
 
 \wss{Hardware and software environment}
 
+\begin{description}
+\item[Software] Any general purpose operating system (OS) with compatible toolchain
+  for building the library, optionally running a few example programs.
+\item[Hardware] Computer with modern processors.
+\end{description}
+
 \section{Goals}
 
+\begin{description}
+\item[High performance and high efficiency] The solver should offer notable
+  performance or resource utilization advantage over other competing sparse
+  linear solvers.
+\item[Ease of use] The library should offer a comprehensive set of streamlined
+  public application programming interfaces (APIs), such that when integrated
+  into other software as a dependent library, the interfaces are readable and
+  easy to consume.
+\item[Implementation improvement, educational] Based on existing implementations,
+  the project should result in an out-of-box, production grade codebase with
+  cross-platform support. As the codebase is developed in an academic setting,
+  the codebase should capture domain knowledge in various forms including
+  documentations, code comments, and academic reports. It should also
+  demonstrate best practices to develop high quality software, including code
+  modularity, traceability, maintainability, and so on.
+\end{description}
+
 \section{Stretch Goals}
+
+\begin{description}
+\item[Accuracy improvement] With the existing solver implementation
+  as being the baseline, the refactored solver should produce more accurate
+  results (residuals lower by at least 1 order of magnitude).
+\item[Algorithm optimization] The solver should optimize existing algorithms such
+  that given the same set of inputs, it produces results with the same accuracy
+  using notably less time.
+\end{description}
 
 \section{Challenge Level and Extras}
 
@@ -73,21 +162,28 @@ two.  Approval of the extras will be part of the discussion with the instructor
 for approving the project.  The extras, with the approval (or request) of the
 instructor, can be modified over the course of the term.}
 
-\newpage{}
+The challenge level of this project is expected to be advanced.
 
-\section*{Appendix --- Reflection}
+gain some preliminary knowledge and experience in relevant areas.
 
-\wss{Not required for CAS 741}
+The underlaying method to solve this system would be GMRES which is not usually
+taught in undergrad.
 
-\input{../Reflection.tex}
+% \newpage{}
 
-\begin{enumerate}
-    \item What went well while writing this deliverable? 
-    \item What pain points did you experience during this deliverable, and how
-    did you resolve them?
-    \item How did you and your team adjust the scope of your goals to ensure
-    they are suitable for a Capstone project (not overly ambitious but also of
-    appropriate complexity for a senior design project)?
-\end{enumerate}  
+% \section*{Appendix --- Reflection}
+
+% \wss{Not required for CAS 741}
+
+% \input{../Reflection.tex}
+
+% \begin{enumerate}
+%     \item What went well while writing this deliverable?
+%     \item What pain points did you experience during this deliverable, and how
+%     did you resolve them?
+%     \item How did you and your team adjust the scope of your goals to ensure
+%     they are suitable for a Capstone project (not overly ambitious but also of
+%     appropriate complexity for a senior design project)?
+% \end{enumerate}
 
 \end{document}
