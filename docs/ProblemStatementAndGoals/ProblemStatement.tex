@@ -66,7 +66,7 @@ Use abstraction so that you can avoid details.}
 
 Like any general purposed numeric linear solver, this solver attempts to solve
 \(x\) satisfying the equation \(\matr{A}x = b\) for some given matrix
-\(\matr{A}\) and vector \(b\) within certain tolerance \(\epsilon\). With the
+\(\matr{A}\) and column vector \(b\) within certain tolerance \(\epsilon\). With the
 added feature of employing a mixed precision technique, the user can customize
 on the precision on which they wish to perform matrix factorizations, triangular
 solves, and computing residuals. The list of inputs is summarized in table
@@ -81,18 +81,21 @@ solves, and computing residuals. The list of inputs is summarized in table
     \textbf{Variable}  & \textbf{Description} \\
     \midrule
     \(\matr{A}\) & the linear system to be solved \\
-    \(b\)        & one or many right-hand side vector describing the problem \\
+    \(b\)        & one or many column vector(s) describing the problem \\
     \(\epsilon\)        & a solution is found if the residual is less than this number \\
+    \(n_\mathrm{iter}\) & the maximum number of iterations to perform \\
     FACTPREC     & matrix factorization precision \\
     WORKPREC     & working precision used in triangular solves \\
-    RESPREC      & precision on which the residuals are computed \\
+    RESPREC      & precision in which the residuals are computed \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \paragraph{outputs}
 
-This solver outputs a numerical solution \(x\) to the problem \(\matr{A}x = b\).
+This solver outputs a numerical approximation of \(x\) to the problem
+\(\matr{A}x = b\) along with some diagnostic information such as the resulting
+residual of the solve, the number of iterations performed.
 
 \subsection{Stakeholders}
 
@@ -117,13 +120,22 @@ This solver outputs a numerical solution \(x\) to the problem \(\matr{A}x = b\).
 \section{Goals}
 
 \begin{description}
-\item[High performance and high efficiency] The solver should offer notable
+\item[Basic linear solver function] Given some matrix \(\matr{A}\) and column
+  vector \(b\), the solver should iteratively find \(x\) satisfying the equation
+  \(\matr{A}x = b\) until the residual \(r = \matr{A}x - b\) is smaller than
+  some tolerance \(\epsilon\) or the maximum number of iterations
+  \(n_\mathrm{iter}\) is exhausted, whichever comes first.
+\item[Mixed precision] Given some combinations of floating point precision
+  configuration, the solver should perform internal steps such as matrix
+  factorizations, triangular solves, and residual computation in these
+  configured precisions.
+\item[High performance and high efficiency] The solver should offer a quantifiable
   performance or resource utilization advantage over other competing sparse
   linear solvers.
-\item[Ease of use] The library should offer a comprehensive set of streamlined
-  public application programming interfaces (APIs), such that when integrated
-  into other software as a dependent library, the interfaces are readable and
-  easy to consume.
+\item[Ease of use] The library should offer a set of streamlined public application
+  programming interfaces (APIs), such that when integrated into other software
+  as a dependent library, the interfaces are self-contained, readable and easy
+  to consume.
 \item[Implementation improvement, educational] Based on existing implementations,
   the project should result in an out-of-box, production grade codebase with
   cross-platform support. As the codebase is developed in an academic setting,
@@ -162,12 +174,21 @@ two.  Approval of the extras will be part of the discussion with the instructor
 for approving the project.  The extras, with the approval (or request) of the
 instructor, can be modified over the course of the term.}
 
-The challenge level of this project is expected to be advanced.
-
-gain some preliminary knowledge and experience in relevant areas.
-
-The underlaying method to solve this system would be GMRES which is not usually
-taught in undergrad.
+The challenge level of this project is expected to be general, leaning toward
+the advanced level for the following reasons:
+\begin{enumerate}
+\item This is a continuation of a Master's level research project. The associated
+  thesis is still working in progress.
+\item The choice of algorithm and mathematical technique is predefined as part of
+  the project. The mathematical knowledge required for understanding and
+  implementing these algorithms (e.g. GMRES) is graduate level.
+\item Working with multiple floating point precisions requires knowledge on
+  computer architectures, low-level floating point representations in computer,
+  as well as advance implementation techniques to support manipulations of
+  precisions.
+\item Testing, benchmarking, and evaluating the performance gain on applying these
+  advanced algorithms and techniques are also very involved.
+\end{enumerate}
 
 % \newpage{}
 
