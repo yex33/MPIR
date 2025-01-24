@@ -3,13 +3,13 @@
 
 PROJECT=ProblemStatement
 TEX=pdflatex
-BIBTEX=bibtex
+BIBTEX=biber
 BUILDTEX=$(TEX) $(PROJECT).tex
 
 all:
 	$(BUILDTEX)
-#	$(BIBTEX) $(PROJECT)
-#	$(BUILDTEX)
+	$(BIBTEX) $(PROJECT)
+	$(BUILDTEX)
 	$(BUILDTEX)
 
 clean-all:
