@@ -69,12 +69,12 @@ Use abstraction so that you can avoid details.}
 \paragraph{Inputs}
 
 Like any general purposed numeric linear solver, this solver attempts to solve
-\(x\) satisfying the equation \(\matr{A}x = b\) for some given matrix
-\(\matr{A}\) and column vector \(b\) within certain tolerance \(\epsilon\). With the
-added feature of employing a mixed precision technique, the user can customize
-on the precision on which they wish to perform matrix factorizations, triangular
-solves, and computing residuals. The list of inputs is summarized in table
-\ref{tab:inputs}.
+\(x\) satisfying the equation \(\matr{A}\vec{x} = \vec{b}\) for some given \(n
+\times n\) real matrix \(\matr{A}\) and \(n\) real vector \(\vec{b}\) within
+certain tolerance \(\epsilon\). With the added feature of employing a mixed
+precision technique, the user can customize on the precision on which they wish
+to perform matrix factorizations, triangular solves, and computing residuals.
+The list of inputs is summarized in table \ref{tab:inputs}.
 
 \begin{table}[hp]
   \centering
@@ -84,13 +84,13 @@ solves, and computing residuals. The list of inputs is summarized in table
     \toprule
     \textbf{Variable}  & \textbf{Description} \\
     \midrule
-    \(\matr{A}\) & the linear system to be solved \\
-    \(b\)        & one or many column vector(s) describing the problem \\
-    \(\epsilon\)        & a solution is found if the residual is less than this number \\
+    \(\matr{A}\) & \(n \times n\) matrix \\
+    \(\vec{b}\)        & \(n\)-vector \\
+    \(\epsilon\)        & a solution is found if the norm of the residual is less than \(\epsilon\) \\
     \(n_\mathrm{iter}\) & the maximum number of iterations to perform \\
-    FACTPREC     & matrix factorization precision \\
-    WORKPREC     & working precision used in triangular solves \\
-    RESPREC      & precision in which the residuals are computed \\
+    \(u_f\)       & factorization precision \\
+    \(u_w\)       & working precision \\
+    \(u_r\)       & precision in which the residuals are computed \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -98,8 +98,10 @@ solves, and computing residuals. The list of inputs is summarized in table
 \paragraph{outputs}
 
 This solver outputs a numerical approximation of \(x\) to the problem
-\(\matr{A}x = b\) along with some diagnostic information such as the resulting
-residual of the solve, the number of iterations performed.
+\(\matr{A}\vec{x} = \vec{b}\) along with some diagnostic information such as the
+resulting residual of the solve, the number of iterations performed.
+
+table
 
 \subsection{Stakeholders}
 
@@ -125,10 +127,11 @@ residual of the solve, the number of iterations performed.
 
 \begin{description}
 \item[Basic linear solver function] Given some matrix \(\matr{A}\) and column
-  vector \(b\), the solver should iteratively find \(x\) satisfying the equation
-  \(\matr{A}x = b\) until the residual \(r = \matr{A}x - b\) is smaller than
-  some tolerance \(\epsilon\) or the maximum number of iterations
-  \(n_\mathrm{iter}\) is exhausted, whichever comes first.
+  vector \(\vec{b}\), the solver should iteratively find \(\vec{x}\) satisfying
+  the equation \(\matr{A}\vec{x} = \vec{b}\) until the residual \(\vec{r} =
+  \matr{A}\vec{x} - \vec{b}\) is smaller than some tolerance \(\epsilon\) or the
+  maximum number of iterations \(n_\mathrm{iter}\) is exhausted, whichever comes
+  first.
 \item[Mixed precision] Given some combinations of floating point precision
   configuration, the solver should perform internal steps such as matrix
   factorizations, triangular solves, and residual computation in these
