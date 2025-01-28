@@ -1,0 +1,213 @@
+%\documentclass[handout]{beamer}
+\documentclass[t,12pt,numbers,fleqn]{beamer}
+%\documentclass[ignorenonframetext]{beamer}
+
+\newif\ifquestions
+%\questionstrue
+\questionsfalse
+
+\usepackage{pgfpages}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    filecolor=blue,
+    urlcolor=blue,
+    unicode=false}
+\urlstyle{same}
+
+\usepackage{booktabs}
+
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup[figure]{font=scriptsize,labelfont=scriptsize}
+
+\usepackage[version=4]{mhchem}
+\usepackage{siunitx}
+
+\input{../../Common}
+
+%\usetheme{Iimenau}
+
+\useoutertheme{split} %so the footline can be seen, without needing pgfpages
+
+%\pgfpagesuselayout{resize to}[letterpaper,border shrink=5mm,landscape]  %if this is uncommented, the hyperref links do not work
+
+\mode<presentation>{}
+
+\input{../def-beamer}
+
+\newcommand{\topic}{Mixed-Precision Iterative Solver}
+
+\input{../titlepage}
+
+\begin{document}
+
+\input{../footline}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Linear Solver: the Good Old \(\matr{A}\vec{x} = \vec{b}\) Problem}
+
+\begin{itemize}
+\item Direct method: Gaussian elimination
+\end{itemize}
+
+\[
+  \begin{aligned}
+    \matr{A}\vec{x} = &
+    \left[
+    \begin{array}{ccc}
+      1 & -1 & 3 \\
+      1 &  1 & 0 \\
+      3 & -2 & 1
+    \end{array}
+    \right]
+    \begin{bmatrix}
+      x_1 \\
+      x_2 \\
+      x_3
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+      11 \\
+      3 \\
+      3
+    \end{bmatrix}
+    = \vec{b}
+    \\
+    \matr{A}|\vec{b} = &
+    \left[
+    \begin{array}{ccc|c}
+      1 & -1 & 3 & 11 \\
+      1 &  1 & 0 &  3 \\
+      3 & -2 & 1 &  3
+    \end{array}
+    \right]
+    \begin{array}{cc}
+      \times 1 & \times 3 \\
+      \downarrow   & \\
+               & \downarrow
+    \end{array}
+    \\
+    \matr{A}|\vec{b} \leftarrow &
+    \left[
+    \begin{array}{ccc|c}
+      1 & -1 & 3 &  11 \\
+      0 &  2 & -3 &  -8 \\
+      0 &  1 & -8 & -30
+    \end{array}
+    \right]
+  \end{aligned}
+\]
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Think Big, Think Sparse}
+
+\begin{itemize}
+\item In structural simulations (e.g., finite element analysis), structures are
+  modeled based on real-world physics, where forces and constraints are often
+  localized.
+\item Each element or node in a structure is typically connected only to a few
+  nearby elements or nodes.
+\item System of equations in structural simulations is assembled from local
+  contributions.
+\item In contrast, in neural networks, dense weight matrices are used in fully
+  connected layers, particularly in large networks like transformers or dense
+  layers after convolutional layers.
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Sparse Matrix Example: Boeing/ct20stif}
+
+\begin{itemize}
+\item \(\num{52329} \times \num{52329}\)
+\item \num{2600295} non-zeros
+\item \(\approx \SI{33}{\mega\byte}\) in file size
+\end{itemize}
+
+\begin{figure}[hh]
+  \centering
+  \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,trim={2cm 1.5cm 2cm 1cm},clip]{figures/ct20stif}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/ct20stif_graph}
+  \end{subfigure}
+  \caption*{Boeing/ct20stif: CT20 Engine Block -- Stiffness
+    matrix}
+  \label{fig:ct20}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Sparse Matrix Example: Janna/Serena}
+
+\begin{itemize}
+\item \(\num{1391349} \times \num{1391349}\)
+\item \num{64131971} non-zeros
+\item \(\approx \SI{847}{\mega\byte}\) in file size
+\end{itemize}
+
+\begin{figure}[hh]
+  \centering
+  \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,trim={2cm 1.5cm 2cm 1cm},clip]{figures/Serena}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.37\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/Serena_graph}
+  \end{subfigure}
+  \caption*{Janna/Serena: gas resevoir simulation for \ce{CO2}
+    sequestration}
+  \label{fig:Serena}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{The Problem with Gaussian Elimination}
+
+\begin{itemize}
+\item Store the whole matrix
+\item Memory bounded
+\item Sparsity preservation
+\end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,trim={2cm 1.5cm 2cm 1cm},clip]{figures/Serena}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/chicken}
+  \end{subfigure}
+  \caption*{Janna/Serena: gas resevoir simulation for \ce{CO2}
+    sequestration}
+  \label{fig:Serena}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

@@ -1,0 +1,30 @@
+% Footline for  Slides
+
+% Display title page and displays footers
+
+\setbeamertemplate{footline}{} %so the title screen does not have a footline
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\setbeamertemplate{footline}{
+\begin{beamercolorbox}{sectioninhead/foot}
+\hspace{1ex}\bblue{\hrulefill}\hspace{1ex}
+
+\vspace{1ex}
+\hspace{1ex}
+{\tiny \instructSmall \hfill
+\courseCode~\season~\yr:~\topic \hfill
+\insertframenumber/\inserttotalframenumber~~}
+%\insertframenumber/\ref{lastframe}}
+%\hfill {\small \insertframenumber} \hspace{10ex}
+%{\small $$\insertframenumber$$}
+\vspace{1ex}
+\end{beamercolorbox}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

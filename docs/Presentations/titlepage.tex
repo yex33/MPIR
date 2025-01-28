@@ -1,0 +1,39 @@
+%Title page information for 1D04 lectures slides
+
+% Define year specific parameters - used in title page and footer
+
+\newcommand{\season}{Winter} %use to switch between Winter and Fall
+\newcommand{\instructor}{Xunzhou (Joe) Ye} %use to switch instructor
+\newcommand{\instructSmall}{Xunzhou}
+\newcommand{\yr}{2025}
+\newcommand{\courseCode}{CAS 741}
+\newcommand{\courseTitle}{Development of Scientific Computing Software}
+
+%\setbeamerfont{structure}{series=\bfseries}
+%\usefonttheme[stillsansseriftext,stillsansserifmath]{serif}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize item}[ball]
+
+\title{
+  {\normalsize \bf
+    \borange{\courseCode~(\courseTitle)\\ \season~\yr}}\\[2ex]
+  {\Large \bf \topic}}
+
+\author[Smith]{\instructor}
+
+\institute{
+  Faculty of Engineering,
+  McMaster University}
+
+\date{
+\today
+\bc
+  \includegraphics[scale = 0.2, keepaspectratio]
+  {../mcmaster-logo-full-color.jpg}
+\ec
+}
+
+\renewcommand{\borange}[1] %orange is too hard to read
+{
+   \bred{#1}
+}
