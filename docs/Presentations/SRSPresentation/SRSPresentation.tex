@@ -24,6 +24,7 @@
 
 \usepackage[version=4]{mhchem}
 \usepackage{siunitx}
+\usepackage{tabularx}
 
 \input{../../Common}
 
@@ -118,8 +119,7 @@
 \item System of equations in structural simulations is assembled from local
   contributions.
 \item In contrast, in neural networks, dense weight matrices are used in fully
-  connected layers, particularly in large networks like transformers or dense
-  layers after convolutional layers.
+  connected layers.
 \end{itemize}
 
 \end{frame}
@@ -135,7 +135,7 @@
 \item \(\approx \SI{33}{\mega\byte}\) in file size
 \end{itemize}
 
-\begin{figure}[hh]
+\begin{figure}[h]
   \centering
   \begin{subfigure}[b]{0.5\textwidth}
     \centering
@@ -205,6 +205,168 @@
     sequestration}
   \label{fig:Serena}
 \end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Iterative Refinement}
+
+\begin{itemize}
+\item A method to enhance the accuracy of a solution to \(\matr{A}\vec{x} = \vec{b}\)
+\end{itemize}
+
+The algorithm goes:
+\begin{enumerate}
+\item Solve \(\matr{A}\vec{x}_0 = \vec{b}\) \emph{approximately} to get an initial solution \(\vec{x}_0\).
+\item Compute the residual \(\vec{r} = \vec{b} - \matr{A}\vec{x}_0\), which measures how far \(\vec{x}_0\) is
+  from being an exact solution.
+\item Solve \(\matr{A}\vec{e} = \vec{r}\) for the correction vector \(\vec{e}\).
+\item Update (``refine'') the solution as \(\vec{x}_1 = \vec{x}_0 + \vec{e}\).
+\item Repeat steps 2--4 until the residual \(\vec{r}\) is small enough.
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Iterative Refinement in Mixed-Precision}
+
+\begin{enumerate}
+\item Solve \(\matr{A}\vec{x}_0 = \vec{b}\) \emph{approximately} in \textbf{low} precision.
+\item Compute the residual \(\vec{r} = \vec{b} - \matr{A}\vec{x}_0\) in \textbf{high} precision.
+\item Solve \(\matr{A}\vec{e} = \vec{r}\) for the correction vector \(\vec{e}\) in \textbf{low} precision.
+\item Update the solution as \(\vec{x}_1 = \vec{x}_0 + \vec{e}\) in \textbf{medium} precision.
+\item Repeat steps 2--4 until the residual \(\vec{r}\) is small enough.
+\end{enumerate}
+
+Key points:
+
+\begin{itemize}
+\item Trade computational complexity for space complexity
+\item Preserve sparsity by carefully selecting algorithms: sparse LU factorization,
+  General Minimal Residual Method (GMRES)
+\item Inner solves could also be iterative and in mixed-precision
+\item Possible matrix-free implementation
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Goals}
+
+\begin{enumerate}[{GS}1]
+\item Given some matrix \(\matr{A}\) and column vector \(\vec{b}\), the solver
+  should iteratively find \(\vec{x}\) satisfying the equation \(\matr{A}\vec{x}
+  = \vec{b}\) until the norm of the residual \(\vec{r} = \matr{A}\vec{x} -
+  \vec{b}\) is smaller than some tolerance \(\epsilon\), or the maximum number
+  of iterations \(n_\mathrm{iter}\) is exhausted, whichever comes first.
+\item Given some combinations of floating point precision configuration, the solver
+  should perform internal steps such as matrix factorizations, triangular
+  solves, and residual computation in these configured precisions.
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Goals (Non-functional)}
+
+\begin{enumerate}[{GS}1]
+  \setcounter{enumi}{2}
+\item The solver should offer a quantifiable performance or resource utilization
+  advantage over other competing sparse linear solvers.
+\item The library should offer a set of streamlined public application
+  programming interfaces (APIs), such that when integrated into other software
+  as a dependent library, the interfaces are self-contained, readable and easy
+  to consume.
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Stretch Goals}
+
+\begin{enumerate}[{GS}1]
+  \setcounter{enumi}{4}
+\item With the existing solver implementation being the baseline, the refactored
+  solver should produce more accurate results, lowering the norm of the residual
+  by at least 1 order of magnitude.
+\item The solver should optimize existing algorithms such that given the same set
+  of inputs, it produces results with the same accuracy in notably less time.
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Inputs}
+
+\begin{table}[hp]
+  \centering
+  \label{tab:inputs}
+  \begin{tabularx}{1.0\linewidth}{rX}
+    \toprule
+    \textbf{Variable}  & \textbf{Description} \\
+    \midrule
+    \(\matr{A}\) & \(n \times n\) matrix \\
+    \(\vec{b}\)        & \(n\)-vector \\
+    \(\epsilon\)        & a solution is found if the norm of the residual is less than \(\epsilon\) \\
+    \(n_\mathrm{iter}\) & the maximum number of iterations to perform \\
+    \(u_f\)       & factorization precision \\
+    \(u_w\)       & working precision \\
+    \(u_r\)       & precision in which the residuals are computed \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Outputs}
+
+\begin{table}[hp]
+  \centering
+  \label{tab:inputs}
+  \begin{tabularx}{1.0\linewidth}{rX}
+    \toprule
+    \textbf{Variable} & \textbf{Description} \\
+    \midrule
+    \(\vec{x}\)       & a numerical solution to the linear system \\
+    \(\mathrm{err}\)  & the norm of the residual \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Assumptions}
+
+\begin{enumerate}[{A}1]
+\item Matrix \(\matr{A}\) is quasi-definite.
+\item The precisions follow the order \(u_f \leq u_w \leq u_r\), with \(u_r\) being the
+  highest precision.
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Questions}
 
 \end{frame}
 
