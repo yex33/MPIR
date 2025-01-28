@@ -188,6 +188,43 @@
 \begin{itemize}
 \item Store the whole matrix
 \item Memory bounded
+\end{itemize}
+
+\[
+  \begin{aligned}
+    \matr{A}|\vec{b} = &
+    \left[
+      \begin{array}{ccc|c}
+        1 & -1 & 3 & 11 \\
+        1 &  1 & 0 &  3 \\
+        3 & -2 & 1 &  3
+      \end{array}
+    \right]
+    \begin{array}{cc}
+      \times 1 & \times 3 \\
+      \downarrow   & \\
+               & \downarrow
+    \end{array}
+    \\
+    \matr{A}|\vec{b} \leftarrow &
+    \left[
+    \begin{array}{ccc|c}
+      1 & -1 & 3 &  11 \\
+      0 &  2 & -3 &  -8 \\
+      0 &  1 & -8 & -30
+    \end{array}
+    \right]
+  \end{aligned}
+\]
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{The Problem with Gaussian Elimination}
+
+\begin{itemize}
 \item Sparsity preservation
 \end{itemize}
 
@@ -197,9 +234,9 @@
     \centering
     \includegraphics[width=\textwidth,trim={2cm 1.5cm 2cm 1cm},clip]{figures/Serena}
   \end{subfigure}
-  \begin{subfigure}[b]{0.4\textwidth}
+  \begin{subfigure}[b]{0.37\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{figures/chicken}
+    \includegraphics[width=\textwidth]{figures/Serena_graph}
   \end{subfigure}
   \caption*{Janna/Serena: gas resevoir simulation for \ce{CO2}
     sequestration}
@@ -246,7 +283,7 @@ Key points:
 
 \begin{itemize}
 \item Trade computational complexity for space complexity
-\item Preserve sparsity by carefully selecting algorithms: sparse LU factorization,
+\item Choose algorithms that can preserve sparsity: sparse LU factorization,
   General Minimal Residual Method (GMRES)
 \item Inner solves could also be iterative and in mixed-precision
 \item Possible matrix-free implementation
@@ -353,12 +390,16 @@ Key points:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{frame}
-\frametitle{Assumptions}
+\frametitle{Assumptions and Constraints}
 
 \begin{enumerate}[{A}1]
-\item Matrix \(\matr{A}\) is quasi-definite.
+\item Matrix \(\matr{A}\) is quasi-definite. (LC1)
 \item The precisions follow the order \(u_f \leq u_w \leq u_r\), with \(u_r\) being the
   highest precision.
+\end{enumerate}
+
+\begin{enumerate}[{C}1]
+\item Use preconditioned GMRES for solving the error correction vector.
 \end{enumerate}
 
 \end{frame}
