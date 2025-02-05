@@ -19,8 +19,8 @@
 \usepackage{pdflscape}
 \usepackage{afterpage}
 
-\usepackage[round]{natbib}
-
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{../../refs/References.bib}
 %\usepackage{refcheck}
 
 \hypersetup{
@@ -846,9 +846,6 @@ Symbol &$q_C$\\
 
 \plt{All data types must be used by at least one of the models.}
 
-\plt{For the mathematical notation for expressing types, the recommendation is
-  to use the notation of~\citet{HoffmanAndStrooper1995}.}
-
 This section collects and defines all the data types needed to document the
 models. \plt{Modify the examples below for your problem, and add additional
   definitions as appropriate.}
@@ -1289,8 +1286,7 @@ Their values are defined in this section for easy maintenance.}
 
 \newpage
 
-\bibliographystyle {plainnat}
-\bibliography {../../refs/References}
+\printbibliography{}
 
 \newpage
 
