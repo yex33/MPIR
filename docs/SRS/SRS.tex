@@ -543,11 +543,14 @@ change [LC], in which the respective assumption is used.
 
 \begin{itemize}
 
-\item[A\refstepcounter{assumpnum}\theassumpnum \label{A_meaningfulLabel}:]
-  \plt{Short description of each assumption.  Each assumption
-    should have a meaningful label.  Use cross-references to identify the
+\item[A\refstepcounter{assumpnum}\theassumpnum \label{A:prec}:] The given
+  precisions follow the order \(u_f \leq u_w \leq u_r\), with \(u_r\) being the
+  highest precision.
+
+  \plt{Short description of each assumption. Each assumption
+    should have a meaningful label. Use cross-references to identify the
     appropriate traceability to TM, GD, DD etc., using commands like dref, ddref
-    etc.  Each assumption should be atomic - that is, there should not be an
+    etc. Each assumption should be atomic - that is, there should not be an
     explicit (or implicit) ``and'' in the text of an assumption.}
 
 \end{itemize}
@@ -578,24 +581,23 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #3 label
 {\(\matr{L}\matr{D}\matr{L}\transpose\) factorization}
 % #4 equation
-{ \(\matr{P}\matr{K}\matr{P}\transpose = \matr{L}\matr{D}\matr{L}\transpose\)}
+{\(\matr{P}\matr{K}\matr{P}\transpose = \matr{L}\matr{D}\matr{L}\transpose\)}
 % #5 description
 { Symmetric quasi-definite matrices are strongly factorizable. For every
   permutation \(\matr{P}\) there is a diagonal \(\matr{D}\) and a unit
   lower-triangular \(\matr{L}\) such that the above equation holds. }
 % #6 Notes
 { Definitions of symmetric matrices and quasi-definite matrices are given in
-  \ddref{DD:sym} and \ddref{DD:quasidef}, respectively. }
+  \ddref{DD:sym} and \ddref{DD:quasidef}, respectively. In general, if the
+  \(\matr{L}\matr{D}\matr{L}\transpose\) factors are obtained for some matrix
+  \(\matr{A}\), it is easy to repeatedly solve the problem \(\matr{A}\vec{x} =
+  \vec{b}\) for different vector \(\vec{b}\)'s. }
 % #7 Source
-{ \cite{vanderbei_symmetric_1995}, \cite{gill_stability_1996} }
+{\cite{vanderbei_symmetric_1995}, \cite{gill_stability_1996}}
 % #8 Referenced by
-{
-  \dref{ROCT}
-}
+{\dref{ROCT}}
 % #9 Preconditions
-{
-  Matrix \(\matr{A}\) is symmetric quasi-definite.
-}
+{Matrix \(\matr{K}\) is symmetric quasi-definite.}
 % #1 derivation - not applicable by default
 {}
 
@@ -622,17 +624,11 @@ on.  \plt{Modify the examples below for your problem, and add additional models
   vector \(\vec{r}_0\). It is fundamental to many iterative methods for solving
   large linear systems and eigenvalue problems. }
 % #7 Source
-{
-  \cite[p.~186]{Ascher2011}
-}
+{\cite[p.~186]{ascher_first_2011}}
 % #8 Referenced by
-{
-  \dref{ROCT}
-}
+{\dref{ROCT}}
 % #9 Preconditions
-{
-  None
-}
+{None}
 % #1 derivation - not applicable by default
 {}
 
@@ -645,30 +641,72 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #3 label
 {Matrix Preconditioning}
 % #4 equation
-{\(\matr{M}^{-1} \matr{A}\vec{x} = \matr{M}^{-1} \vec{b} \quad \text{or} \quad
+{ \(\matr{M}^{-1} \matr{A}\vec{x} = \matr{M}^{-1} \vec{b} \quad \text{or} \quad
   \matr{A}\matr{M}^{-1}\vec{y} = \vec{b} , \vec{x} = \matr{M}^{-1}\vec{y}\) }
 % #5 description
 { \(\matr{A}\) is any given real, \(n \times n\) matrix. \(\matr{M}\) is the
   preconditioner, chosen such that \(\matr{M}^{-1}\matr{A}\) is better
-  conditioned than \(\matr{A}\). \(\matr{M}\) should be easy to invert or solve
-  efficiently. }
+  conditioned than \(\matr{A}\). It is often the case that \(\matr{M}^{-1}
+  \approx \matr{A}^{-1}\), and computing \(\matr{M}^{-1}\) is much easier than
+  computing \(\matr{A}^{-1}\) directly. }
 % #6 Notes
-{ Preconditioning is a technique used in iterative methods for solving linear
-  systems to improve convergence speed and numerical stability. It involves
-  transforming the original system into an equivalent one that is easier to
-  solve, typically by reducing the condition number of the matrix. }
+{ Intuitively, a matrix \(\matr{A}\) describes some kind of linear
+  transformation. If \(\matr{A}\) is poorly conditioned, this transformation can
+  be extreme---small differences between vectors may be greatly amplified,
+  causing closely placed vectors to move far apart. This makes it difficult for
+  iterative solvers to ``backtrack'' what happened before and after the
+  transformation. By preconditioning \(\matr{A}\) with an approximate inverse,
+  we are effectively ``undoing'' some (but not all) of the transformations,
+  taming \(\matr{A}\) down to some extent. And then we can work with a tamed
+  down, better conditioned version of \(\matr{A}\) and solve the system from
+  there. }
 % #7 Source
-{
-  \cite[p.~187]{Ascher2011}
-}
+{\cite[p.~187]{ascher_first_2011}}
 % #8 Referenced by
-{
-  \dref{ROCT}
-}
+{\dref{ROCT}}
 % #9 Preconditions
-{
-  None
-}
+{None}
+% #1 derivation - not applicable by default
+{}
+
+~\newline
+
+\noindent
+\deftheory
+% #2 refname of theory
+{TM:IR}
+% #3 label
+{Iterative refinement in mixed-precision (MP)}
+% #4 equation
+{ \begin{minipage}{.8\linewidth}
+    \begin{algorithm}[H]
+      \caption{Iterative refinement}
+      \begin{algorithmic}[1]
+        \For{\(m \gets 1, 2, \dots\), the \(m\)th iteration}
+          \State \(\vec{r}_m \gets \vec{b} - \matr{A}\vec{x}_m\) \Comment{Compute the residuals}\label{algo:ir:residual}
+          \State Solve \(\matr{A}\vec{d}_m = \vec{r}_m\) for \(\vec{d}_m\) \Comment{Compute the correction}\label{algo:ir:solve}
+          \State \(\vec{x}_{m + 1} = \vec{x}_m + \vec{d}_m\) \Comment{Add the correction}
+        \EndFor
+      \end{algorithmic}
+    \end{algorithm}
+  \end{minipage} \vspace{5pt} }
+% #5 description
+{ Iterative refinement is a process for reducing the round-off error in the
+  computed solution \(\vec{x}_0\) to an \(n \times n\) system of linear
+  equations \(\matr{A}\vec{x} = \vec{b}\). Any appropriate method with
+  reasonable accuracy can be used at step \ref{algo:ir:solve}. Only step
+  \ref{algo:ir:residual} requires higher precision. Under the assumption
+  \aref{A:prec} on given arithmetic precision configurations, that the precision
+  used for computing the residual would be the highest, the final result
+  produced by the result is shown to be accurate. }
+% #6 Notes
+{None}
+% #7 Source
+{\cite{moler_iterative_1967}}
+% #8 Referenced by
+{\ddref{FluxCoil}, \ddref{FluxPCM}}
+% #9 Preconditions
+{None}
 % #1 derivation - not applicable by default
 {}
 
@@ -684,9 +722,6 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 ~\newline
 
 \subsubsection{General Definitions}\label{sec_gendef}
-
-% IR gets to the result
-% GMRES
 
 \plt{General Definitions (GDs) are a refinement of one or more TMs, and/or of
   other GDs.  The GDs are less abstract than the TMs.  Generally the reduction
@@ -705,38 +740,37 @@ instance models.
   \begin{tabular}{|p{\colAwidth}|p{\colBwidth}|}
     \hline
     \rowcolor[gray]{0.9}
-    Number& GD\refstepcounter{defnum}\thedefnum \label{IR}\\
+    Number& GD\refstepcounter{defnum}\thedefnum \label{GD:GMRES} \\
     \hline
-    Label & \textbf{Iterative refinement in mixed-precision (MP)} \\
+    Label & \textbf{Restarted GMRES with left preconditioning} \\
     \hline
-    Algorithm & \\
+    Algorithm &
+                \begin{minipage}{\linewidth}
+                  \begin{algorithm}[H]
+                    \caption{Restarted GMRES with left preconditioning}
+                    \begin{algorithmic}[1]
+                      \State \(\matr{A} \in \mathbb{R}^{n \times n}, \quad \vec{x}_0, \vec{b} \in \mathbb{R}^n, \quad \matr{M}^{-1} \approx \matr{A}^{-1}\)
+                      \For{\(k \gets 1, 2, \dots\), the \(k\)th restart}
+                        \State \(\vec{z}_k \gets \vec{b} - \matr{A}\vec{x}_k\) \Comment{Compute residual}
+                        \State \(\vec{r}_k \gets \matr{M}^{-1}\vec{z}_k\) \Comment{Apply preconditioning}
+                        \State \(\beta \gets \norm{\vec{r}_k}_2, \quad \vec{v}_1 = \vec{r}_k / \beta, \quad \matr{V}_1 \gets [\vec{v}_1]\) \Comment{Setup for Arnoldi process}
+                        \State Construct an orthogonal basis of preconditioned Krylov subspace \[\spann{\vec{r}_k, \matr{M}^{-1}\matr{A}^{-1}\vec{r}_k, \dots, (\matr{M}^{-1}\matr{A}^{-1})^{m - 1}\vec{r}_k}\]
+                        \State Solve the least square problem and compute the correction
+                        \State \(\vec{x}_{k + 1} = \vec{x}_k + \vec{d}_k\) \Comment{Add the correction}
+                      \EndFor
+                    \end{algorithmic}
+                  \end{algorithm}
+                \end{minipage} \vspace{5pt} \\
     \hline
-    Description &
-                  Newton's law of cooling describes convective cooling from a
-                  surface. The law is stated as: the rate of heat loss from a
-                  body is proportional to the difference in temperatures between
-                  the body and its surroundings.
+    Description & Combination of \tref{TM:Precond}
     \\
-          & $q(t)$ is the thermal flux (\si{\watt\per\square\metre}).\\
-          & $h$ is the heat transfer coefficient, assumed independent of $T$ (\aref{A_hcoeff})
-            (\si{\watt\per\square\metre\per\celsius}).\\
-          &$\Delta T(t)$= $T(t) - T_{\text{env}}(t)$ is the time-dependent thermal gradient
-            between the environment and the object (\si{\celsius}).
-    \\
     \hline
-    Source & Citation here \\
+    Source & \cite{saad_flexible_1993}, \cite{lindquist_improving_2020} \\
     \hline
     Ref.\ By & \ddref{FluxCoil}, \ddref{FluxPCM}\\
     \hline
   \end{tabular}
 \end{minipage}\\
-
-\subsubsection*{Detailed derivation of simplified rate of change of temperature}
-
-\plt{This may be necessary when the necessary information does not fit in the
-  description field.}
-\plt{Derivations are important for justifying a given GD.  You want it to be
-  clear where the equation came from.}
 
 \subsubsection{Data Definitions}\label{sec_datadef}
 
@@ -769,7 +803,7 @@ models. The dimension of each quantity is also given.
     Description & A square matrix is symmetric if it satisfies the equation
                   above. \\
     \hline
-    Sources     & \cite[p.~78]{Ascher2011} \\
+    Sources     & \cite[p.~78]{ascher_first_2011} \\
     \hline
     Ref.\ By     & \ddref{DD:quasidef} \\
     \hline
@@ -795,7 +829,7 @@ models. The dimension of each quantity is also given.
                   x_n)\transpose\), we require \(\sum_{i,j=1}^n a_{i,j}x_ix_j > 0\),
                   provided that at least one component \(x_j \neq 0\). \\
     \hline
-    Sources     & \cite[p.~78]{Ascher2011} \\
+    Sources     & \cite[p.~78]{ascher_first_2011} \\
     \hline
     Ref.\ By     & \ddref{DD:quasidef} \\
     \hline
@@ -814,12 +848,14 @@ models. The dimension of each quantity is also given.
     \hline
     Label     & \textbf{Symmetric quasi-definite matrix} \\
     \hline
-    Equation    & \(\matr{K} =
+    Equation    & \vspace{0pt}
+                  \(\matr{K} =
                   \begin{bmatrix}
                     -\matr{E} & \matr{A}\transpose \\
                     \matr{A}  & \matr{F}
                   \end{bmatrix}
-                  \) \\
+                  \)
+                  \vspace{5pt} \\
     \hline
     Description & A symmetric matrix (defined in \ddref{DD:sym}) \(\matr{K}\) is
                   quasi-definite if it has the above form. \(\matr{E},
@@ -833,10 +869,33 @@ models. The dimension of each quantity is also given.
   \end{tabular}
 \end{minipage}
 
+~\newline
+
+\noindent
+\begin{minipage}{\textwidth}
+  \renewcommand*{\arraystretch}{1.5}
+  \begin{tabular}{|p{\colAwidth}|p{\colBwidth}|}
+    \hline
+    \rowcolor[gray]{0.9}
+    Number    & DD\refstepcounter{datadefnum}\thedatadefnum \label{DD:2norm} \\
+    \hline
+    Label     & \textbf{Euclidean norm} \\
+    \hline
+    Equation    & \(\norm{\vec{x}}_2 = \sqrt{x_1^2 + \cdots + x_n^2}\) \\
+    \hline
+    Description & The length of the vector \(\vec{x} = (x_1, x_2, \dots, x_n)\) on the \(n\)-dimensional Euclidean space \(\mathbb{R}^n\). \\
+    \hline
+    Sources     & \cite{weisstein_vector_nodate} \\
+    \hline
+    Ref.\ By     & \dref{GD:GMRES} \\
+    \hline
+  \end{tabular}
+\end{minipage}
+
 \subsubsection{Data Types}\label{sec_datatypes}
 
 \plt{This section is optional.  In many scientific computing programs it isn't
-  necessary, since the inputs and outpus are straightforward types, like reals,
+  necessary, since the inputs and outputs are straightforward types, like reals,
   integers, and sequences of reals and integers.  However, for some problems it
   is very helpful to capture the type information.}
 
@@ -854,17 +913,35 @@ models. \plt{Modify the examples below for your problem, and add additional
 \noindent
 \begin{minipage}{\textwidth}
 \renewcommand*{\arraystretch}{1.5}
-\begin{tabular}{| p{\colAwidth} | p{\colBwidth}|}
+\begin{tabular}{|p{\colAwidth}|p{\colBwidth}|}
   \hline
   \rowcolor[gray]{0.9}
-  Type Name & Name for Type\\
+  Type Name & \(u\), meta type variable for any step that involves floating point
+              arithmetics \\
   \hline
-  Type Def & mathematical definition of the type\\
+  Type Def & \vspace{5pt}
+             \begin{tabularx}{\linewidth}{lccccc} \toprule
+               \textbf{Arithmetic} & \textbf{Symbol} & \multicolumn{2}{c}{\textbf{Bits}} & \textbf{Unit} & \textbf{Range} \\ \cline{3-4}
+                             &           & \textbf{Significand}     & \textbf{Exp.} & \textbf{Roundoff}      & \\ \midrule
+               bfloat16      & B         & 8                  & 8       & $3.91 \times 10^{-3}$  & $10^{\pm 38}$ \\
+               fp16          & H         & 11                 & 5       & $4.88 \times 10^{-4}$  & $10^{\pm 5}$ \\
+               fp32          & S         & 24                 & 8       & $5.96 \times 10^{-8}$  & $10^{\pm 38}$ \\
+               fp64          & D         & 53                 & 11      & $1.11 \times 10^{-16}$ & $10^{\pm 308}$ \\
+               fp128         & Q         & 113                & 15      & $9.63 \times 10^{-35}$ & $10^{\pm 4932}$ \\ \bottomrule
+             \end{tabularx}
+             \vspace{5pt} \\
   \hline
-  Description & description here
+  Description & The IEEE 754-2019 standard specifies the formats of floating
+                point numbers, including: half, single, double, and double
+                extended (quadruple). Each format has its own representation for
+                numbers, in the form of \(2^{k+1-N }n\), with two integers \(n\)
+                (signed significand) and \(k\) (unbiased signed exponent). Note
+                that bfloat16 is a shorten IEEE single-precision 32-bit float.
+                The value of meta type variable \(u\) could be any of the
+                floating point types listed above.
   \\
   \hline
-  Sources & Citation here, if the type is borrowed from another source\\
+  Sources & \cite{noauthor_ieee_2019}, \cite{wang_bfloat16_2019} \\
   \hline
 \end{tabular}
 \end{minipage}\\
