@@ -37,8 +37,8 @@ jobs:
       - name: Setup TeX Live
         uses: teatimeguest/setup-texlive-action@v3
         with:
-          package-file: |
-            .github/tl_packages
+          packages: |
+            scheme-medium
       - name: Compile LaTeX Files
         working-directory: docs
         run: |
