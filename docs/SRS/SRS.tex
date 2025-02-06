@@ -26,7 +26,7 @@
 
 \hypersetup{
     bookmarks=true,         % show bookmarks bar?
-      colorlinks=true,       % false: boxed links; true: colored links
+    colorlinks=true,        % false: boxed links; true: colored links
     linkcolor=red,          % color of internal links (change box color with linkbordercolor)
     citecolor=green,        % color of links to bibliography
     filecolor=magenta,      % color of file links
@@ -89,7 +89,9 @@
 \newpage
 \noindent \rule{\textwidth}{0.5mm}
 
-\paragraph{RefName: } \textbf{#2} \phantomsection
+\paragraph{RefName: } \textbf{#2}
+\refstepcounter{theorynum}
+\phantomsection
 \label{#2}
 
 \paragraph{Label:} #3
@@ -224,6 +226,12 @@ literatures.
 \plt{This section was added to the template because some students use very
   domain specific notation.  This notation will not be readily understandable to
   people outside of your domain.  It should be explained.}
+
+This document annotates variables of matrices or vectors in math bold face. For
+any matrix \(\matr{A}\) or vector \(\vec{b}\), one with subscript \(\matr{A}_i\)
+or \(\vec{b}_i\) always means ``the \(i\)th matrix/vector''. \(a_{i,j}\) or
+\(b_{i}\) is used to reference ``the element at row \(i\) column \(j\) in matrix
+\(\matr{A}\)'' or ``the \(i\)th element in vector \(\vec{b}\)''.
 
 \newpage
 
@@ -631,7 +639,7 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #7 Source
 {\cite{vanderbei_symmetric_1995}, \cite{gill_stability_1996}}
 % #8 Referenced by
-{\dref{ROCT}}
+{\iref{IM:IM}}
 % #9 Preconditions
 {Matrix \(\matr{K}\) is symmetric quasi-definite.}
 % #1 derivation - not applicable by default
@@ -662,7 +670,7 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #7 Source
 {\cite[p.~186]{ascher_first_2011}}
 % #8 Referenced by
-{\dref{ROCT}}
+{\dref{GD:GMRES}}
 % #9 Preconditions
 {None}
 % #1 derivation - not applicable by default
@@ -699,7 +707,7 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #7 Source
 {\cite[p.~187]{ascher_first_2011}}
 % #8 Referenced by
-{\dref{ROCT}}
+{\dref{GD:GMRES}}
 % #9 Preconditions
 {None}
 % #1 derivation - not applicable by default
@@ -740,7 +748,7 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #7 Source
 {\cite{moler_iterative_1967}}
 % #8 Referenced by
-{\ddref{FluxCoil}, \ddref{FluxPCM}}
+{\iref{IM:IM}}
 % #9 Preconditions
 {None}
 % #1 derivation - not applicable by default
@@ -798,12 +806,12 @@ instance models.
                   \end{algorithm}
                 \end{minipage} \vspace{5pt} \\
     \hline
-    Description & Combination of \tref{TM:Precond}
+    Description & Combination of \tref{TM:Krylov} and \tref{TM:Precond}.
     \\
     \hline
     Source & \cite{saad_flexible_1993}, \cite{lindquist_improving_2020} \\
     \hline
-    Ref.\ By & \ddref{FluxCoil}, \ddref{FluxPCM}\\
+    Ref.\ By & \iref{IM:IM} \\
     \hline
   \end{tabular}
 \end{minipage}\\
@@ -841,7 +849,7 @@ models. The dimension of each quantity is also given.
     \hline
     Sources     & \cite[p.~78]{ascher_first_2011} \\
     \hline
-    Ref.\ By     & \ddref{DD:quasidef} \\
+    Ref.\ By     & \ddref{DD:quasidef}, \iref{IM:IM} \\
     \hline
   \end{tabular}
 \end{minipage}
@@ -900,7 +908,7 @@ models. The dimension of each quantity is also given.
     \hline
     Sources     & \cite{gill_stability_1996} \\
     \hline
-    Ref.\ By     & \tref{TM:LDL} \\
+    Ref.\ By     & \tref{TM:LDL}, \iref{IM:IM} \\
     \hline
   \end{tabular}
 \end{minipage}
@@ -923,7 +931,7 @@ models. The dimension of each quantity is also given.
     \hline
     Sources     & \cite{weisstein_vector_nodate} \\
     \hline
-    Ref.\ By     & \dref{GD:GMRES} \\
+    Ref.\ By     & \dref{GD:GMRES}, \iref{IM:IM} \\
     \hline
   \end{tabular}
 \end{minipage}
@@ -997,7 +1005,7 @@ one which is expressed in mathematical terms. It uses concrete symbols defined
 in Section~\ref{sec_datadef} to replace the abstract symbols in the models
 identified in Sections~\ref{sec_theoretical} and~\ref{sec_gendef}.
 
-The goal \gsref{GS:Axb} is solved by \iref{IM}.
+The goal \gsref{GS:Axb} is solved by \iref{IM:IM}.
 
 ~\newline
 
@@ -1009,7 +1017,7 @@ The goal \gsref{GS:Axb} is solved by \iref{IM}.
 \begin{tabular}{|p{\colAwidth}|p{\colBwidth}|}
   \hline
   \rowcolor[gray]{0.9}
-  Number      & IM\refstepcounter{instnum}\theinstnum \label{IM}\\
+  Number      & IM\refstepcounter{instnum}\theinstnum \label{IM:IM}\\
   \hline
   Label       & \textbf{GMRES-IR with \(\matr{L}\matr{D}\matr{L}\transpose\) factorization in MP} \\
   \hline
@@ -1084,21 +1092,21 @@ qualities that the software is expected to exhibit.
 
 \noindent \begin{itemize}
 
-\item[R\refstepcounter{reqnum}\thereqnum \label{R_Inputs}:] Given some matrix
+\item[R\refstepcounter{reqnum}\thereqnum \label{R:Axb}:] Given some matrix
   \(\matr{A}\) and column vector \(\vec{b}\), the solver should iteratively find
   \(\vec{x}\) satisfying the equation \(\matr{A}\vec{x} = \vec{b}\) until the
   norm of the residual \(\vec{r} = \matr{A}\vec{x} - \vec{b}\) is smaller than
   some tolerance \(\epsilon\), or the maximum number of iterations
-  \(n_\mathrm{iter}\) is exhausted, whichever comes first. This iterative process
-  should strictly follow the operational specifications of \iref{IM}.
-\item[R\refstepcounter{reqnum}\thereqnum \label{R_OutputInputs}:] The solver should
-  offer customizability on the arithmetic precision used to perform matrix
+  \(n_\mathrm{iter}\) is exhausted, whichever comes first. This iterative
+  process should strictly follow the operational specifications of \iref{IM:IM}.
+\item[R\refstepcounter{reqnum}\thereqnum \label{R:MP}:] The solver should offer
+  customizability on the arithmetic precision used to perform matrix
   factorization, iterative refinement, and residual evaluation.
 
-\item[R\refstepcounter{reqnum}\thereqnum \label{R_VerifyOutput}:] The accompanying
-  package should provide one or many example programs to demonstrate the process
-  of preparing the inputs for the solver, consuming the solver APIs, and
-  observing the outputs of the solver.
+\item[R\refstepcounter{reqnum}\thereqnum \label{R:ex}:] The accompanying package
+  should provide one or many example programs to demonstrate the process of
+  preparing the inputs for the solver, consuming the solver APIs, and observing
+  the outputs of the solver.
 
 \end{itemize}
 
@@ -1126,11 +1134,11 @@ be covered in the Verification and Validation document.}
 
 \noindent \begin{itemize}
 
-\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR_Accuracy}:] \textbf{Accuracy} The
-  solver should converge to a solution within a user-defined tolerance
-  \(\epsilon\), with a default threshold of \textit{DEFAULT\_TOL} for residual
-  norm reduction. If the solves fails to converge after \(n_\mathrm{iter}\)
-  iterations, the solver should warn about such failure.
+\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:acc}:] \textbf{Accuracy} The solver
+  should converge to a solution within a user-defined tolerance \(\epsilon\),
+  with a default threshold of \textit{DEFAULT\_TOL} for residual norm reduction.
+  If the solves fails to converge after \(n_\mathrm{iter}\) iterations, the
+  solver should warn about such failure.
 
   \plt{Characterize the accuracy by giving the context/use for
     the software.  Maybe something like, ``The accuracy of the computed
@@ -1139,7 +1147,7 @@ be covered in the Verification and Validation document.}
     described following the procedure given in Section~X of the Verification and
     Validation Plan.''  A link to the VnV plan would be a nice extra.}
 
-\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR_Usability}:] \textbf{Usability} The
+\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:use}:] \textbf{Usability} The
   library should offer a set of streamlined public application programming
   interfaces (APIs), such that when integrated into other software as a
   dependent library, the interfaces are self-contained, readable and easy to
@@ -1151,14 +1159,14 @@ be covered in the Verification and Validation document.}
     procedure given in Section~X of the Verification and Validation Plan. A link
     to the VnV plan would be a nice extra.}
 
-\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR_Maintainability}:]
+\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:mt}:]
   \textbf{Maintainability} The effort required to make any of the likely changes
   listed for \progname{} should be less than \textit{FRACTION} of the original
   development time.
 
-\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR_Portability}:]
-  \textbf{Portability} The library should run on all actively maintained
-  operating systems including Windows 10, Windows 11, Linux, Mac OS.
+\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:port}:] \textbf{Portability}
+  The library should run on all actively maintained operating systems including
+  Windows 10, Windows 11, Linux, Mac OS.
 
   \plt{This NFR is easier to write than the others. The systems that \progname{}
     should run on should be listed here. When possible the specific versions of
@@ -1219,102 +1227,102 @@ the assumptions.
 \plt{The traceability matrix is challenging to maintain manually.  Please do
   your best.  In the future tools (like Drasil) will make this much easier.}
 
-\afterpage{
-\begin{landscape}
+% \gsref{GS:Axb}
+% \aref{A:quasi}
+% \aref{A:prec}
+% \tref{TM:LDL}
+% \tref{TM:Krylov}
+% \tref{TM:Precond}
+% \tref{TM:IR}
+% \dref{GD:GMRES}
+% \ddref{DD:sym}
+% \ddref{DD:posdef}
+% \ddref{DD:quasidef}
+% \ddref{DD:2norm}
+% \dtref{DT:u}
+% \iref{IM:IM}
+% \rref{R:Axb}
+% \rref{R:MP}
+% \rref{R:ex}
+% \nfrref{NFR:acc}
+% \nfrref{NFR:use}
+% \nfrref{NFR:mt}
+% \nfrref{NFR:port}
+% \lcref{LC:generic}
+% \lcref{LC:sparse}
+
 \begin{table}[h!]
-\centering
-\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
-\hline
-	& \aref{A_OnlyThermalEnergy}& \aref{A_hcoeff}& \aref{A_mixed}& \aref{A_tpcm}& \aref{A_const_density}& \aref{A_const_C}& \aref{A_Newt_coil}& \aref{A_tcoil}& \aref{A_tlcoil}& \aref{A_Newt_pcm}& \aref{A_charge}& \aref{A_InitTemp}& \aref{A_OpRangePCM}& \aref{A_OpRange}& \aref{A_htank}& \aref{A_int_heat}& \aref{A_vpcm}& \aref{A_PCM_state}& \aref{A_Pressure} \\
-\hline
-\tref{T_COE}        & X& & & & & & & & & & & & & & & & & & \\ \hline
-\tref{T_SHE}        & & & & & & & & & & & & & & & & & & & \\ \hline
-\tref{T_LHE}        & & & & & & & & & & & & & & & & & & & \\ \hline
-\dref{NL}           & & X& & & & & & & & & & & & & & & & & \\ \hline
-\dref{ROCT}         & & & X& X& X& X& & & & & & & & & & & & & \\ \hline
-\ddref{FluxCoil}    & & & & & & & X& X& X& & & & & & & & & & \\ \hline
-\ddref{FluxPCM}     & & & X& X& & & & & & X& & & & & & & & & \\ \hline
-\ddref{D_HOF}       & & & & & & & & & & & & & & & & & & & \\ \hline
-\ddref{D_MF}        & & & & & & & & & & & & & & & & & & & \\ \hline
-\iref{ewat}         & & & & & & & & & & & X& X& & X& X& X& & & X \\ \hline
-\iref{epcm}         & & & & & & & & & & & & X& X& & & X& X& X& \\ \hline
-\iref{I_HWAT}       & & & & & & & & & & & & & & X& & & & & X \\ \hline
-\iref{I_HPCM}       & & & & & & & & & & & & & X& & & & & X & \\ \hline
-\lcref{LC_tpcm}     & & & & X& & & & & & & & & & & & & & & \\ \hline
-\lcref{LC_tcoil}    & & & & & & & & X& & & & & & & & & & & \\ \hline
-\lcref{LC_tlcoil}   & & & & & & & & & X& & & & & & & & & & \\ \hline
-\lcref{LC_charge}   & & & & & & & & & & & X& & & & & & & & \\ \hline
-\lcref{LC_InitTemp} & & & & & & & & & & & & X& & & & & & & \\ \hline
-\lcref{LC_htank}    & & & & & & & & & & & & & & & X& & & & \\
-\hline
-\end{tabular}
-\caption{Traceability Matrix Showing the Connections Between Assumptions and Other Items}
-\label{Table:A_trace}
+  \centering
+  \begin{tabular}{|c|c|c|}                                      \hline
+                        & \aref{A:quasi} & \aref{A:prec} \\ \hline
+    \gsref{GS:Axb}      &                &               \\ \hline
+    \tref{TM:LDL}       & X              &               \\ \hline
+    \tref{TM:Krylov}    &                &               \\ \hline
+    \tref{TM:Precond}   &                &               \\ \hline
+    \tref{TM:IR}        &                & X             \\ \hline
+    \dref{GD:GMRES}     &                &               \\ \hline
+    \ddref{DD:sym}      &                &               \\ \hline
+    \ddref{DD:posdef}   &                &               \\ \hline
+    \ddref{DD:quasidef} & X              &               \\ \hline
+    \ddref{DD:2norm}    &                &               \\ \hline
+    \dtref{DT:u}        &                &               \\ \hline
+    \rref{R:Axb}        & X              &               \\ \hline
+    \rref{R:MP}         &                & X             \\ \hline
+    \rref{R:ex}         &                &               \\ \hline
+    \nfrref{NFR:acc}    &                &               \\ \hline
+    \nfrref{NFR:use}    &                &               \\ \hline
+    \nfrref{NFR:mt}     &                &               \\ \hline
+    \nfrref{NFR:port}   &                &               \\ \hline
+    \lcref{LC:generic}  & X              &               \\ \hline
+    \lcref{LC:sparse}   &                &               \\ \hline
+  \end{tabular}
+  \caption{Traceability matrix showing the connections between assumptions and other items}
+  \label{Table:A_trace}
 \end{table}
-\end{landscape}
-}
+
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
+                        & \tref{TM:LDL} & \tref{TM:Krylov} & \tref{TM:Precond} & \tref{TM:IR} & \dref{GD:GMRES} & \ddref{DD:sym} & \ddref{DD:posdef} & \ddref{DD:quasidef} & \ddref{DD:2norm} & \dtref{DT:u} & \iref{IM:IM} \\ \hline
+    \tref{TM:LDL}       &               &                  &                   &              &                 &                &                   & X                   &                  &              &              \\ \hline
+    \tref{TM:Krylov}    &               &                  &                   &              &                 &                &                   &                     &                  &              &              \\ \hline
+    \tref{TM:Precond}   &               &                  &                   &              &                 &                &                   &                     &                  &              &              \\ \hline
+    \tref{TM:IR}        &               &                  &                   &              &                 &                &                   &                     &                  &              &              \\ \hline
+    \dref{GD:GMRES}     &               & X                & X                 &              &                 &                &                   &                     & X                &              &              \\ \hline
+    \ddref{DD:sym}      &               &                  &                   &              &                 &                &                   &                     &                  &              &              \\ \hline
+    \ddref{DD:posdef}   &               &                  &                   &              &                 &                &                   &                     &                  &              &              \\ \hline
+    \ddref{DD:quasidef} &               &                  &                   &              &                 & X              & X                 &                     &                  &              &              \\ \hline
+    \ddref{DD:2norm}    &               &                  &                   &              &                 &                &                   &                     &                  &              &              \\ \hline
+    \dtref{DT:u}        &               &                  &                   &              &                 &                &                   &                     &                  &              &              \\ \hline
+    \iref{IM:IM}        & X             &                  &                   & X            & X               & X              &                   & X                   & X                & X            &              \\ \hline
+  \end{tabular}
+  \caption{Traceability matrix showing the connections between models of different sections}
+  \label{Table:trace}
+\end{table}
 
 \begin{table}[h!]
 \centering
-\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
-\hline
-	& \tref{T_COE}& \tref{T_SHE}& \tref{T_LHE}& \dref{NL}& \dref{ROCT} & \ddref{FluxCoil}& \ddref{FluxPCM} & \ddref{D_HOF}& \ddref{D_MF}& \iref{ewat}& \iref{epcm}& \iref{I_HWAT}& \iref{I_HPCM} \\
-\hline
-\tref{T_COE}     & & & & & & & & & & & & & \\ \hline
-\tref{T_SHE}     & & & X& & & & & & & & & & \\ \hline
-\tref{T_LHE}     & & & & & & & & & & & & & \\ \hline
-\dref{NL}        & & & & & & & & & & & & & \\ \hline
-\dref{ROCT}      & X& & & & & & & & & & & & \\ \hline
-\ddref{FluxCoil} & & & & X& & & & & & & & & \\ \hline
-\ddref{FluxPCM}  & & & & X& & & & & & & & & \\ \hline
-\ddref{D_HOF}    & & & & & & & & & & & & & \\ \hline
-\ddref{D_MF}     & & & & & & & & X& & & & & \\ \hline
-\iref{ewat}      & & & & & X& X& X& & & & X& & \\ \hline
-\iref{epcm}      & & & & & X& & X& & X& X& & & X \\ \hline
-\iref{I_HWAT}    & & X& & & & & & & & & & & \\ \hline
-\iref{I_HPCM}    & & X& X& & & & X& X& X& & X& & \\
-\hline
+\begin{tabular}{|c|c|c|c|c|} \hline
+             & \iref{IM:IM} & \rref{R:Axb} & \rref{R:MP} & \rref{R:ex} \\ \hline
+\iref{IM:IM} &              &              &             &             \\ \hline
+\rref{R:Axb} & X            &              &             &             \\ \hline
+\rref{R:MP}  & X            &              &             &             \\ \hline
+\rref{R:ex}  & X            &              &             &             \\ \hline
 \end{tabular}
-\caption{Traceability Matrix Showing the Connections Between Items of Different Sections}
-\label{Table:trace}
-\end{table}
-
-\begin{table}[h!]
-\centering
-\begin{tabular}{|c|c|c|c|c|c|c|c|}
-\hline
-	& \iref{ewat}& \iref{epcm}& \iref{I_HWAT}& \iref{I_HPCM}& \ref{sec_DataConstraints}& \rref{R_RawInputs}& \rref{R_MassInputs} \\
-\hline
-\iref{ewat}            & & X& & & & X& X \\ \hline
-\iref{epcm}            & X& & & X& & X& X \\ \hline
-\iref{I_HWAT}          & & & & & & X& X \\ \hline
-\iref{I_HPCM}          & & X& & & & X& X \\ \hline
-\rref{R_RawInputs}     & & & & & & & \\ \hline
-\rref{R_MassInputs}    & & & & & & X& \\ \hline
-\rref{R_CheckInputs}   & & & & & X& & \\ \hline
-\rref{R_OutputInputs}  & X& X& & & & X& X \\ \hline
-\rref{R_TempWater}     & X& & & & & & \\ \hline
-\rref{R_TempPCM}       & & X& & & & & \\ \hline
-\rref{R_EnergyWater}   & & & X& & & & \\ \hline
-\rref{R_EnergyPCM}     & & & & X& & & \\ \hline
-\rref{R_VerifyOutput}  & & & X& X& & & \\ \hline
-\rref{R_timeMeltBegin} & & X& & & & & \\ \hline
-\rref{R_timeMeltEnd}   & & X& & & & & \\
-\hline
-\end{tabular}
-\caption{Traceability Matrix Showing the Connections Between Requirements and Instance Models}
+\caption{Traceability matrix showing the connections between requirements and instance models}
 \label{Table:R_trace}
 \end{table}
 
-The purpose of the traceability graphs is also to provide easy references on
-what has to be additionally modified if a certain component is changed.  The
-arrows in the graphs represent dependencies. The component at the tail of an
-arrow is depended on by the component at the head of that arrow. Therefore, if a
-component is changed, the components that it points to should also be
-changed. Figure~\ref{Fig_ATrace} shows the dependencies of theoretical models,
-general definitions, data definitions, instance models, likely changes, and
-assumptions on each other. Figure~\ref{Fig_RTrace} shows the dependencies of
-instance models, requirements, and data constraints on each other.
+% The purpose of the traceability graphs is also to provide easy references on
+% what has to be additionally modified if a certain component is changed.  The
+% arrows in the graphs represent dependencies. The component at the tail of an
+% arrow is depended on by the component at the head of that arrow. Therefore, if a
+% component is changed, the components that it points to should also be
+% changed. Figure~\ref{Fig_ATrace} shows the dependencies of theoretical models,
+% general definitions, data definitions, instance models, likely changes, and
+% assumptions on each other. Figure~\ref{Fig_RTrace} shows the dependencies of
+% instance models, requirements, and data constraints on each other.
 
 % \begin{figure}[h!]
 % 	\begin{center}
