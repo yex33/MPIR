@@ -324,7 +324,15 @@ the purpose and scientific basis of \progname.
   on the ``big picture'' assumptions.  The assumptions section lists, and
   describes, all of the assumptions.}
 
-\plt{The scope section is relevant for later determining typical values of inputs. The scope should make it clear what inputs are reasonable to expect. This is a distinction between scope and context (context is a later section).  Scope affects the inputs while context affects how the software will be used.}
+\plt{The scope section is relevant for later determining typical values of
+  inputs. The scope should make it clear what inputs are reasonable to expect.
+  This is a distinction between scope and context (context is a later section).
+  Scope affects the inputs while context affects how the software will be used.}
+
+The scope of the software is limited to solving sparse real matrices. In terms
+of writing the requirement specifications itself, operational specifications
+will be given in high level without expanding into details on each and every
+mathematical terms.
 
 \subsection{Characteristics of Intended Reader} \label{sec_IntendedReader}
 
@@ -343,12 +351,22 @@ the purpose and scientific basis of \progname.
   instance, is high school physics adequate, or should the reader have had a
   graduate course on advanced quantum mechanics?}
 
+The intended reader should have a undergraduate level understanding of linear
+algebra, preferably a graduate level knowledge in the field of numeric analysis
+and linear solvers.
+
 \subsection{Organization of Document}
 
-\plt{This section provides a roadmap of the SRS document.  It will help the
-  reader orient themselves.  It will provide direction that will help them
-  select which sections they want to read, and in what order.  This section will
-  be similar between project.}
+The organization of this document follows the template for an SRS for scientific
+computing software. The presentation follows the standard pattern of presenting
+goals, theories, definitions, and assumptions. For readers that would like a
+more bottom up approach, they can start reading the instance models and trace
+back to find any additional information they require.
+
+The goal statements are refined to the theoretical models and the theoretical
+models to the instance models.
+
+
 
 \section{General System Description}
 
@@ -424,23 +442,29 @@ automotive hazard analyses.}
 
 \subsection{User Characteristics} \label{SecUserCharacteristics}
 
-\plt{This section summarizes the knowledge/skills expected of the user.
-  Measuring usability, which is often a required non-function requirement,
-  requires knowledge of a typical user.  As mentioned above, the user is a
-  different role from the ``intended reader,'' as given in
-  Section~\ref{sec_IntendedReader}.  As in Section~\ref{sec_IntendedReader}, the
-  user characteristics should be specific an unambiguous.  For instance, ``The
-  end user of \progname{} should have an understanding of undergraduate Level 1
-  Calculus and Physics.''}
+The end user of \progname{} is typically a technically proficient, domain-expert
+professional or researcher who is focused on solving large-scale, sparse linear
+systems efficiently. Users often come from fields such as computational physics,
+engineering, computer science, applied mathematics, or data science, where large
+sparse linear systems arise naturally (e.g., from discretized PDEs, network
+analysis, or optimization problems). They work with problems that are too large
+or complex for direct solvers, often involving millions or billions of unknowns.
+The user should also be proficient in programming languages commonly used for
+numeric analysis and high performance computing such as MATLAB, C/C++, or
+Fortran. They should have a strong understanding of floating point numbers
+representations as well as the pitfalls in floating point arithmetics in modern
+computers. This is especially needed to configure the inputs for the software.
 
 \subsection{System Constraints}
 
-\plt{System constraints differ from other type of requirements because they
-  limit the developers' options in the system design and they identify how the
-  eventual system must fit into the world. This is the only place in the SRS
-  where design decisions can be specified.  That is, the quality requirement for
-  abstraction is relaxed here.  However, system constraints should only be
-  included if they are truly required.}
+This project is based on existing research with the intent to develop on top of
+the existing implementation of a solver with similar functionalities. This
+places constraints:
+
+\begin{enumerate}
+\item The algorithm used for internal matrix solves must be the Generalized Minimal
+  Residual Method (GMRES).
+\end{enumerate}
 
 \section{Specific System Description}
 
@@ -456,7 +480,7 @@ the instance models.  \plt{Add any project specific details that are relevant
 linear system characterized in the equation \(\matr{A}\vec{x} = \vec{b}\), where
 \(\matr{A}\) is an \(n \times n\) matrix and \(\vec{b}\) is an \(n\) vector.
 
-\subsubsection{Terminology and  Definitions}
+\subsubsection{Terminology and Definitions}
 
 \plt{This section is expressed in words, not with equations.  It provide the
   meaning of the different words and phrases used in the domain of the problem.
@@ -464,15 +488,17 @@ The terminology is used to introduce concepts from the world outside of the
 mathematical model  The terminology provides a real world connection to give the
 mathematical model meaning.}
 
-This subsection provides a list of terms that are used in the subsequent
-sections and their meaning, with the purpose of reducing ambiguity and making it
-easier to correctly understand the requirements:
+% This subsection provides a list of terms that are used in the subsequent
+% sections and their meaning, with the purpose of reducing ambiguity and making it
+% easier to correctly understand the requirements:
 
-\begin{itemize}
+% \begin{itemize}
+% \item
+% \end{itemize}
 
-\item
+Text descriptions are included along with their mathematical definitions as most
+of the terms used in this document is about math and linear algebra.
 
-\end{itemize}
 
 \subsubsection{Physical System Description} \label{sec_phySystDescrip}
 
@@ -509,6 +535,8 @@ derivation is also presented, so that the instance models can be verified.
 \plt{This section is optional. Defining types can make the document easier to
 understand.}
 
+Optionally omitted.
+
 \subsubsection{Scope Decisions}
 
 The scope of this project is inherently limited due to the need to build upon
@@ -523,6 +551,8 @@ fundamentally change the research direction.
 \subsubsection{Modelling Decisions}
 
 \plt{This section is optional.}
+
+Optionally omitted.
 
 \subsubsection{Assumptions} \label{sec_assumpt}
 
