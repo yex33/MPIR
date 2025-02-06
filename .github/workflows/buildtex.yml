@@ -38,7 +38,24 @@ jobs:
         uses: teatimeguest/setup-texlive-action@v3
         with:
           packages: |
-            scheme-medium
+            collection-basic
+            collection-bibtexextra
+            collection-binextra
+            collection-context
+            collection-fontsrecommended
+            collection-fontutils
+            collection-langenglish
+            collection-latex
+            collection-latexrecommended
+            collection-luatex
+            collection-mathscience
+            collection-metapost
+            collection-pictures
+            collection-plaingeneric
+            collection-pstricks
+            collection-texworks
+            collection-xetex
+            preprint
       - name: Compile LaTeX Files
         working-directory: docs
         run: |

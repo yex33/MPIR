@@ -3,7 +3,7 @@
 
 PROJECT=SRS #SRS or CA
 TEX=pdflatex
-BIBTEX=bibtex
+BIBTEX=biber
 BUILDTEX=$(TEX) $(PROJECT).tex
 
 all:
