@@ -188,34 +188,34 @@
 	year = {February 1986},
 	bdsk-file-1 = {YnBsaXN0MDDSAQIDBFxyZWxhdGl2ZVBhdGhZYWxpYXNEYXRhXxBALi4vLi4vLi4vc2U0c2MvU2NpQ29tcEFuZFNvZnRFbmdQYXBlcnMvUGFybmFzQW5kQ2xlbWVudHMxOTg2LnBkZk8RAfYAAAAAAfYAAgAADE1hY2ludG9zaCBIRAAAAAAAAAAAAAAAAAAAAM6Xc4NIKwAACTH9DRlQYXJuYXNBbmRDbGVtZW50czE5ODYucGRmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJMf1D028E0wAAAAAAAAAAAAMAAwAACSAAAAAAAAAAAAAAAAAAAAAXU2NpQ29tcEFuZFNvZnRFbmdQYXBlcnMAABAACAAAzperwwAAABEACAAA0289EwAAAAEAFAkx/Q0JMe7HABIVpwAI92YAAmSOAAIAXE1hY2ludG9zaCBIRDpVc2VyczoAc21pdGhzOgBSZXBvczoAc2U0c2M6AFNjaUNvbXBBbmRTb2Z0RW5nUGFwZXJzOgBQYXJuYXNBbmRDbGVtZW50czE5ODYucGRmAA4ANAAZAFAAYQByAG4AYQBzAEEAbgBkAEMAbABlAG0AZQBuAHQAcwAxADkAOAA2AC4AcABkAGYADwAaAAwATQBhAGMAaQBuAHQAbwBzAGgAIABIAEQAEgBKVXNlcnMvc21pdGhzL1JlcG9zL3NlNHNjL1NjaUNvbXBBbmRTb2Z0RW5nUGFwZXJzL1Bhcm5hc0FuZENsZW1lbnRzMTk4Ni5wZGYAEwABLwAAFQACAA3//wAAAAgADQAaACQAZwAAAAAAAAIBAAAAAAAAAAUAAAAAAAAAAAAAAAAAAAJh}}
 
-@misc{lindquist2020improvingperformancegmresmethod,
-      title={Improving the Performance of the GMRES Method using Mixed-Precision Techniques}, 
-      author={Neil Lindquist and Piotr Luszczek and Jack Dongarra},
-      year={2020},
-      eprint={2011.01850},
-      archivePrefix={arXiv},
-      primaryClass={math.NA},
-      url={https://arxiv.org/abs/2011.01850}, 
+@misc{lindquist_improving_2020,
+	title = {Improving the Performance of the {GMRES} Method using Mixed-Precision Techniques},
+	url = {http://arxiv.org/abs/2011.01850},
+	doi = {10.48550/arXiv.2011.01850},
+	abstract = {The {GMRES} method is used to solve sparse, non-symmetric systems of linear equations arising from many scientific applications. The solver performance within a single node is memory bound, due to the low arithmetic intensity of its computational kernels. To reduce the amount of data movement, and thus, to improve performance, we investigated the effect of using a mix of single and double precision while retaining double-precision accuracy. Previous efforts have explored reduced precision in the preconditioner, but the use of reduced precision in the solver itself has received limited attention. We found that {GMRES} only needs double precision in computing the residual and updating the approximate solution to achieve double-precision accuracy, although it must restart after each improvement of single-precision accuracy. This finding holds for the tested orthogonalization schemes: Modified Gram-Schmidt ({MGS}) and Classical Gram-Schmidt with Re-orthogonalization ({CGSR}). Furthermore, our mixed-precision {GMRES}, when restarted at least once, performed 19\% and 24\% faster on average than double-precision {GMRES} for {MGS} and {CGSR}, respectively. Our implementation uses generic programming techniques to ease the burden of coding implementations for different data types. Our use of the Kokkos library allowed us to exploit parallelism and optimize data management. Additionally, {KokkosKernels} was used when producing performance results. In conclusion, using a mix of single and double precision in {GMRES} can improve performance while retaining double-precision accuracy.},
+	number = {{arXiv}:2011.01850},
+	publisher = {{arXiv}},
+	author = {Lindquist, Neil and Luszczek, Piotr and Dongarra, Jack},
+	urldate = {2025-02-05},
+	date = {2020-11-03},
+	eprinttype = {arxiv},
+	eprint = {2011.01850 [math]},
+	keywords = {Computer Science - Mathematical Software, Computer Science - Numerical Analysis, Mathematics - Numerical Analysis},
 }
 
-@book{Ascher2011,
-  title     = "A first course on numerical methods",
-  author    = "Ascher, Uri M and Greif, Chen",
-  abstract  = "Uri M. Ascher and Chen Greif Computational Science and
-               Engineering 7 This new book is designed for students and
-               researchers who seek practical knowledge of modern techniques in
-               scientific computing. Avoiding encyclopedic and heavily
-               theoretical exposition, it provides an in-depth treatment of
-               fundamental issues and methods, the reasons behind the success
-               and failure of numerical software, and fresh and easy-tofollow
-               approaches and techniques. The authors focus on current methods,
-               issues, and software while providing a comprehensive theoretical
-               foundation.",
-  publisher = "SIAM",
-  month     =  jan,
-  year      =  2011,
-  address   = "3600 Market Street, 6th Floor Philadelphia, PA 19104-2688"
+@book{ascher_first_2011,
+	location = {Philadelphia},
+	title = {A first course in numerical methods},
+	isbn = {978-0-89871-997-0},
+	series = {Computational science \& engineering},
+	pagetotal = {552},
+	publisher = {Society for Industrial and Applied Mathematics},
+	author = {Ascher, U. M. and Greif, Chen},
+	date = {2011},
+	note = {{OCLC}: ocn712930845},
+	keywords = {Algorithms, Data processing, Numerical analysis, Numerical calculations},
 }
+
 
 @article{gill_stability_1996,
 	title = {On the Stability of Cholesky Factorization for Symmetric Quasidefinite Systems},
@@ -232,7 +232,6 @@
 	urldate = {2025-02-05},
 	date = {1996-01},
 	langid = {english},
-	file = {PDF:/home/joe/Zotero/storage/JZS39GSZ/Gill et al. - 1996 - On the Stability of Cholesky Factorization for Symmetric Quasidefinite Systems.pdf:application/pdf},
 }
 
 @article{vanderbei_symmetric_1995,
@@ -249,5 +248,78 @@
 	urldate = {2025-02-05},
 	date = {1995-02},
 	langid = {english},
-	file = {PDF:/home/joe/Zotero/storage/ZCUEE278/Vanderbei - 1995 - Symmetric Quasidefinite Matrices.pdf:application/pdf},
+}
+
+@article{moler_iterative_1967,
+	title = {Iterative Refinement in Floating Point},
+	volume = {14},
+	issn = {0004-5411, 1557-735X},
+	url = {https://dl.acm.org/doi/10.1145/321386.321394},
+	doi = {10.1145/321386.321394},
+	abstract = {Iterative refinement reduces the roundoff errors in the computed solution to a system of linear equations. Only one step requires higher precision arithmetic. If sufficiently high precision is used, the final result is shown to be very accurate.},
+	pages = {316--321},
+	number = {2},
+	journaltitle = {Journal of the {ACM}},
+	shortjournal = {J. {ACM}},
+	author = {Moler, Cleve B.},
+	urldate = {2025-02-05},
+	date = {1967-04},
+	langid = {english},
+}
+
+@article{noauthor_ieee_2019,
+	title = {{IEEE} Standard for Floating-Point Arithmetic},
+	url = {https://ieeexplore.ieee.org/document/8766229},
+	doi = {10.1109/IEEESTD.2019.8766229},
+	abstract = {This standard specifies interchange and arithmetic formats and methods for binary and decimal floating-point arithmetic in computer programming environments. This standard specifies exception conditions and their default handling. An implementation of a floating-point system conforming to this standard may be realized entirely in software, entirely in hardware, or in any combination of software and hardware. For operations specified in the normative part of this standard, numerical results and exceptions are uniquely determined by the values of the input data, sequence of operations, and destination formats, all under user control.},
+	pages = {1--84},
+	journaltitle = {{IEEE} Std 754-2019 (Revision of {IEEE} 754-2008)},
+	urldate = {2025-02-05},
+	date = {2019-07},
+	note = {Conference Name: {IEEE} Std 754-2019 (Revision of {IEEE} 754-2008)},
+	keywords = {arithmetic, binary, computer, decimal, exponent, floating-point, Floating-point arithmetic, format, {IEEE} 754, {IEEE} Standards, interchange, {NaN}, number, rounding, significand, subnormal.},
+}
+
+
+@online{wang_bfloat16_2019,
+	title = {{BFloat}16: The secret to high performance on Cloud {TPUs}},
+	url = {https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus},
+	shorttitle = {{BFloat}16},
+	abstract = {How the high performance of Google Cloud {TPUs} is driven by Brain Floating Point Format, or bfloat16},
+	titleaddon = {Google Cloud Blog},
+	author = {Wang, Shibo and Kanwar, Pankaj},
+	urldate = {2025-02-05},
+	date = {2019-08-23},
+	langid = {english},
+	file = {Snapshot:/home/joe/Zotero/storage/MEV4FWI7/bfloat16-the-secret-to-high-performance-on-cloud-tpus.html:text/html},
+}
+
+@article{saad_flexible_1993,
+	title = {A Flexible Inner-Outer Preconditioned {GMRES} Algorithm},
+	volume = {14},
+	issn = {1064-8275},
+	url = {https://epubs.siam.org/doi/10.1137/0914028},
+	doi = {10.1137/0914028},
+	abstract = {In many situations, it has been observed that significant convergence improvements can be achieved in preconditioned Krylov subspace methods by enriching them with some spectral information. On the other hand, effective preconditioning strategies are often designed where the preconditioner varies from one step to the next so that a flexible Krylov solver is required. In this paper, we present a new numerical technique for nonsymmetric problems that combines these two features. We illustrate the numerical behavior of the new solver both on a set of small academic test examples as well as on large industrial simulation arising in wave propagation simulations.},
+	pages = {461--469},
+	number = {2},
+	journaltitle = {{SIAM} Journal on Scientific Computing},
+	shortjournal = {{SIAM} J. Sci. Comput.},
+	author = {Saad, Youcef},
+	urldate = {2025-02-05},
+	date = {1993-03},
+	note = {Publisher: Society for Industrial and Applied Mathematics},
+}
+
+@online{weisstein_vector_nodate,
+	title = {Vector Norm},
+	rights = {Copyright 1999-2025 Wolfram Research, Inc.  See https://mathworld.wolfram.com/about/terms.html for a full terms of use statement.},
+	url = {https://mathworld.wolfram.com/VectorNorm.html},
+	abstract = {Given an n-dimensional vector  x=[x\_1; x\_2; {\textbar}; x\_n],  (1)   a general vector norm {\textbar}x{\textbar}, sometimes written with a double bar as {\textbar}{\textbar}x{\textbar}{\textbar}, is a nonnegative norm defined such that  1. {\textbar}x{\textbar}{\textgreater}0 when x!=0 and {\textbar}x{\textbar}=0 iff x=0.  2. {\textbar}kx{\textbar}={\textbar}k{\textbar}{\textbar}x{\textbar} for any scalar k.  3. {\textbar}x+y{\textbar}{\textless}={\textbar}x{\textbar}+{\textbar}y{\textbar}.  In this work, a single bar is used to denote a vector norm, absolute value, or complex modulus, while a double bar is reserved for denoting a matrix norm. The vector norm {\textbar}x{\textbar}\_p for p=1, 2, ... is defined as ...},
+	type = {Text},
+	author = {Weisstein, Eric W.},
+	urldate = {2025-02-06},
+	langid = {english},
+	note = {Publisher: Wolfram Research, Inc.},
+	file = {Snapshot:/home/joe/Zotero/storage/MY3RT5G8/VectorNorm.html:text/html},
 }
