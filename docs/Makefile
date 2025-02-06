@@ -9,7 +9,7 @@ define COMPILE_TEX
 endef
 
 # Define the bibtex command
-BIBTEX_CMD = [ -f $(basename $(notdir $1)).aux ] && bibtex $(basename $(notdir $1)) || echo "No bibtex references found" || { echo "Error: bibtex failed for $1"; exit 1; }
+BIBTEX_CMD = [ -f $(basename $(notdir $1)).aux ] && biber $(basename $(notdir $1)) || echo "No bibtex references found" || { echo "Error: bibtex failed for $1"; exit 1; }
 
 # Define the compile step for bibtex
 define COMPILE_BIBTEX
