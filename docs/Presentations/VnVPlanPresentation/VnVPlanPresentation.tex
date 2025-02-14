@@ -1,0 +1,319 @@
+%\documentclass[handout]{beamer}
+\documentclass[t,12pt,numbers,fleqn]{beamer}
+%\documentclass[ignorenonframetext]{beamer}
+
+\newif\ifquestions
+%\questionstrue
+\questionsfalse
+
+\usepackage{pgfpages}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    filecolor=blue,
+    urlcolor=blue,
+    unicode=false}
+\urlstyle{same}
+
+\usepackage{booktabs}
+
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup[figure]{font=scriptsize,labelfont=scriptsize}
+
+\usepackage[version=4]{mhchem}
+\usepackage[print-unity-mantissa=false]{siunitx}
+\usepackage{tabularx}
+
+
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{../../../refs/References.bib}
+
+\input{../../Common}
+
+%\usetheme{Iimenau}
+
+\useoutertheme{split} %so the footline can be seen, without needing pgfpages
+
+%\pgfpagesuselayout{resize to}[letterpaper,border shrink=5mm,landscape]  %if this is uncommented, the hyperref links do not work
+
+\mode<presentation>{}
+
+\input{../../def-beamer}
+
+\newcommand{\topic}{\progname{} Verification and Validation Plan}
+
+\input{../../titlepage}
+
+\begin{document}
+
+\input{../../footline}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{General Information}
+
+\begin{itemize}
+\item \progname{} is a sparse linear solver designed to solve large, sparse real
+  matrices efficiently.
+\item It uses the General Minimal Residual (GMRES) method for internal matrix
+  solves and iterative refinement techniques to improve both speed and accuracy.
+\item Intended for use in computational science, engineering, and numerical
+  analysis applications.
+\item As a complete library suite, the software also includes example programs to
+  demonstrate the solver interfaces and practical use cases of the solver.
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Inputs}
+
+\begin{table}[hp]
+  \centering
+  \label{tab:inputs}
+  \begin{tabularx}{1.0\linewidth}{rX}
+    \toprule
+    \textbf{Variable}  & \textbf{Description} \\
+    \midrule
+    \(\matr{A}\) & \(n \times n\) matrix \\
+    \(\vec{b}\)        & \(n\)-vector \\
+    \(u_f\)       & factorization precision \\
+    \(u_w\)       & working precision \\
+    \(u_r\)       & precision in which the residuals are computed \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{VnV Objectives}
+
+\begin{description}
+\item[Primary] Ensure the correctness, accuracy, and efficiency of \progname{} in
+  solving sparse linear systems.
+\item[Secondary] Verify usability and maintainability of the software for
+  integration with other numerical libraries.
+\item[Out of Scope] Usability testing for non-expert users is not prioritized.
+  External libraries used for matrix factorization, reading and writing sparse
+  matrices in Matrix Market Exchange Format (\cite{noauthor_matrix_2013}), unit
+  testing, and performance benchmarking are assumed to be correct.
+\end{description}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{VnV Team}
+
+\vspace{10pt}
+\begin{tabularx}{\linewidth}{lX}
+  \toprule
+  \textbf{Team Member} & \textbf{Role}                           \\
+  \midrule
+  Joe Ye         & Lead developer and tester         \\
+  Maris Chen     & ``Domain expert'', provides feedbacks on documents per course
+                   guidelines and document templates \\
+  Dr. Nedialkov  & Primary stakeholder, oversees project direction and validates
+                   all documents                     \\
+  \bottomrule
+\end{tabularx}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Functional System Testing: Correctness and Accuracy}
+
+\begin{itemize}
+\item Define acceptance criteria in terms of machine epsilon, the smallest
+  difference in value that the computer can tell apart at a given precision.
+\item The condition number \(\cond{\matr{A}}\) is an important factor when
+  choosing inputs.
+\end{itemize}
+
+\vspace{10pt}
+\begin{tabularx}{\textwidth}{Xl}
+  \toprule
+  \textbf{Floating-Point Format} & \textbf{Machine Epsilon (\(\epsilon_\mathrm{mach}\))} \\
+  \midrule
+  bfloat16                 & \num{3.91e-3}                     \\
+  fp16 (IEEE 754 Half)     & \num{4.88e-4}                     \\
+  fp32 (IEEE 754 Single)   & \num{1.19e-7}                     \\
+  fp64 (IEEE 754 Double)   & \num{2.22e-16}                    \\
+  fp128 (IEEE 754 Quad)    & \num{1.93e-34}                    \\
+  \bottomrule
+\end{tabularx}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{The Known Solution Vector Approach}
+
+Test against manufactured solutions:
+\begin{enumerate}
+\item \(\vec{x}_\mathrm{ref} \gets \text{random vector}\)
+\item \(\vec{b} \gets \matr{A} \vec{x}_\mathrm{ref} \)
+\item Solve \(\matr{A}\vec{x} = \vec{b}\)
+\item \(e \gets \displaystyle \frac{\norm{\vec{x} - \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2}\)
+\end{enumerate}
+
+Caveats:
+\begin{itemize}
+\item Large error does not necessarily mean the solver is incorrect. If
+  \(\cond{\matr{A}}\) is large, the error is likely to be large as well.
+\item For well-conditioned matrices, e.g. \(\cond{\matr{A}} < \num{1e4}\), the
+  relative error is expected to be \(e \approx \num{1e-12}\) in double precision
+  (\(\epsilon_\mathrm{mach} \approx \num{2.2e-16}\))
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{The Trusted Solver Comparison Approach}
+
+\begin{itemize}
+\item MATLAB\textsuperscript{\textregistered{}} \texttt{vpa}
+\item Other readily available sparse solvers
+\end{itemize}
+
+The relative error, \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2}\) should be within a
+reasonable multiple of \(\epsilon_\mathrm{mach}\) across a set of test problems.
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Functional System Testing: the Plan}
+
+\begin{enumerate}
+\item Start with numerically stable inputs (well conditioned \(\matr{A}\)) without
+  mixed-precisions. Verify accuracy with both the ``known solution vector'' and
+  ``trusted solver comparison'' approach.
+\item Hypothesize that the solver is able to solve systems with condition number up
+  to \textit{COND\_MAX}. Test robustness by inputting ill-conditioned matrices
+  with \(\cond{\matr{A}}\) at different magnitudes. (Non-functional?)
+\item Hypothesize that the solver is able to maintain accuracy when mixed-precision
+  technique is applied. Test accuracy by inputting different combinations of
+  \(u_f, u_w, u_r\).
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Functional System Testing: an Example}
+
+\begin{enumerate}
+
+\item[test-id1]
+
+Control: Automatic
+
+Initial State: matrix \(\matr{A}\) is read from file and stored in memory.
+Expected exact solution \(\vec{x}_\mathrm{ref}\) is prepared.
+
+Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
+\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f =
+u_w = u_r = \texttt{double}\)
+
+Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+
+Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} = \matr{A}\vec{x}_\mathrm{ref}\)
+
+How test will be performed: Automatic
+
+\end{enumerate}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Non-Functional System Testing: Performance}
+
+Choice of performance metric?
+
+\begin{itemize}
+\item Convergence rate?
+\item Computation time/Wall-clock time
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Potential Problems with Measuring Runtime}
+
+\begin{itemize}
+\item CPU clock frequency, temperature; Caching
+\item OS scheduling, interrupts, context switching
+\item Hardware optimizations specifically for certain arithmetic/precision; CPU vs.
+  GPU
+\item Inconsistency between runs, hard to reproduce results
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Established Tools for Benchmarking}
+
+\cite{noauthor_googlebenchmark_2025}
+\begin{itemize}
+\item Repeats benchmark cases until a statistically stable result is obtained
+\item Automatic CPU frequency scaling adjustments
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Non-Functional System Testing: the Plan}
+
+\begin{enumerate}
+\item Hypothesize that the use of mixed-precision technique brings consistent
+  improvement in runtime. Given well-conditioned inputs, benchmark runtime by
+  varying \(u_f, u_w, u_r\).
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{References}
+
+\printbibliography[heading=none]{}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Questions}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
