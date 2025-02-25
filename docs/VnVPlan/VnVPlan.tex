@@ -2,6 +2,8 @@
 
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{siunitx}
 \usepackage{hyperref}
 \hypersetup{
     colorlinks,
@@ -10,29 +12,38 @@
     linkcolor=red,
     urlcolor=blue
 }
-\usepackage[round]{natbib}
+\usepackage{xr,xr-hyper}
+\externaldocument{../SRS/SRS}
+
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{../../refs/References.bib}
 
 \input{../Comments}
 \input{../Common}
 
+\newcounter{testnum} % Test Number
+\newcommand{\tthetestnum}{GD\thetestnum}
+\newcommand{\tref}[1]{T\ref{#1}}
+
+\newcommand{\rref}[1]{R\ref{#1}}
+
 \begin{document}
 
-\title{System Verification and Validation Plan for \progname{}} 
+\title{System Verification and Validation Plan for \progname{}}
 \author{\authname}
 \date{\today}
-	
+
 \maketitle
 
 \pagenumbering{roman}
 
 \section*{Revision History}
 
-\begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
-\toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
-\midrule
-Date 1 & 1.0 & Notes\\
-Date 2 & 1.1 & Notes\\
-\bottomrule
+\begin{tabularx}{\textwidth}{p{4cm}p{2cm}X}
+  \toprule {\bf Date} & {\bf Version} & {\bf Notes}   \\
+  \midrule
+  24 February 2025    & 1.0           & Initial draft \\
+  \bottomrule
 \end{tabularx}
 
 ~\\
@@ -65,16 +76,21 @@ in.}
 \section{Symbols, Abbreviations, and Acronyms}
 
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{l l} 
-  \toprule		
-  \textbf{symbol} & \textbf{description}\\
-  \midrule 
-  T & Test\\
+\begin{tabular}{l l}
+  \toprule
+  \textbf{symbol} & \textbf{description}                     \\
+  \midrule
+  CI        & Continuous Integration             \\
+  MG        & Module Guide                       \\
+  MIS       & Module Interface Specification     \\
+  SRS       & Software Requirement Specification \\
+  T         & Test                               \\
+  VnV       & Verification and Validation        \\
   \bottomrule
-\end{tabular}\\
+\end{tabular}
 
 \wss{symbols, abbreviations, or acronyms --- you can simply reference the SRS
-  \citep{SRS} tables, if appropriate}
+  \cite{SRS} tables, if appropriate}
 
 \wss{Remove this section if it isn't needed}
 
@@ -82,15 +98,26 @@ in.}
 
 \pagenumbering{arabic}
 
-This document ... \wss{provide an introductory blurb and roadmap of the
-  Verification and Validation plan}
+This document provides an introductory blurb and roadmap of the Verification and
+Validation (VnV) plan
 
 \section{General Information}
+
+This section provides a brief description of the project background and
+introduces the objectives for the VnV plan.
 
 \subsection{Summary}
 
 \wss{Say what software is being tested.  Give its name and a brief overview of
   its general functions.}
+
+\progname{} is a sparse linear solver designed to solve large, sparse real
+matrices efficiently. It uses the General Minimal Residual (GMRES) method for
+internal matrix solves and iterative refinement techniques to improve both speed
+and accuracy. The software is intended for use in computational science,
+engineering, and numerical analysis applications. As a complete library suite,
+the software also includes example programs to demonstrate the solver interfaces
+and practical use cases of the solver.
 
 \subsection{Objectives}
 
@@ -100,16 +127,27 @@ This document ... \wss{provide an introductory blurb and roadmap of the
   ``demonstrate adequate usability.'' etc.  You won't list all of the qualities,
   just those that are most important.}
 
-\wss{You should also list the objectives that are out of scope.  You don't have 
-the resources to do everything, so what will you be leaving out.  For instance, 
-if you are not going to verify the quality of usability, state this.  It is also 
-worthwhile to justify why the objectives are left out.}
+\wss{You should also list the objectives that are out of scope. You don't have
+  the resources to do everything, so what will you be leaving out. For instance,
+  if you are not going to verify the quality of usability, state this. It is
+  also worthwhile to justify why the objectives are left out.}
 
-\wss{The objectives are important because they highlight that you are aware of 
-limitations in your resources for verification and validation.  You can't do everything, 
-so what are you going to prioritize?  As an example, if your system depends on an 
-external library, you can explicitly state that you will assume that external library 
-has already been verified by its implementation team.}
+\wss{The objectives are important because they highlight that you are aware of
+  limitations in your resources for verification and validation. You can't do
+  everything, so what are you going to prioritize? As an example, if your system
+  depends on an external library, you can explicitly state that you will assume
+  that external library has already been verified by its implementation team.}
+
+The primary objective of the Verification and Validation (VnV) plan is to ensure
+the correctness, accuracy, and efficiency of \progname{} in solving sparse linear
+systems. The secondary objective is to verify usability and maintainability of the
+software for integration with other numerical libraries.
+
+Usability testing for non-expert users is not prioritized is out of the scope of
+this VnV plan, as \progname{} is only intended for domain-expert users. The
+solver is expected to use an external library for matrix factorization. The
+example programs will also depend on an external library for reading and writing
+sparse matrices in Matrix Market Exchange Format (\cite{noauthor_matrix_2013}).
 
 \subsection{Challenge Level and Extras}
 
@@ -135,107 +173,170 @@ Repos.csv) if your plan changes as a result of the VnV planning exercise.}
   is done, they will be written.  You can create BibTeX entries for your
   documents and within those entries include a hyperlink to the documents.}
 
-\citet{SRS}
-
-\wss{Don't just list the other documents.  You should explain why they are relevant and 
-how they relate to your VnV efforts.}
+See the Software Requirements Specification (\cite{SRS}) for \progname{}, which
+details the goals, requirements, assumptions, and theories of the software. The
+Module Guide (\cite{MG}) and Module Interface Specification (\cite{MIS}) document the
+design of \progname{}.
 
 \section{Plan}
 
-\wss{Introduce this section.  You can provide a roadmap of the sections to
-  come.}
+This section details the plan for the verification of both the documents and the
+software for \progname{}. The primary artifacts being verified are: SRS,
+software design, VnV Plan, and implementation.
 
 \subsection{Verification and Validation Team}
 
-\wss{Your teammates.  Maybe your supervisor.
-  You should do more than list names.  You should say what each person's role is
-  for the project's verification.  A table is a good way to summarize this information.}
+The table below summarizes the VnV Team for the project:
+
+\vspace{5pt}
+
+\begin{tabularx}{\linewidth}{lX}
+  \toprule
+  \textbf{Team Member} & \textbf{Role}                           \\
+  \midrule
+  Xunzhou Ye     & Lead developer and tester         \\
+  Qianlin Chen   & ``Domain expert'', provides feedbacks on documents per course
+                   guidelines and document templates \\
+  Dr. Nedialkov  & Primary stakeholder, oversees project direction and validates
+                   all documents                     \\
+  \bottomrule
+\end{tabularx}
+
+% machine epsilon: the smallest difference in value that the computer can tell
+% apart at that given precision
+
+% dependent external library for benchmarking
+% google-benchmark for micro-benchmarking, repeats benchmark cases until a
+% statistically stable result is obtained.
+
+% why choose runtime?
+% The solver is designed to trade computation complexity for space complexity
+% Cannot use common complexity analysis, big-O notation to qualify the
+% performance of the software.
+
+% Choosing runtime as the only performance metric, open to ideas
+% runtime results are unstable because:
+% 1. CPU clock frequency, temperature
+% 2. OS scheduling, interrupts, context switches
+% 3. hardware level optimizations of certain arithmetics at certain precision,
+% CPU vs. GPU
+% 4. high speed caching
+% 5. Inconsistency between runs, hard to reproduce results
 
 \subsection{SRS Verification Plan}
 
-\wss{List any approaches you intend to use for SRS verification.  This may
-  include ad hoc feedback from reviewers, like your classmates (like your
-  primary reviewer), or you may plan for something more rigorous/systematic.}
-
-\wss{If you have a supervisor for the project, you shouldn't just say they will
-read over the SRS.  You should explain your structured approach to the review.
-Will you have a meeting?  What will you present?  What questions will you ask?
-Will you give them instructions for a task-based inspection?  Will you use your
-issue tracker?}
-
-\wss{Maybe create an SRS checklist?}
+The SRS will be verified via feedbacks from the assigned domain expert and the
+project supervisor. A SRS checklist (\cite{SRS_checklist}) will be used to guide
+the review process. After each major revision of the SRS, a meeting with the
+project supervisor shall be scheduled within two weeks of the revision date.
+Changes to the SRS shall be presented and discussed with the supervisor. All
+feedbacks from both the domain expert and the supervisor will be documented in
+the form of GitHub issues assigned to the project owner. The project owner is
+responsible to address and close these issues as they iterate and revise the SRS
+document. The key objective is to verify that the software requirements and the
+documentation are sound and coherent to the intended users and defined in the
+SRS.
 
 \subsection{Design Verification Plan}
 
-\wss{Plans for design verification}
+Since the software design is derived from a research study, the underlying
+algorithms and mathematical models are predefined. As a result, the scope for
+structural modifications is limited, and design decisions must align with the
+established research framework. The primary focus is on enhancing performance,
+ensuring software quality, and maintaining consistency with the research
+objectives.
 
-\wss{The review will include reviews by your classmates}
-
-\wss{Create a checklists?}
+The VnV team will conduct structured reviews of the design, leveraging their
+professional expertise to provide informed feedback. This evaluation will be
+guided by the MG and MIS checklists (\cite{MG_checklist, MIS_checklist}) to ensure
+that design principles are adhered to and best practices are followed. Similar
+to the SRS verification process, all feedback will be documented as GitHub
+issues to maintain transparency and traceability.
 
 \subsection{Verification and Validation Plan Verification Plan}
 
-\wss{The verification and validation plan is an artifact that should also be
-verified.  Techniques for this include review and mutation testing.}
-
-\wss{The review will include reviews by your classmates}
-
-\wss{Create a checklists?}
+The VnV checklist (\cite{VnV_checklist}) will be used to review each iteration of
+the VnV Plan. The goal is to uncover any mistakes and reveal any coverage gaps
+through the supervision and review of the VnV team members. Once the project
+reaches a deliverable milestone, the VnV team will check whether the documented
+testing plans and verification processes have been accomplished and the
+requirements fulfilled. Feedbacks will again be documented as GitHub issues.
 
 \subsection{Implementation Verification Plan}
 
-\wss{You should at least point to the tests listed in this document and the unit
-  testing plan.}
-
-\wss{In this section you would also give any details of any plans for static
-  verification of the implementation.  Potential techniques include code
-  walkthroughs, code inspection, static analyzers, etc.}
-
-\wss{The final class presentation in CAS 741 could be used as a code
-walkthrough.  There is also a possibility of using the final presentation (in
-CAS741) for a partial usability survey.}
+Both automated and manual testing will be performed for this project. For
+automated static code analysis, linters will be integrated as part of the
+Continuous Integration (CI) pipeline via GitHub Actions. Details on the choice
+of tools and its use in the project will be discussed in
+Section~\ref{sec:autom-test-verif} below. Plans and schemes for automated
+dynamic tests will be done at various levels of abstraction, including unit
+tests, system tests. Details are listed in Section~\ref{sec:system-tests} and
+\ref{sec:unit-test-descr}. A detailed code walkthrough on core algorithms will
+be conducted with the project supervisor to ensure that the implementation align
+with the established research work that this project is based on.
 
 \subsection{Automated Testing and Verification Tools}
+\label{sec:autom-test-verif}
 
-\wss{What tools are you using for automated testing.  Likely a unit testing
-  framework and maybe a profiling tool, like ValGrind.  Other possible tools
-  include a static analyzer, make, continuous integration tools, test coverage
-  tools, etc.  Explain your plans for summarizing code coverage metrics.
-  Linters are another important class of tools.  For the programming language
-  you select, you should look at the available linters.  There may also be tools
-  that verify that coding standards have been respected, like flake9 for
-  Python.}
+The software is expected to be implemented in C++. The following are the
+language specific tools that will be used for automated testing and
+verifications:
 
-\wss{If you have already done this in the development plan, you can point to
-that document.}
+\begin{itemize}
+\item CMake (\cite{noauthor_cmake_nodate}) will be used to streamline the building and
+  testing process of the software. CTest, which is part of CMake, will be used
+  to generate code coverage reports for unit tests.
+\item doctest (\cite{noauthor_doctestdoctest_2025}) will be used as the unit testing
+  framework for writing test cases.
+\item clang-format (\cite{noauthor_clangformat_nodate}) will be used to format source
+  codes based on a set of predefined rules specified in a configuration file. A
+  \href{https://git-scm.com/book/ms/v2/Customizing-Git-Git-Hooks}{Git Hook} will
+  be deployed to run a format check to ensure that all committed source codes
+  are properly formatted. The goal of formatting codes is to improve code
+  readability and consistency.
+\item clang-tidy (\cite{noauthor_clang-tidy_nodate}) will be used as the linter for
+  static code analysis. Committed codes should be free of linter errors and
+  warnings to minimize the chance of having incorrect codes.
+\item Benchmark (\cite{noauthor_googlebenchmark_2025}) will be used to evaluate the
+  runtime performance of the solver as part of the non-functional verification
+  process.
+\end{itemize}
 
-\wss{The details of this section will likely evolve as you get closer to the
-  implementation.}
+Apart from these language specific tools, the following general purposed tools
+are also used:
+
+\begin{itemize}
+\item GitHub Actions will be used as the CI pipeline for the project. Most of the
+  language specific automated tools mentioned above will be integrated as part
+  of CI to ensure that the verification process is reproducible in an isolated,
+  remote environment. This verifies the verification process itself and further
+  improves confidence of the verification process.
+\end{itemize}
 
 \subsection{Software Validation Plan}
 
-\wss{If there is any external data that can be used for validation, you should
-  point to it here.  If there are no plans for validation, you should state that
-  here.}
+A valid linear solver is one that correctly solves linear systems. In the
+context of this project, the validity of the software is primarily determined by
+its correctness---ensuring that the computed solutions satisfy the given
+equations within an acceptable tolerance. Since this software is part of a
+research study, its validity is also assessed by how well the implementation
+adheres to the established specifications and aligns with prior research work.
+To verify this, code walkthroughs of the core algorithms will be conducted with
+the project supervisor.
 
-\wss{You might want to use review sessions with the stakeholder to check that
-the requirements document captures the right requirements.  Maybe task based
-inspection?}
-
-\wss{For those capstone teams with an external supervisor, the Rev 0 demo should 
-be used as an opportunity to validate the requirements.  You should plan on 
-demonstrating your project to your supervisor shortly after the scheduled Rev 0 demo.  
-The feedback from your supervisor will be very useful for improving your project.}
-
-\wss{For teams without an external supervisor, user testing can serve the same purpose 
-as a Rev 0 demo for the supervisor.}
-
-\wss{This section might reference back to the SRS verification section.}
+Beyond correctness, performance also plays a role in validation. The solver is
+designed to offer advantages over existing solutions, making performance
+benchmarking an essential validation step. To assess this, an automated
+performance benchmark will be conducted, generating empirical runtime data for
+different problem sizes. These results will be manually compared against
+established solvers to evaluate the solver’s computational efficiency.
 
 \section{System Tests}
+\label{sec:system-tests}
 
-\wss{There should be text between all headings, even if it is just a roadmap of
-the contents of the subsections.}
+This section outlines the tests that will be performed for \progname{} to verify
+both the functional and non-functional requirements specified in the SRS
+(\cite{SRS}). Input specifications and constraints are also listed in the SRS.
 
 \subsection{Tests for Functional Requirements}
 
@@ -246,52 +347,158 @@ the contents of the subsections.}
 \wss{Include a blurb here to explain why the subsections below
   cover the requirements.  References to the SRS would be good here.}
 
-\subsubsection{Area of Testing1}
+In this section, the system tests that will be conducted are described in
+detail. These tests will be used to verify the fulfillment of the functional
+requirements as listed in the SRS (\cite{SRS}).
 
-\wss{It would be nice to have a blurb here to explain why the subsections below
-  cover the requirements.  References to the SRS would be good here.  If a section
-  covers tests for input constraints, you should reference the data constraints
-  table in the SRS.}
-		
-\paragraph{Title for Test}
+\subsubsection{Matrix Inputs and Outputs}
+
+This section covers the requirement \rref{R:ex} of the SRS. This includes
+essentially a ``driver'' for the solver which loads sparse matrices from a text
+file in Matrix Market Exchange (.mtx) Format (\cite{noauthor_matrix_2013}) into memory,
+invokes the solver interfaces, and outputs the results returned from the solver.
+The tests described below will verify that such ``driver'' is functional.
+
+\begin{itemize}
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:io}:]{matrix-io}
+
+Control: Automatic
+
+Initial State: A hard coded matrix \(\matr{A}\) of size \(\num{100} \times
+\num{100}\) in the programming language of choice is instantiated.
+
+Input: matrix \(\matr{A}\) in plain text .mtx format of size \(\num{100} \times
+\num{100}\), a random vector \(\vec{b}\) of size \num{100}. \(u_f = u_w = u_r =
+\texttt{double}\)
+
+Output: The elements of \(\matr{A}\) matches the hard-coded one. \(\vec{x}\) of size
+\num{100}
+
+Test Case Derivation: N/A
+
+How test will be performed: Automatic
+
+\end{itemize}
+
+\subsubsection{Correctness Tests with Manufactured Solutions}
+
+This section covers one of the ways to verify the requirements \rref{R:Axb} and
+\rref{R:MP} of the SRS. This includes tests on the accuracy of the yielded
+solution from the solver by manufacturing an exact solution \(\vec{x}_\mathrm{ref}\) to the
+problem \(\matr{A}\vec{x} = \vec{b}\). This manufacturing process loosely follows the scheme
+below:
 
 \begin{enumerate}
-
-\item{test-id1\\}
-
-Control: Manual versus Automatic
-					
-Initial State: 
-					
-Input: 
-					
-Output: \wss{The expected result for the given inputs.  Output is not how you
-are going to return the results of the test.  The output is the expected
-result.}
-
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
-					
-How test will be performed: 
-					
-\item{test-id2\\}
-
-Control: Manual versus Automatic
-					
-Initial State: 
-					
-Input: 
-					
-Output: \wss{The expected result for the given inputs}
-
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
-
-How test will be performed: 
-
+\item \(\vec{x}_\mathrm{ref} \gets \text{some random vector}\)
+\item \(\vec{b} \gets \matr{A} \vec{x}_\mathrm{ref} \)
+\item Solve \(\matr{A}\vec{x} = \vec{b}\)
+\item \(e \gets \displaystyle \frac{\norm{\vec{x} - \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2}\)
 \end{enumerate}
 
-\subsubsection{Area of Testing2}
+The relative error \(e\) will be used as the accuracy metric.
 
-...
+\begin{itemize}
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:gdd}:]{generated-double-double}
+
+Control: Automatic
+
+Initial State: matrix \(\matr{A}\) is read from file and stored in memory.
+An expected exact solution \(\vec{x}_\mathrm{ref}\) is prepared.
+
+Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
+\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f =
+u_w = u_r = \texttt{double}\)
+
+Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+
+Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} = \matr{A}\vec{x}_\mathrm{ref}\)
+
+How test will be performed: Automatic
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:gsd}:]{generated-single-double}
+
+Control: Automatic
+
+Initial State: matrix \(\matr{A}\) is read from file and stored in memory.
+An expected exact solution \(\vec{x}_\mathrm{ref}\) is prepared.
+
+Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
+\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f = \texttt{single}, u_w
+= u_r = \texttt{double}\)
+
+Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+
+Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} =
+\matr{A}\vec{x}_\mathrm{ref}\). Matrix factorization is done in single precision while
+working and residual computing are done in double precision.
+
+How test will be performed: Automatic
+
+\end{itemize}
+
+\subsubsection{Correctness Tests against Trusted Solvers}
+
+This section covers the other way to verify the requirements \rref{R:Axb} and
+\rref{R:MP} of the SRS. This includes tests on the accuracy of the yielded
+solution from the solver by comparing it to an external, trusted solver to the
+problem \(\matr{A}\vec{x} = \vec{b}\). This process loosely follows the scheme
+below:
+
+\begin{enumerate}
+\item \(\vec{x}_\mathrm{ref} \gets \text{solution by an external solver}\)
+\item Solve \(\matr{A}\vec{x} = \vec{b}\)
+\item \(e \gets \displaystyle \frac{\norm{\vec{x} - \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2}\)
+\end{enumerate}
+
+The relative error \(e\) will be used as the accuracy metric.
+
+\begin{itemize}
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:exdd}:]{external-double-double}
+
+Control: Automatic
+
+Initial State: matrix \(\matr{A}\) is read from file and stored in memory. The
+same problem \(\matr{A}\vec{x} = \vec{b}\) is passed to the external solver. A
+reference solution \(\vec{x}_\mathrm{ref}\) is prepared.
+
+Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
+\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f =
+u_w = u_r = \texttt{double}\)
+
+Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+
+Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} = \matr{A}\vec{x}_\mathrm{ref}\)
+
+How test will be performed: Automatic
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:exsd}:]{external-single-double}
+
+Control: Automatic
+
+Initial State: matrix \(\matr{A}\) is read from file and stored in memory. The
+same problem \(\matr{A}\vec{x} = \vec{b}\) is passed to the external solver. A
+reference solution \(\vec{x}_\mathrm{ref}\) is prepared.
+
+Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
+\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f = \texttt{single}, u_w
+= u_r = \texttt{double}\)
+
+Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+
+Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} =
+\matr{A}\vec{x}_\mathrm{ref}\). Matrix factorization is done in single precision while
+working and residual computing are done in double precision.
+
+How test will be performed: Automatic
+
+\end{itemize}
 
 \subsection{Tests for Nonfunctional Requirements}
 
@@ -316,8 +523,14 @@ format for the tests given below.}
 How will they be done?  In cases like code (or document) walkthroughs, who will
 be involved? Be specific.}
 
-\subsubsection{Area of Testing1}
-		
+\subsubsection{Accuracy}
+
+The accuracy of the solver will be assessed by verifying that it converges to a
+solution within the user-defined tolerance \(\epsilon\). The level of accuracy
+required for computational science and engineering applications will be
+evaluated through the relative residual norm after convergence. The following
+tests will be performed:
+
 \paragraph{Title for Test}
 
 \begin{enumerate}
@@ -325,26 +538,26 @@ be involved? Be specific.}
 \item{test-id1\\}
 
 Type: Functional, Dynamic, Manual, Static etc.
-					
-Initial State: 
-					
-Input/Condition: 
-					
-Output/Result: 
-					
-How test will be performed: 
-					
+
+Initial State:
+
+Input/Condition:
+
+Output/Result:
+
+How test will be performed:
+
 \item{test-id2\\}
 
 Type: Functional, Dynamic, Manual, Static etc.
-					
-Initial State: 
-					
-Input: 
-					
-Output: 
-					
-How test will be performed: 
+
+Initial State:
+
+Input:
+
+Output:
+
+How test will be performed:
 
 \end{enumerate}
 
@@ -354,137 +567,157 @@ How test will be performed:
 
 \subsection{Traceability Between Test Cases and Requirements}
 
-\wss{Provide a table that shows which test cases are supporting which
-  requirements.}
+% \tref{T:io}
+% \tref{T:gdd}
+% \tref{T:gsd}
+% \tref{T:exdd}
+% \tref{T:exsd}
+% \rref{R:Axb}
+% \rref{R:MP}
+% \rref{R:ex}
+% \nfrref{NFR:acc}
+% \nfrref{NFR:use}
+% \nfrref{NFR:mt}
+% \nfrref{NFR:port}
+
+% \begin{table}[h!]
+%   \centering
+%   \begin{tabular}{|c|c|c|}                                      \hline
+%   \end{tabular}
+%   \caption{Traceability matrix showing the connections between test cases and
+%     requirements}
+%   \label{Table:T_trace}
+% \end{table}
 
 \section{Unit Test Description}
+\label{sec:unit-test-descr}
 
-\wss{This section should not be filled in until after the MIS (detailed design
-  document) has been completed.}
+This section should not be filled in until after the MIS (detailed design
+  document) has been completed.
 
-\wss{Reference your MIS (detailed design document) and explain your overall
-philosophy for test case selection.}  
+% \wss{Reference your MIS (detailed design document) and explain your overall
+% philosophy for test case selection.}
 
-\wss{To save space and time, it may be an option to provide less detail in this section.  
-For the unit tests you can potentially layout your testing strategy here.  That is, you 
-can explain how tests will be selected for each module.  For instance, your test building 
-approach could be test cases for each access program, including one test for normal behaviour 
-and as many tests as needed for edge cases.  Rather than create the details of the input 
-and output here, you could point to the unit testing code.  For this to work, you code 
-needs to be well-documented, with meaningful names for all of the tests.}
+% \wss{To save space and time, it may be an option to provide less detail in this section.
+% For the unit tests you can potentially layout your testing strategy here.  That is, you
+% can explain how tests will be selected for each module.  For instance, your test building
+% approach could be test cases for each access program, including one test for normal behaviour
+% and as many tests as needed for edge cases.  Rather than create the details of the input
+% and output here, you could point to the unit testing code.  For this to work, you code
+% needs to be well-documented, with meaningful names for all of the tests.}
 
-\subsection{Unit Testing Scope}
+% \subsection{Unit Testing Scope}
 
-\wss{What modules are outside of the scope.  If there are modules that are
-  developed by someone else, then you would say here if you aren't planning on
-  verifying them.  There may also be modules that are part of your software, but
-  have a lower priority for verification than others.  If this is the case,
-  explain your rationale for the ranking of module importance.}
+% \wss{What modules are outside of the scope.  If there are modules that are
+%   developed by someone else, then you would say here if you aren't planning on
+%   verifying them.  There may also be modules that are part of your software, but
+%   have a lower priority for verification than others.  If this is the case,
+%   explain your rationale for the ranking of module importance.}
 
-\subsection{Tests for Functional Requirements}
+% \subsection{Tests for Functional Requirements}
 
-\wss{Most of the verification will be through automated unit testing.  If
-  appropriate specific modules can be verified by a non-testing based
-  technique.  That can also be documented in this section.}
+% \wss{Most of the verification will be through automated unit testing.  If
+%   appropriate specific modules can be verified by a non-testing based
+%   technique.  That can also be documented in this section.}
 
-\subsubsection{Module 1}
+% \subsubsection{Module 1}
 
-\wss{Include a blurb here to explain why the subsections below cover the module.
-  References to the MIS would be good.  You will want tests from a black box
-  perspective and from a white box perspective.  Explain to the reader how the
-  tests were selected.}
+% \wss{Include a blurb here to explain why the subsections below cover the module.
+%   References to the MIS would be good.  You will want tests from a black box
+%   perspective and from a white box perspective.  Explain to the reader how the
+%   tests were selected.}
 
-\begin{enumerate}
+% \begin{enumerate}
 
-\item{test-id1\\}
+% \item{test-id1\\}
 
-Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-  be automatic}
-					
-Initial State: 
-					
-Input: 
-					
-Output: \wss{The expected result for the given inputs}
+% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+%   be automatic}
 
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
+% Initial State:
 
-How test will be performed: 
-					
-\item{test-id2\\}
+% Input:
 
-Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-  be automatic}
-					
-Initial State: 
-					
-Input: 
-					
-Output: \wss{The expected result for the given inputs}
+% Output: \wss{The expected result for the given inputs}
 
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
+% Test Case Derivation: \wss{Justify the expected value given in the Output field}
 
-How test will be performed: 
+% How test will be performed:
 
-\item{...\\}
-    
-\end{enumerate}
+% \item{test-id2\\}
 
-\subsubsection{Module 2}
+% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+%   be automatic}
 
-...
+% Initial State:
 
-\subsection{Tests for Nonfunctional Requirements}
+% Input:
 
-\wss{If there is a module that needs to be independently assessed for
-  performance, those test cases can go here.  In some projects, planning for
-  nonfunctional tests of units will not be that relevant.}
+% Output: \wss{The expected result for the given inputs}
 
-\wss{These tests may involve collecting performance data from previously
-  mentioned functional tests.}
+% Test Case Derivation: \wss{Justify the expected value given in the Output field}
 
-\subsubsection{Module ?}
-		
-\begin{enumerate}
+% How test will be performed:
 
-\item{test-id1\\}
+% \item{...\\}
 
-Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-  be automatic}
-					
-Initial State: 
-					
-Input/Condition: 
-					
-Output/Result: 
-					
-How test will be performed: 
-					
-\item{test-id2\\}
+% \end{enumerate}
 
-Type: Functional, Dynamic, Manual, Static etc.
-					
-Initial State: 
-					
-Input: 
-					
-Output: 
-					
-How test will be performed: 
+% \subsubsection{Module 2}
 
-\end{enumerate}
+% ...
 
-\subsubsection{Module ?}
+% \subsection{Tests for Nonfunctional Requirements}
 
-...
+% \wss{If there is a module that needs to be independently assessed for
+%   performance, those test cases can go here.  In some projects, planning for
+%   nonfunctional tests of units will not be that relevant.}
 
-\subsection{Traceability Between Test Cases and Modules}
+% \wss{These tests may involve collecting performance data from previously
+%   mentioned functional tests.}
 
-\wss{Provide evidence that all of the modules have been considered.}
-				
-\bibliographystyle{plainnat}
+% \subsubsection{Module ?}
 
-\bibliography{../../refs/References}
+% \begin{enumerate}
+
+% \item{test-id1\\}
+
+% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+%   be automatic}
+
+% Initial State:
+
+% Input/Condition:
+
+% Output/Result:
+
+% How test will be performed:
+
+% \item{test-id2\\}
+
+% Type: Functional, Dynamic, Manual, Static etc.
+
+% Initial State:
+
+% Input:
+
+% Output:
+
+% How test will be performed:
+
+% \end{enumerate}
+
+% \subsubsection{Module ?}
+
+% ...
+
+% \subsection{Traceability Between Test Cases and Modules}
+
+% \wss{Provide evidence that all of the modules have been considered.}
+
+% \newpage
+
+\printbibliography{}
 
 \newpage
 
@@ -496,34 +729,5 @@ This is where you can place additional information.
 
 The definition of the test cases will call for SYMBOLIC\_CONSTANTS.
 Their values are defined in this section for easy maintenance.
-
-\subsection{Usability Survey Questions?}
-
-\wss{This is a section that would be appropriate for some projects.}
-
-\newpage{}
-\section*{Appendix --- Reflection}
-
-\wss{This section is not required for CAS 741}
-
-The information in this section will be used to evaluate the team members on the
-graduate attribute of Lifelong Learning.
-
-\input{../Reflection.tex}
-
-\begin{enumerate}
-  \item What went well while writing this deliverable? 
-  \item What pain points did you experience during this deliverable, and how
-    did you resolve them?
-  \item What knowledge and skills will the team collectively need to acquire to
-  successfully complete the verification and validation of your project?
-  Examples of possible knowledge and skills include dynamic testing knowledge,
-  static testing knowledge, specific tool usage, Valgrind etc.  You should look to
-  identify at least one item for each team member.
-  \item For each of the knowledge areas and skills identified in the previous
-  question, what are at least two approaches to acquiring the knowledge or
-  mastering the skill?  Of the identified approaches, which will each team
-  member pursue, and why did they make this choice?
-\end{enumerate}
 
 \end{document}
