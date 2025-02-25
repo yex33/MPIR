@@ -1,9 +1,11 @@
 \documentclass[12pt, titlepage]{article}
 
+\usepackage[utf8]{inputenc}
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{amsmath}
 \usepackage{siunitx}
+\usepackage{float}
 \usepackage{hyperref}
 \hypersetup{
     colorlinks,
@@ -18,6 +20,116 @@
 \usepackage[backend=biber,style=authoryear]{biblatex}
 \addbibresource{../../refs/References.bib}
 
+% Commands for survey template
+% https://github.com/annerosenisser/latex-surveys
+\usepackage{wasysym}  % provides \ocircle and \Box
+\usepackage{enumitem} % easy control of topsep and leftmargin for lists
+\usepackage{color}    % used for background color
+\usepackage{forloop}  % used for \Qrating and \Qlines
+\usepackage{ifthen}   % used for \Qitem and \QItem
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Beginning of questionnaire command definitions %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% 2010, 2012 by Sven Hartenstein
+%% mail@svenhartenstein.de
+%% http://www.svenhartenstein.de
+%%
+%% Please be warned that this is NOT a full-featured framework for
+%% creating (all sorts of) questionnaires. Rather, it is a small
+%% collection of LaTeX commands that I found useful when creating a
+%% questionnaire. Feel free to copy and adjust any parts you like.
+%% Most probably, you will want to change the commands, so that they
+%% fit your taste.
+%%
+%% Also note that I am not a LaTeX expert! Things can very likely be
+%% done much more elegant than I was able to. If you have suggestions
+%% about what can be improved please send me an email. I intend to
+%% add good tipps to my website and to name contributers of course.
+%%
+%% 10/2012: Thanks to karathan for the suggestion to put \noindent
+%% before \rule!
+
+%% \Qq = Questionaire question. Oh, this is just too simple. It helps
+%% making it easy to globally change the appearance of questions.
+\newcommand{\Qq}[1]{\textbf{#1}}
+
+%% \QO = Circle or box to be ticked. Used both by direct call and by
+%% \Qrating and \Qlist.
+\newcommand{\QO}{$\Box$}% or: $\ocircle$
+
+%% \Qrating = Automatically create a rating scale with NUM steps, like
+%% this: 0--0--0--0--0.
+\newcounter{qr}
+\newcommand{\Qrating}[1]{\QO\forloop{qr}{1}{\value{qr} < #1}{---\QO}}
+
+%% \Qline = Again, this is very simple. It helps setting the line
+%% thickness globally. Used both by direct call and by \Qlines.
+\newcommand{\Qline}[1]{\noindent\rule{#1}{0.6pt}}
+
+%% \Qlines = Insert NUM lines with width=\linewith. You can change the
+%% \vskip value to adjust the spacing.
+\newcounter{ql}
+\newcommand{\Qlines}[1]{\forloop{ql}{0}{\value{ql}<#1}{\vskip0em\Qline{\linewidth}}}
+
+%% \Qlist = This is an environment very similar to itemize but with
+%% \QO in front of each list item. Useful for classical multiple
+%% choice. Change leftmargin and topsep accourding to your taste.
+\newenvironment{Qlist}{%
+\renewcommand{\labelitemi}{\QO}
+\begin{itemize}[leftmargin=1.5em,topsep=-.5em]
+}{%
+\end{itemize}
+}
+
+%% \Qtab = A "tabulator simulation". The first argument is the
+%% distance from the left margin. The second argument is content which
+%% is indented within the current row.
+\newlength{\qt}
+\newcommand{\Qtab}[2]{
+\setlength{\qt}{\linewidth}
+\addtolength{\qt}{-#1}
+\hfill\parbox[t]{\qt}{\raggedright #2}
+}
+
+%% \Qitem = Item with automatic numbering. The first optional argument
+%% can be used to create sub-items like 2a, 2b, 2c, ... The item
+%% number is increased if the first argument is omitted or equals 'a'.
+%% You will have to adjust this if you prefer a different numbering
+%% scheme. Adjust topsep and leftmargin as needed.
+\newcounter{itemnummer}
+\newcommand{\Qitem}[2][]{% #1 optional, #2 notwendig
+\ifthenelse{\equal{#1}{}}{\stepcounter{itemnummer}}{}
+\ifthenelse{\equal{#1}{a}}{\stepcounter{itemnummer}}{}
+\begin{enumerate}[topsep=2pt,leftmargin=2.8em]
+\item[\textbf{\arabic{itemnummer}#1.}] #2
+\end{enumerate}
+}
+
+%% \QItem = Like \Qitem but with alternating background color. This
+%% might be error prone as I hard-coded some lengths (-5.25pt and
+%% -3pt)! I do not yet understand why I need them.
+\definecolor{bgodd}{rgb}{0.8,0.8,0.8}
+\definecolor{bgeven}{rgb}{0.9,0.9,0.9}
+\newcounter{itemoddeven}
+\newlength{\gb}
+\newcommand{\QItem}[2][]{% #1 optional, #2 notwendig
+\setlength{\gb}{\linewidth}
+\addtolength{\gb}{-5.25pt}
+\ifthenelse{\equal{\value{itemoddeven}}{0}}{%
+\noindent\colorbox{bgeven}{\hskip-3pt\begin{minipage}{\gb}\Qitem[#1]{#2}\end{minipage}}%
+\stepcounter{itemoddeven}%
+}{%
+\noindent\colorbox{bgodd}{\hskip-3pt\begin{minipage}{\gb}\Qitem[#1]{#2}\end{minipage}}%
+\setcounter{itemoddeven}{0}%
+}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% End of questionnaire command definitions %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \input{../Comments}
 \input{../Common}
 
@@ -26,6 +138,7 @@
 \newcommand{\tref}[1]{T\ref{#1}}
 
 \newcommand{\rref}[1]{R\ref{#1}}
+\newcommand{\nfrref}[1]{NFR\ref{#1}}
 
 \begin{document}
 
@@ -80,6 +193,7 @@ in.}
   \toprule
   \textbf{symbol} & \textbf{description}                     \\
   \midrule
+  API       & Application Programming Interface  \\
   CI        & Continuous Integration             \\
   MG        & Module Guide                       \\
   MIS       & Module Interface Specification     \\
@@ -164,6 +278,10 @@ proof, GenderMag personas, Design Thinking, etc.  Extras should have already
 been approved by the course instructor as included in your problem statement.
 You can use a pull request to update your extras (in TeamComposition.csv or
 Repos.csv) if your plan changes as a result of the VnV planning exercise.}
+
+The challenge level remains the same at the general level. The extra is expected
+to be conducting a usability test which will be discussed in
+Section~\ref{sec:usability}.
 
 \subsection{Relevant Documentation}
 
@@ -298,7 +416,7 @@ verifications:
   static code analysis. Committed codes should be free of linter errors and
   warnings to minimize the chance of having incorrect codes.
 \item Benchmark (\cite{noauthor_googlebenchmark_2025}) will be used to evaluate the
-  runtime performance of the solver as part of the non-functional verification
+  runtime performance of the solver as part of the nonfunctional verification
   process.
 \end{itemize}
 
@@ -335,17 +453,11 @@ established solvers to evaluate the solver’s computational efficiency.
 \label{sec:system-tests}
 
 This section outlines the tests that will be performed for \progname{} to verify
-both the functional and non-functional requirements specified in the SRS
+both the functional and nonfunctional requirements specified in the SRS
 (\cite{SRS}). Input specifications and constraints are also listed in the SRS.
 
 \subsection{Tests for Functional Requirements}
-
-\wss{Subsets of the tests may be in related, so this section is divided into
-  different areas.  If there are no identifiable subsets for the tests, this
-  level of document structure can be removed.}
-
-\wss{Include a blurb here to explain why the subsections below
-  cover the requirements.  References to the SRS would be good here.}
+\label{sec:tests-funct-requ}
 
 In this section, the system tests that will be conducted are described in
 detail. These tests will be used to verify the fulfillment of the functional
@@ -502,11 +614,6 @@ How test will be performed: Automatic
 
 \subsection{Tests for Nonfunctional Requirements}
 
-\wss{The nonfunctional requirements for accuracy will likely just reference the
-  appropriate functional tests from above.  The test cases should mention
-  reporting the relative error for these tests.  Not all projects will
-  necessarily have nonfunctional requirements related to accuracy.}
-
 \wss{For some nonfunctional tests, you won't be setting a target threshold for
 passing the test, but rather describing the experiment you will do to measure
 the quality for different inputs.  For instance, you could measure speed versus
@@ -523,47 +630,146 @@ format for the tests given below.}
 How will they be done?  In cases like code (or document) walkthroughs, who will
 be involved? Be specific.}
 
+In this section, the system tests that will be conducted are described in
+detail. These tests will be used to verify the fulfillment of the nonfunctional
+requirements as listed in the SRS (\cite{SRS}).
+
 \subsubsection{Accuracy}
 
 The accuracy of the solver will be assessed by verifying that it converges to a
 solution within the user-defined tolerance \(\epsilon\). The level of accuracy
 required for computational science and engineering applications will be
 evaluated through the relative residual norm after convergence. The following
-tests will be performed:
+tests will be performed to verify the nonfunctional requirement \nfrref{NFR:acc}
+in the SRS:
 
-\paragraph{Title for Test}
+\begin{itemize}
 
-\begin{enumerate}
+\item[T\refstepcounter{testnum}\thetestnum \label{T:acc}:]{nfr-acc}
 
-\item{test-id1\\}
+Type: Functional, Automated
 
-Type: Functional, Dynamic, Manual, Static etc.
+Initial State: Similar to \tref{T:gdd}, matrix \(\matr{A}\) is read from file
+and stored in memory. An manufactured expected exact solution
+\(\vec{x}_\mathrm{ref}\) is prepared.
 
-Initial State:
+Input: Similar to \tref{T:gdd}, with an extra input for user-specified tolerance
+\(\epsilon = \num{1e-12}\).
 
-Input/Condition:
+Output/Result: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle
+\frac{\norm{\vec{x} - \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} <
+\epsilon = \num{1e-12}\). The computed solution’s residual norm should be below
+the threshold \(\epsilon\). If convergence is not achieved after iterations, a
+warning should be issued.
 
-Output/Result:
+How test will be performed: Automatic
 
-How test will be performed:
+\end{itemize}
 
-\item{test-id2\\}
+\subsubsection{Usability}
+\label{sec:usability}
 
-Type: Functional, Dynamic, Manual, Static etc.
+The usability of the solver will be evaluated based on the clarity and
+accessibility of its public Application Programming Interface (API). The API
+should be self-contained, readable, and easy to integrate into other software as
+a dependency. Usability testing will reference the user characteristics section
+and include developer feedback. The following tests will be performed to verify
+the nonfunctional requirement \nfrref{NFR:use} in the SRS:
 
-Initial State:
+\begin{itemize}
 
-Input:
+\item[T\refstepcounter{testnum}\thetestnum \label{T:use}:]{nfr-use}
 
-Output:
+Type: Static, Review, Survey-Based
 
-How test will be performed:
+Initial State: The API documentation and usage examples are available. The API
+documentation of an external, established sparse linear solver is also presented
+as a comparable reference.
 
-\end{enumerate}
+Input: VnV team members review the API and compare it against that of the
+external solver.
 
-\subsubsection{Area of Testing2}
+Output/Result: Feedback on clarity, ease of integration, pros and cons, and
+suggestions for improvements.
 
-...
+How test will be performed: A usability survey will be conducted (see
+Appendix~\ref{sec:usab-surv-quest}). API walkthroughs and documentation inspections
+will be used to ensure that function calls and configurations are intuitive.
+
+\end{itemize}
+
+\subsubsection{Maintainability}
+
+The effort required to modify the solver should be kept minimal. This will be
+verified by estimating the complexity of implementing likely changes and
+ensuring that modifications take less than a fraction of the original
+development time. The following tests will be performed to verify the
+nonfunctional requirement \nfrref{NFR:mt} in the SRS:
+
+\begin{itemize}
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:mt}:]{nfr-mt}
+
+Type: Static, Code Review
+
+Initial State: The codebase is available and structured.
+
+Input: Introduce a minor algorithmic modification or API extension.
+
+Output/Result: Measure the number of files and lines of code modified, as well
+as time taken.
+
+How test will be performed: A code walkthrough will be conducted with team
+members to assess maintainability using the MG and MIS guidelines.
+
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:fmt}:]{nfr-format}
+
+Type: Static, Automated
+
+Initial State: The source code is available in a repository with predefined
+formatting and linting rules.
+
+Input: Run automated checks using clang-format for code style enforcement and
+clang-tidy for static analysis.
+
+Output/Result: The code should conform to the predefined formatting rules, and
+no critical linting warnings or errors should remain unaddressed.
+
+How test will be performed: As part of the CI pipeline, clang-format and
+clang-tidy will be executed on every commit. Any violations must be resolved
+before merging changes.
+
+\end{itemize}
+
+\subsubsection{Portability}
+
+The solver should run on all actively maintained operating systems, including
+Windows 10, Windows 11, Linux, and MacOS. Compatibility testing will verify that
+all required functionalities work across different platforms. The following
+tests will be performed to verify the nonfunctional requirement \nfrref{NFR:port}
+in the SRS:
+
+\begin{itemize}
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:port}:]{nfr-port}
+
+Type: Functional, Automated
+
+Initial State: The solver is compiled and deployed on different machines with
+different operating systems.
+
+Input: Run both the example programs and all automated functional tests
+described in Section~\ref{sec:tests-funct-requ}.
+
+Output/Result: The solver successfully compiles, executes test cases, and
+produces correct results.
+
+How test will be performed: Automated CI pipelines will test the software across
+different platforms. Success will be determined by running the test suite in
+each environment and confirming consistent results.
+
+\end{itemize}
 
 \subsection{Traceability Between Test Cases and Requirements}
 
@@ -572,6 +778,11 @@ How test will be performed:
 % \tref{T:gsd}
 % \tref{T:exdd}
 % \tref{T:exsd}
+% \tref{T:acc}
+% \tref{T:use}
+% \tref{T:mt}
+% \tref{T:fmt}
+% \tref{T:port}
 % \rref{R:Axb}
 % \rref{R:MP}
 % \rref{R:ex}
@@ -580,14 +791,25 @@ How test will be performed:
 % \nfrref{NFR:mt}
 % \nfrref{NFR:port}
 
-% \begin{table}[h!]
-%   \centering
-%   \begin{tabular}{|c|c|c|}                                      \hline
-%   \end{tabular}
-%   \caption{Traceability matrix showing the connections between test cases and
-%     requirements}
-%   \label{Table:T_trace}
-% \end{table}
+\begin{table}[H]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|c|}                                      \hline
+                  & \rref{R:Axb} & \rref{R:MP} & \rref{R:ex} & \nfrref{NFR:acc} & \nfrref{NFR:use} & \nfrref{NFR:mt} & \nfrref{NFR:port} \\ \hline
+    \tref{T:io}   &              &             & X           &                  &                  &                 &                   \\ \hline
+    \tref{T:gdd}  & X            & X           &             &                  &                  &                 &                   \\ \hline
+    \tref{T:gsd}  & X            & X           &             &                  &                  &                 &                   \\ \hline
+    \tref{T:exdd} & X            & X           &             &                  &                  &                 &                   \\ \hline
+    \tref{T:exsd} & X            & X           &             &                  &                  &                 &                   \\ \hline
+    \tref{T:acc}  &              &             &             & X                &                  &                 &                   \\ \hline
+    \tref{T:use}  &              &             &             &                  & X                &                 &                   \\ \hline
+    \tref{T:mt}   &              &             &             &                  &                  & X               &                   \\ \hline
+    \tref{T:fmt}  &              &             &             &                  &                  & X               &                   \\ \hline
+    \tref{T:port} &              &             &             &                  &                  &                 & X                 \\ \hline
+  \end{tabular}
+  \caption{Traceability matrix showing the connections between test cases and
+    requirements}
+  \label{Table:T_trace}
+\end{table}
 
 \section{Unit Test Description}
 \label{sec:unit-test-descr}
@@ -715,7 +937,7 @@ This section should not be filled in until after the MIS (detailed design
 
 % \wss{Provide evidence that all of the modules have been considered.}
 
-% \newpage
+\newpage
 
 \printbibliography{}
 
@@ -729,5 +951,91 @@ This is where you can place additional information.
 
 The definition of the test cases will call for SYMBOLIC\_CONSTANTS.
 Their values are defined in this section for easy maintenance.
+
+\subsection{Usability Survey Questions}
+\label{sec:usab-surv-quest}
+
+\Qitem{
+  \Qq{Did you find the function names and parameters intuitive?}
+  \begin{Qlist}
+  \item Very intuitive
+  \item Somewhat intuitive
+  \item Neutral
+  \item Confusing
+  \item Very confusing
+  \end{Qlist}
+}
+
+\Qitem{
+  \Qq{Did the provided documentation clearly explain how to use the API?}
+  \begin{Qlist}
+    \item Yes, everything was clear
+    \item Mostly clear, but some aspects were confusing
+    \item Neutral
+    \item No, the documentation was unclear
+    \item No documentation was provided
+  \end{Qlist}
+}
+
+\Qitem{
+  \Qq{Were the example use cases sufficient to understand how to integrate the solver?}
+  \begin{Qlist}
+    \item Yes, they covered all necessary cases
+    \item Somewhat, but additional examples would be helpful
+    \item No, they were insufficient
+  \end{Qlist}
+}
+
+\Qitem{
+  \Qq{How easy was it to set up and call the solver in a basic use case?}
+  \begin{Qlist}
+    \item Very easy (Just a few function calls)
+    \item Somewhat easy (Needed minor adjustments)
+    \item Neutral
+    \item Difficult (Required significant effort)
+    \item Very difficult (I could not get it working)
+  \end{Qlist}
+}
+
+\Qitem{
+  \Qq{Did the API provide useful error messages when incorrect inputs were provided?}
+  \begin{Qlist}
+    \item Yes, the error messages were informative
+    \item Somewhat, but could be improved
+    \item No, the error messages were vague or missing
+  \end{Qlist}
+}
+
+\Qitem{
+  \Qq{If you encountered any difficulties, what were they? (Open-ended)}
+  \Qlines{1}
+}
+
+\Qitem{
+  \Qq{How would you rate the overall usability of the API?}
+  \begin{Qlist}
+  \item Excellent
+  \item Good
+  \item Neutral
+  \item Poor
+  \item Very Poor
+  \end{Qlist}
+}
+
+\Qitem{
+  \Qq{What improvements would you suggest to enhance the usability of the API? (Open-ended)}
+  \Qlines{1}
+}
+
+
+\Qitem{
+  \Qq{Would you recommend this solver for integration into a larger numerical computing project?}
+  \begin{Qlist}
+  \item Yes
+  \item No
+  \item Maybe, if improvements are made
+  \end{Qlist}
+}
+
 
 \end{document}
