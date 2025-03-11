@@ -329,3 +329,4 @@ TSWLatexianTemp*
 
 ## Custom ignores
 .pdf-view-restore
+*.mtx
