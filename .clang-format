@@ -1,0 +1,7 @@
+---
+BasedOnStyle: Google
+AlignArrayOfStructures: Left
+AlignConsecutiveAssignments:
+  Enabled: true
+AlignConsecutiveDeclarations:
+  Enabled: true
