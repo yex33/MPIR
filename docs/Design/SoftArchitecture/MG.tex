@@ -1,7 +1,6 @@
 \documentclass[12pt, titlepage]{article}
 
 \usepackage{fullpage}
-\usepackage[round]{natbib}
 \usepackage{multirow}
 \usepackage{booktabs}
 \usepackage{tabularx}
@@ -19,6 +18,9 @@
 \input{../../Comments}
 \input{../../Common}
 
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{../../../refs/References.bib}
+
 \newcounter{acnum}
 \newcommand{\actheacnum}{AC\theacnum}
 \newcommand{\acref}[1]{AC\ref{#1}}
@@ -33,7 +35,7 @@
 
 \begin{document}
 
-\title{Module Guide for \progname{}} 
+\title{Module Guide for \progname{}}
 \author{\authname}
 \date{\today}
 
@@ -46,8 +48,7 @@
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Date 1 & 1.0 & Notes\\
-Date 2 & 1.1 & Notes\\
+\date{19 March 2025} & 1.0 & Initial draft \\
 \bottomrule
 \end{tabularx}
 
@@ -60,21 +61,21 @@ This section records information for easy reference.
 \subsection{Abbreviations and Acronyms}
 
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{l l} 
-  \toprule		
+\begin{tabular}{l l}
+  \toprule
   \textbf{symbol} & \textbf{description}\\
-  \midrule 
+  \midrule
   AC & Anticipated Change\\
   DAG & Directed Acyclic Graph \\
   M & Module \\
   MG & Module Guide \\
   OS & Operating System \\
-  R & Requirement\\
+  R & Requirement \\
   SC & Scientific Computing \\
-  SRS & Software Requirements Specification\\
-  \progname & Explanation of program name\\
+  SRS & Software Requirements Specification \\
+  MP & Mixed-Precision \\
+  IR & Iterative Refinement \\
   UC & Unlikely Change \\
-  \wss{etc.} & \wss{...}\\
   \bottomrule
 \end{tabular}\\
 
@@ -94,14 +95,14 @@ This section records information for easy reference.
 
 Decomposing a system into modules is a commonly accepted approach to developing
 software.  A module is a work assignment for a programmer or programming
-team~\citep{ParnasEtAl1984}.  We advocate a decomposition
-based on the principle of information hiding~\citep{Parnas1972a}.  This
+team~\cite{ParnasEtAl1984}.  We advocate a decomposition
+based on the principle of information hiding~\cite{Parnas1972a}.  This
 principle supports design for change, because the ``secrets'' that each module
 hides represent likely future changes.  Design for change is valuable in SC,
 where modifications are frequent, especially during initial development as the
-solution space is explored.  
+solution space is explored.
 
-Our design follows the rules layed out by \citet{ParnasEtAl1984}, as follows:
+Our design follows the rules layed out by \cite{ParnasEtAl1984}, as follows:
 \begin{itemize}
 \item System details that are likely to change independently should be the
   secrets of separate modules.
@@ -111,7 +112,7 @@ Our design follows the rules layed out by \citet{ParnasEtAl1984}, as follows:
 \end{itemize}
 
 After completing the first stage of the design, the Software Requirements
-Specification (SRS), the Module Guide (MG) is developed~\citep{ParnasEtAl1984}. The MG
+Specification (SRS), the Module Guide (MG) is developed~\cite{ParnasEtAl1984}. The MG
 specifies the modular structure of the system and is intended to allow both
 designers and maintainers to easily identify the parts of the software.  The
 potential readers of this document are as follows:
@@ -153,15 +154,25 @@ unlikely changes are listed in Section \ref{SecUchange}.
 Anticipated changes are the source of the information that is to be hidden
 inside the modules. Ideally, changing one of the anticipated changes will only
 require changing the one module that hides the associated decision. The approach
-adapted here is called design for
-change.
+adapted here is called design for change.
 
 \begin{description}
-\item[\refstepcounter{acnum} \actheacnum \label{acHardware}:] The specific
-  hardware on which the software is running.
-\item[\refstepcounter{acnum} \actheacnum \label{acInput}:] The format of the
+\item[\refstepcounter{acnum} \actheacnum \label{AC:hw}:] The specific hardware on
+  which the software is running.
+\item[\refstepcounter{acnum} \actheacnum \label{AC:factor}:] The assumed properties
+  that the input matrix holds, which further determines the solver/algorithm
+  used to factorize the matrix.
+\item[\refstepcounter{acnum} \actheacnum \label{AC:precision}:] The floating point
+  precisions in which the refinement steps are performed.
+\item[\refstepcounter{acnum} \actheacnum \label{AC:solve}:] The algorithm used for
+  internal solves during the refinement steps.
+
+\item[\refstepcounter{acnum} \actheacnum \label{AC:input}:] The format of the
   initial input data.
-\item ...
+\item[\refstepcounter{acnum} \actheacnum \label{AC:output}:] The format of the
+  final output data.
+\item[\refstepcounter{acnum} \actheacnum \label{AC:example}:] How the example
+  program demonstrates the use of \progname{}.
 \end{description}
 
 \wss{Anticipated changes relate to changes that would be made in requirements,
@@ -178,9 +189,13 @@ will potentially need to be modified. Hence, it is not intended that these
 decisions will be changed.
 
 \begin{description}
-\item[\refstepcounter{ucnum} \uctheucnum \label{ucIO}:] Input/Output devices
-  (Input: File and/or Keyboard, Output: File, Memory, and/or Screen).
-\item ...
+\item[\refstepcounter{ucnum} \uctheucnum \label{UC:IR}:] The underlying
+  mathematical method of the solver follows the iterative refinement scheme.
+\item[\refstepcounter{ucnum} \uctheucnum \label{UC:Axb}:] The goal of the system is
+  to solve a linear system \(\matr{A}\vec{x} = \vec{b}\).
+\item[\refstepcounter{ucnum} \uctheucnum \label{UC:nonsingular}:] The input matrix
+  is non singular. In another words, the problem given to the solver is
+  meaningful in a mathematical sense.
 \end{description}
 
 \section{Module Hierarchy} \label{SecMH}
@@ -191,39 +206,38 @@ below, which are leaves in the hierarchy tree, are the modules that will
 actually be implemented.
 
 \begin{description}
-\item [\refstepcounter{mnum} \mthemnum \label{mHH}:] Hardware-Hiding Module
-\item ...
+\item [\refstepcounter{mnum} \mthemnum \label{M:hw}:] Hardware-Hiding Module
+  \footnote{\progname{} is intended to run on any general purposed operation
+    system (OS). \mref{M:hw} is assumed to be by implemented by the OS.}
+\item [\refstepcounter{mnum} \mthemnum \label{M:factor}:] Matrix Factorization
+  Module
+\item [\refstepcounter{mnum} \mthemnum \label{M:ops}:] Mixed-precision Matrix
+  Operations Module
+\item [\refstepcounter{mnum} \mthemnum \label{M:solve}:] Iterative Solves Module
+\item [\refstepcounter{mnum} \mthemnum \label{M:input}:] Read Matrix Module
+\item [\refstepcounter{mnum} \mthemnum \label{M:output}:] Solver Output Module
+\item [\refstepcounter{mnum} \mthemnum \label{M:example}:] Example Program Module
 \end{description}
 
-
 \begin{table}[h!]
-\centering
-\begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
-\toprule
-\textbf{Level 1} & \textbf{Level 2}\\
-\midrule
-
-{Hardware-Hiding Module} & ~ \\
-\midrule
-
-\multirow{7}{0.3\textwidth}{Behaviour-Hiding Module} & ?\\
-& ?\\
-& ?\\
-& ?\\
-& ?\\
-& ?\\
-& ?\\ 
-& ?\\
-\midrule
-
-\multirow{3}{0.3\textwidth}{Software Decision Module} & {?}\\
-& ?\\
-& ?\\
-\bottomrule
-
-\end{tabular}
-\caption{Module Hierarchy}
-\label{TblMH}
+  \centering
+  \begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
+    \toprule
+    \textbf{Level 1}                                            & \textbf{Level 2}                               \\
+    \midrule
+    {Hardware-Hiding Module}                              & --                                       \\
+    \midrule
+    \multirow{5}{0.3\textwidth}{Behaviour-Hiding Module}  & Read Matrix Module                       \\
+                                                          & Solver Output Module                     \\
+                                                          & Matrix Factorization Module              \\
+                                                          & Mixed-precision Matrix Operations Module \\
+                                                          & Iterative Solves Module                  \\
+    \midrule
+    \multirow{1}{0.3\textwidth}{Software Decision Module} & Example Program Module                   \\
+    \bottomrule
+  \end{tabular}
+  \caption{Module Hierarchy}
+  \label{TblMH}
 \end{table}
 
 \section{Connection Between Requirements and Design} \label{SecConnection}
@@ -242,55 +256,93 @@ between requirements and modules is listed in Table~\ref{TblRT}.
 \section{Module Decomposition} \label{SecMD}
 
 Modules are decomposed according to the principle of ``information hiding''
-proposed by \citet{ParnasEtAl1984}. The \emph{Secrets} field in a module
-decomposition is a brief statement of the design decision hidden by the
-module. The \emph{Services} field specifies \emph{what} the module will do
-without documenting \emph{how} to do it. For each module, a suggestion for the
+proposed by \cite{ParnasEtAl1984}. The \emph{Secrets} field in a module
+decomposition is a brief statement of the design decision hidden by the module.
+The \emph{Services} field specifies \emph{what} the module will do without
+documenting \emph{how} to do it. For each module, a suggestion for the
 implementing software is given under the \emph{Implemented By} title. If the
 entry is \emph{OS}, this means that the module is provided by the operating
-system or by standard programming language libraries.  \emph{\progname{}} means the
-module will be implemented by the \progname{} software.
+system or by standard programming language libraries. \emph{\progname{}} means
+the module will be implemented by the \progname{} software.
 
 Only the leaf modules in the hierarchy have to be implemented. If a dash
 (\emph{--}) is shown, this means that the module is not a leaf and will not have
 to be implemented.
 
-\subsection{Hardware Hiding Modules (\mref{mHH})}
+\subsection{Hardware Hiding Modules (\mref{M:hw})}
 
 \begin{description}
-\item[Secrets:]The data structure and algorithm used to implement the virtual
+\item[Secrets:] The data structure and algorithm used to implement the virtual
   hardware.
-\item[Services:]Serves as a virtual hardware used by the rest of the
-  system. This module provides the interface between the hardware and the
-  software. So, the system can use it to display outputs or to accept inputs.
+\item[Services:] Serves as a virtual hardware used by the rest of the system. This
+  module provides the interface between the hardware and the software. So, the
+  system can use it to display outputs or to accept inputs.
 \item[Implemented By:] OS
 \end{description}
 
 \subsection{Behaviour-Hiding Module}
 
 \begin{description}
-\item[Secrets:]The contents of the required behaviours.
-\item[Services:]Includes programs that provide externally visible behaviour of
-  the system as specified in the software requirements specification (SRS)
+\item[Secrets:] The contents of the required behaviours.
+\item[Services:] Includes programs that provide externally visible behaviour of the
+  system as specified in the software requirements specification (SRS)
   documents. This module serves as a communication layer between the
   hardware-hiding module and the software decision module. The programs in this
   module will need to change if there are changes in the SRS.
 \item[Implemented By:] --
 \end{description}
 
-\subsubsection{Input Format Module (\mref{mInput})}
+\subsubsection{Read Matrix Module (\mref{M:input})}
 
 \begin{description}
-\item[Secrets:]The format and structure of the input data.
-\item[Services:]Converts the input data into the data structure used by the
-  input parameters module.
-\item[Implemented By:] [Your Program Name Here]
-\item[Type of Module:] [Record, Library, Abstract Object, or Abstract Data Type]
-  [Information to include for leaf modules in the decomposition by secrets tree.]
+\item[Secrets:] The format and structure of the input data, how a matrix stored in
+  a plain text file is read and parsed, how a sparse matrix is represented.
+\item[Services:] Converts the input data into the data structure and format
+  consumed by the solver.
+\item[Implemented By:] \cite{noauthor_gsl_nodate}
+\item[Type of Module:] Library
 \end{description}
 
-\subsubsection{Etc.}
+\subsubsection{Solver Output Module (\mref{M:output})}
 
+\begin{description}
+\item[Secrets:] The format and structure of the output data.
+\item[Services:] Outputs the results of the calculations, including the input
+  parameters, solve time, residuals.
+\item[Implemented By:] \progname{}
+\item[Type of Module:] Record
+\end{description}
+
+\subsubsection{Matrix Factorization (\mref{M:factor})}
+
+\begin{description}
+\item[Secrets:] The structure of the input matrix, how to factorize the input
+  matrix.
+\item[Services:] Obtains factors of a given input matrix, provides routines to
+  solve for different vectors given the same (factorized) input matrix.
+\item[Implemented By:] \progname{}
+\item[Type of Module:] Library
+\end{description}
+
+\subsubsection{Mixed-precision Matrix Operations Factorization (\mref{M:ops})}
+
+\begin{description}
+\item[Secrets:] The structure of the input data
+\item[Services:] Provides basic matrix operations such as multiplication, residual
+  computation, element-wise operations at various floating point precision.
+\item[Implemented By:] \progname{}
+\item[Type of Module:] Abstract Object
+\end{description}
+
+\subsubsection{Iterative Solves Module (\mref{M:solve})}
+
+\begin{description}
+\item[Secrets:] The structure of the input matrix
+\item[Services:] Provides the main logics of the solver. Solves a given linear
+  system with iterative refinement.
+\item[Implemented By:] \progname{}
+\item[Type of Module:] Abstract Object
+\end{description}
 
 \subsection{Software Decision Module}
 
@@ -299,13 +351,22 @@ to be implemented.
   facts, or programming considerations. The secrets of this module are
   \emph{not} described in the SRS.
 \item[Services:] Includes data structure and algorithms used in the system that
-  do not provide direct interaction with the user. 
+  do not provide direct interaction with the user.
   % Changes in these modules are more likely to be motivated by a desire to
   % improve performance than by externally imposed changes.
 \item[Implemented By:] --
 \end{description}
 
-\subsubsection{Etc.}
+\subsubsection{Iterative Solves Module (\mref{M:example})}
+
+\begin{description}
+\item[Secrets:] The input matrix
+\item[Services:] Provides an example of invoking the APIs exposed by \progname{}.
+  Demonstrates the process of reading a matrix from file, generating inputs for
+  the solver, and displays the output from the solver.
+\item[Implemented By:] \progname{}
+\item[Type of Module:] Abstract Object
+\end{description}
 
 \section{Traceability Matrix} \label{SecTM}
 
@@ -364,7 +425,7 @@ R11 & \mref{mOutput}, \mref{mODEs}, \mref{mEnergy}, \mref{mControl}\\
 \section{Use Hierarchy Between Modules} \label{SecUse}
 
 In this section, the uses hierarchy between modules is
-provided. \citet{Parnas1978} said of two programs A and B that A {\em uses} B if
+provided. \cite{Parnas1978} said of two programs A and B that A {\em uses} B if
 correct execution of B may be necessary for A to complete the task described in
 its specification. That is, A {\em uses} B if there exist situations in which
 the correct functioning of A depends upon the availability of a correct
@@ -407,8 +468,7 @@ needed. Drawings, Sketches, Figma}
 
 \wss{You can point to GitHub if this information is included there}
 
-\bibliographystyle {plainnat}
-\bibliography{../../../refs/References}
+\printbibliography{}
 
 \newpage{}
 
