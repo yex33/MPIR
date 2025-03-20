@@ -15,6 +15,9 @@
     urlcolor=blue
 }
 \usepackage{xr,xr-hyper}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usetikzlibrary{arrows}
 
 \input{../../Comments}
 \input{../../Common}
@@ -438,10 +441,38 @@ arrows in the diagram typically correspond to the presence of import statement.}
 \wss{If module A uses module B, the arrow is directed from A to B.}
 
 \begin{figure}[H]
-\centering
-%\includegraphics[width=0.7\textwidth]{UsesHierarchy.png}
-\caption{Use hierarchy among modules}
-\label{FigUH}
+  \centering
+  \begin{tikzpicture}[%
+    auto,
+    block/.style={
+      rectangle,
+      draw=black,
+      thick,
+      text width=9em,
+      align=center,
+      minimum height=2em
+    },
+    thick,
+    >=stealth'
+    ]
+    \draw (0,0) node[block] (example) {Example Program Module (\mref{M:example})};
+    \draw (-5,-4) node[block] (input) {Read Matrix Module (\mref{M:input})};
+    \draw (0,-4) node[block] (solve) {Iterative Solves Module (\mref{M:solve})};
+    \draw (7,-2.5) node[block] (output) {Solver Output Module (\mref{M:output})};
+    \draw (7,-5.5) node[block] (factor) {Matrix Factorization Module (\mref{M:factor})};
+    \draw (0,-8) node[block] (hw) {Hardware Hiding Module (\mref{M:hw})};
+
+    \draw [->] (example) -- (input);
+    \draw [->] (example) -- (solve);
+    \draw [->] (example) -- (output);
+    \draw [->] (solve) -- (factor);
+    \draw [->] (solve) -- (output);
+    \draw [->] (input) -- (hw);
+    \draw [->] (solve) -- (hw);
+    \draw [->] (factor) -- (hw);
+  \end{tikzpicture}
+  \caption{Use hierarchy among modules}
+  \label{FigUH}
 \end{figure}
 
 %\section*{References}
