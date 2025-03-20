@@ -14,12 +14,16 @@
     linkcolor=red,
     urlcolor=blue
 }
+\usepackage{xr,xr-hyper}
 
 \input{../../Comments}
 \input{../../Common}
 
 \usepackage[backend=biber,style=authoryear]{biblatex}
 \addbibresource{../../../refs/References.bib}
+
+\externaldocument{../../SRS/SRS}
+\newcommand{\rref}[1]{R\ref{#1}}
 
 \newcounter{acnum}
 \newcommand{\actheacnum}{AC\theacnum}
@@ -360,53 +364,55 @@ to be implemented.
 This section shows two traceability matrices: between the modules and the
 requirements and between the modules and the anticipated changes.
 
-% the table should use mref, the requirements should be named, use something
-% like fref
+% \rref{R:Axb}
+% \rref{R:MP}
+% \rref{R:ex}
+% \acref{AC:hw}
+% \acref{AC:factor}
+% \acref{AC:precision}
+% \acref{AC:solve}
+% \acref{AC:input}
+% \acref{AC:output}
+% \acref{AC:example}
+% \mref{M:hw}
+% \mref{M:factor}
+% \mref{M:solve}
+% \mref{M:input}
+% \mref{M:output}
+% \mref{M:example}
+
 \begin{table}[H]
-\centering
-\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
-\toprule
-\textbf{Req.} & \textbf{Modules}\\
-\midrule
-R1 & \mref{mHH}, \mref{mInput}, \mref{mParams}, \mref{mControl}\\
-R2 & \mref{mInput}, \mref{mParams}\\
-R3 & \mref{mVerify}\\
-R4 & \mref{mOutput}, \mref{mControl}\\
-R5 & \mref{mOutput}, \mref{mODEs}, \mref{mControl}, \mref{mSeqDS}, \mref{mSolver}, \mref{mPlot}\\
-R6 & \mref{mOutput}, \mref{mODEs}, \mref{mControl}, \mref{mSeqDS}, \mref{mSolver}, \mref{mPlot}\\
-R7 & \mref{mOutput}, \mref{mEnergy}, \mref{mControl}, \mref{mSeqDS}, \mref{mPlot}\\
-R8 & \mref{mOutput}, \mref{mEnergy}, \mref{mControl}, \mref{mSeqDS}, \mref{mPlot}\\
-R9 & \mref{mVerifyOut}\\
-R10 & \mref{mOutput}, \mref{mODEs}, \mref{mControl}\\
-R11 & \mref{mOutput}, \mref{mODEs}, \mref{mEnergy}, \mref{mControl}\\
-\bottomrule
-\end{tabular}
-\caption{Trace Between Requirements and Modules}
-\label{TblRT}
+  \centering
+  \begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+    \toprule
+    \textbf{Req.}      & \textbf{Modules}                                       \\
+    \midrule
+    \rref{R:Axb} & \mref{M:factor}, \mref{M:solve}, \mref{M:output} \\
+    \rref{R:MP}  & \mref{M:factor}, \mref{M:solve}                  \\
+    \rref{R:ex}  & \mref{M:input}, \mref{M:example}                 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Trace Between Requirements and Modules}
+  \label{TblRT}
 \end{table}
 
 \begin{table}[H]
-\centering
-\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
-\toprule
-\textbf{AC} & \textbf{Modules}\\
-\midrule
-\acref{acHardware} & \mref{mHH}\\
-\acref{acInput} & \mref{mInput}\\
-\acref{acParams} & \mref{mParams}\\
-\acref{acVerify} & \mref{mVerify}\\
-\acref{acOutput} & \mref{mOutput}\\
-\acref{acVerifyOut} & \mref{mVerifyOut}\\
-\acref{acODEs} & \mref{mODEs}\\
-\acref{acEnergy} & \mref{mEnergy}\\
-\acref{acControl} & \mref{mControl}\\
-\acref{acSeqDS} & \mref{mSeqDS}\\
-\acref{acSolver} & \mref{mSolver}\\
-\acref{acPlot} & \mref{mPlot}\\
-\bottomrule
-\end{tabular}
-\caption{Trace Between Anticipated Changes and Modules}
-\label{TblACT}
+  \centering
+  \begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+    \toprule
+    \textbf{AC}                & \textbf{Modules}                      \\
+    \midrule
+    \acref{AC:hw}        & \mref{M:hw}                     \\
+    \acref{AC:factor}    & \mref{M:factor}                 \\
+    \acref{AC:precision} & \mref{M:solve}, \mref{M:factor} \\
+    \acref{AC:solve}     & \mref{M:solve}                  \\
+    \acref{AC:input}     & \mref{M:input}                  \\
+    \acref{AC:output}    & \mref{M:output}                 \\
+    \acref{AC:example}   & \mref{M:example}                \\
+    \bottomrule
+  \end{tabular}
+  \caption{Trace Between Anticipated Changes and Modules}
+  \label{TblACT}
 \end{table}
 
 \section{Use Hierarchy Between Modules} \label{SecUse}
@@ -445,9 +451,13 @@ arrows in the diagram typically correspond to the presence of import statement.}
 \wss{Design of user interface for software and hardware.  Attach an appendix if
 needed. Drawings, Sketches, Figma}
 
+N/A
+
 \section{Design of Communication Protocols}
 
 \wss{If appropriate}
+
+N/A
 
 \section{Timeline}
 
@@ -455,8 +465,10 @@ needed. Drawings, Sketches, Figma}
 
 \wss{You can point to GitHub if this information is included there}
 
-\printbibliography{}
+N/A
 
 \newpage{}
+
+\printbibliography{}
 
 \end{document}
