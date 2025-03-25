@@ -290,8 +290,9 @@ much faster and more memory-efficient than traditional double-precision (64-bit)
 methods. Mixed-precision (MP) algorithms combine the speed of lower-precision
 calculations with the accuracy of higher-precision ones to improve performance
 in various linear solvers. The document describes the solver called \progname,
-which implements an iterative method in mixed-precisions and uses GMRES in
-particular for find the error correction vector during the refinement process.
+which implements an iterative method in mixed-precisions and uses General
+Minimal RESidual (GMRES) in particular for find the error correction vector
+during the refinement process.
 
 The following section provides an overview of the Software Requirements
 Specification (SRS) for \progname. This section explains the purpose of this
@@ -359,9 +360,15 @@ mathematical terms.
   instance, is high school physics adequate, or should the reader have had a
   graduate course on advanced quantum mechanics?}
 
-The intended reader should have a undergraduate level understanding of linear
-algebra, preferably a graduate level knowledge in the field of numeric analysis
-and linear solvers.
+The intended reader of this document is expected to have a strong foundation in
+linear algebra at the undergraduate level, with a preference for those who
+possess graduate-level knowledge in numerical analysis and linear solvers. At a
+minimum, readers should have completed an introductory undergraduate course in
+linear algebra and scientific computing, such as MATH 1ZC3 (Linear Algebra) and
+SFWRENG 4X03 (Scientific Computing) at McMaster University, or equivalent
+courses from another institution. This background ensures that readers can
+effectively understand and evaluate the mathematical formulations, algorithmic
+considerations, and numerical techniques described in this document.
 
 \subsection{Organization of Document}
 
@@ -373,8 +380,6 @@ back to find any additional information they require.
 
 The goal statements are refined to the theoretical models and the theoretical
 models to the instance models.
-
-
 
 \section{General System Description}
 
