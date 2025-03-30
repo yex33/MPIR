@@ -5,3 +5,4 @@ AlignConsecutiveAssignments:
   Enabled: true
 AlignConsecutiveDeclarations:
   Enabled: true
+BinPackParameters: false

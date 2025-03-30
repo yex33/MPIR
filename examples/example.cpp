@@ -1,11 +1,10 @@
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
 #include <cstdlib>
+#include <fast_matrix_market/app/Eigen.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-
-#include "fast_matrix_market/app/Eigen.hpp"
 
 namespace fs  = std::filesystem;
 namespace fmm = fast_matrix_market;
