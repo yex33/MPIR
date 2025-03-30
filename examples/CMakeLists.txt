@@ -29,6 +29,7 @@ target_link_libraries(example PUBLIC
   Eigen3::Eigen
   OpenMP::OpenMP_CXX
   fast_matrix_market::fast_matrix_market
+  MPIR
 )
 
 # target_include_directories(example PRIVATE ${INCLUDE_DIR} ${QDLDL_INCLUDE_DIR})

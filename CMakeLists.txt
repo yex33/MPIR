@@ -27,13 +27,18 @@ else()
   )
 endif()
 
-
 # Define the source files and executables
 set(SOURCE_DIR "${PROJECT_SOURCE_DIR}/src")
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 set(EXAMPLES_DIR "${PROJECT_SOURCE_DIR}/examples")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 set(QDLDL_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/../qdldl-luir-stdloat/include")
+
+add_library(
+  MPIR SHARED
+  src/gmres_ir.cpp
+)
+target_include_directories(MPIR PRIVATE include)
 
 add_subdirectory(test)
 add_subdirectory(examples)
