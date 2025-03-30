@@ -337,8 +337,17 @@
 }
 
 @online{SRS,
-	title = {{MPIR}/docs/SRS.pdf at main · yex33/{MPIR}},
+	title = {{MPIR}/docs/SRS/SRS.pdf at main · yex33/{MPIR}},
 	url = {https://github.com/yex33/MPIR/blob/main/docs/SRS/SRS.pdf},
+	abstract = {A sparse linear solver for quasi-definite matrices using iterative refinement in mixed precision - yex33/{MPIR}},
+	titleaddon = {{GitHub}},
+	date = {2025},
+	langid = {english},
+}
+
+@online{VnVPlan,
+	title = {{MPIR}/docs/VnVPlan/VnVPlan.pdf at main · yex33/{MPIR}},
+	url = {https://github.com/yex33/MPIR/blob/main/docs/VnVPlan/VnVPlan.pdf},
 	abstract = {A sparse linear solver for quasi-definite matrices using iterative refinement in mixed precision - yex33/{MPIR}},
 	titleaddon = {{GitHub}},
 	date = {2025},
@@ -432,4 +441,50 @@
 	date = {2025-02-25},
 	note = {original-date: 2014-08-05T21:43:51Z},
 	keywords = {c-plus-plus, cpp, cpp11, cpp14, cpp17, cpp20, cpp23, doctest, header-only, single-file, tdd, testing, testing-framework, unit-testing},
+}
+
+@online{noauthor_gsl_nodate,
+	title = {{GSL} - {GNU} Scientific Library - {GNU} Project - Free Software Foundation},
+	url = {https://www.gnu.org/software/gsl/},
+	urldate = {2025-03-19},
+	file = {GSL - GNU Scientific Library - GNU Project - Free Software Foundation:/home/joe/Zotero/storage/RAKS48IT/gsl.html:text/html},
+}
+
+@online{noauthor_compressed_nodate,
+	title = {Compressed Sparse Column Format ({CSC}) — Scipy lecture notes},
+	url = {https://scipy-lectures.org/advanced/scipy_sparse/csc_matrix.html},
+	urldate = {2025-03-26},
+	file = {Compressed Sparse Column Format (CSC) — Scipy lecture notes:/home/joe/Zotero/storage/F4ATTTWQ/csc_matrix.html:text/html},
+}
+
+@thesis{wong_exploring_2024,
+	location = {Hamilton, Ontario},
+	title = {Exploring a mixed precision {GMRES}-based iterative refinement sparse linear solver with {QDLDL}},
+	abstract = {The Generalized Minimal Residual Method ({GMRES}) is a long-standing algo- rithm for solving linear systems. Recently, it has been enhanced by incorporating a mixed-precision approach. The Mixed-Precision {GMRES} Iterative Refinement ({GMRES}-{IR}) method, proposed by Higham and Carson, combines the efficiency of low precision with the accuracy of higher precision to solve linear systems effec- tively. This project provides an overview of {GMRES}-{IR}, including its detailed imple- mentation and analysis of convergence properties for both {GMRES} and iterative refinement ({IR}). Our primary focus is on comparing mixed-precision {GMRES}-{IR} with fixed-precision {GMRES}-{IR}. To achieve this, we developed a C++ {GMRES}- based iterative refinement solver along with the {QDLDL} package and conducted experiments with sparse, symmetric, and positive-definite matrices. We exploit the advantages of low-precision factorization for preconditioning the system, significantly improving efficiency. Our results demonstrate that mixed- precision {GMRES}-{IR} achieves solutions with similar accuracy to fixed-precision {GMRES}-{IR} while being particularly efficient for larger sparse matrices.},
+	pagetotal = {41},
+	institution = {{McMaster} University},
+	type = {mathesis},
+	author = {Wong, Kim Ying},
+	date = {2024-12-27},
+}
+
+@report{bassi_investigating_2022,
+	location = {Hamilton, Ontario, Canada},
+	title = {Investigating Mixed-Precision in Sparse Linear Solvers and Linear Programming},
+	abstract = {Mixed-precision ({MP}) computing has seen a resurgence in the last few years both in academia and industry. The central idea is to perform the bulk of the computations in a more efficient lower precision (e.g., single) and correct the lower precision solution in higher precision (e.g., double). This can lead to savings in computing time and memory usage. We have investigated the use of {MP} in numerical linear algebra packages with a focus on direct solvers for sparse linear systems. We performed tests with the open-source packages Strumpack, {SuperLU} dist, and Pastix; a simple implementation of {MP} within {MKL} Pardiso; and the commercial solver {HSL}-ma79. We compared their performance with Intel’s {MKL} Pardiso using double precision only, which we have used as our “base line”. We also investigated the possibility of using single precision in the linear optimization packages {SoPleX}, Highs, and Glop. We present our findings on performance, summarize our experience, and outline directions for further development.},
+	pages = {18},
+	number = {1},
+	institution = {{McMaster} University},
+	author = {Bassi, Dylan and Derakhshan, Shahrooz and Nedialkov, Ned},
+	date = {2022-12-10},
+}
+
+@report{shahrooz_derakhshan_using_2023,
+	location = {Hamilton, Ontario, Canada},
+	title = {Using Mixed-Precision in the Linear Solver of Ipopt and in {QDLDL}},
+	pages = {19},
+	number = {2},
+	institution = {{McMaster} University},
+	author = {{Shahrooz Derakhshan} and {Yiqi Huang} and {Ned Nedialkov} and {Pedram Pasandide}},
+	date = {2023-12-27},
 }

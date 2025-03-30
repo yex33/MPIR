@@ -19,6 +19,11 @@
 \usepackage{pdflscape}
 \usepackage{afterpage}
 \usepackage{algpseudocode,algorithm}
+\usepackage[inline,shortlabels]{enumitem}
+
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usetikzlibrary{arrows}
 
 \usepackage[backend=biber,style=authoryear]{biblatex}
 \addbibresource{../../refs/References.bib}
@@ -151,9 +156,10 @@
 \section*{Revision History}
 
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
-  \toprule {\bf Date} & {\bf Version} & {\bf Notes} \\
+  \toprule {\bf Date}    & {\bf Version} & {\bf Notes}                                     \\
   \midrule
-  \date{26 January 2025} & 1.0 & Initial draft \\
+  \date{26 January 2025} & 1.0           & Initial draft                                   \\
+  \date{26 March 2025}   & 1.1           & Updates regarding peer and instructor feedbacks \\
   \bottomrule
 \end{tabularx}
 
@@ -290,8 +296,9 @@ much faster and more memory-efficient than traditional double-precision (64-bit)
 methods. Mixed-precision (MP) algorithms combine the speed of lower-precision
 calculations with the accuracy of higher-precision ones to improve performance
 in various linear solvers. The document describes the solver called \progname,
-which implements an iterative method in mixed-precisions and uses GMRES in
-particular for find the error correction vector during the refinement process.
+which implements an iterative method in mixed-precisions and uses General
+Minimal RESidual (GMRES) in particular for find the error correction vector
+during the refinement process.
 
 The following section provides an overview of the Software Requirements
 Specification (SRS) for \progname. This section explains the purpose of this
@@ -337,10 +344,11 @@ the purpose and scientific basis of \progname.
   This is a distinction between scope and context (context is a later section).
   Scope affects the inputs while context affects how the software will be used.}
 
-The scope of the software is limited to solving sparse real matrices. In terms
-of writing the requirement specifications itself, operational specifications
-will be given in high level without expanding into details on each and every
-mathematical terms.
+The scope of the software is limited to solving sparse real matrices. For
+completeness of the software suite, an example program for demonstrating the use
+of the core solver should be also considered. In terms of writing the
+requirement specifications itself, operational specifications will be given at a
+high level without expanding into details on each and every mathematical terms.
 
 \subsection{Characteristics of Intended Reader} \label{sec_IntendedReader}
 
@@ -359,9 +367,15 @@ mathematical terms.
   instance, is high school physics adequate, or should the reader have had a
   graduate course on advanced quantum mechanics?}
 
-The intended reader should have a undergraduate level understanding of linear
-algebra, preferably a graduate level knowledge in the field of numeric analysis
-and linear solvers.
+The intended reader of this document is expected to have a strong foundation in
+linear algebra at the undergraduate level, with a preference for those who
+possess graduate-level knowledge in numerical analysis and linear solvers. At a
+minimum, readers should have completed an introductory undergraduate course in
+linear algebra and scientific computing, such as MATH 1ZC3 (Linear Algebra) and
+SFWRENG 4X03 (Scientific Computing) at McMaster University, or equivalent
+courses from another institution. This background ensures that readers can
+effectively understand and evaluate the mathematical formulations, algorithmic
+considerations, and numerical techniques described in this document.
 
 \subsection{Organization of Document}
 
@@ -373,8 +387,6 @@ back to find any additional information they require.
 
 The goal statements are refined to the theoretical models and the theoretical
 models to the instance models.
-
-
 
 \section{General System Description}
 
@@ -409,11 +421,29 @@ characteristics and lists the system constraints.
   the system constraint.}
 
 \begin{figure}[h!]
-\begin{center}
- \includegraphics[width=0.6\textwidth]{SystemContextFigure}
-\caption{System Context}
-\label{Fig_SystemContext}
-\end{center}
+  \centering
+  \begin{tikzpicture}[%
+    auto,
+    block/.style={
+      rectangle,
+      draw=black,
+      thick,
+      text width=5em,
+      align=center,
+      minimum height=3em
+    },
+    thick,
+    >=stealth'
+    ]
+    \draw (-8,0) node[block] (ex1) {External Program};
+    \draw (0,0) node[block] (sys) {\progname{}};
+    \draw (5,0) node[block] (ex2) {External Program};
+
+    \draw [->] (ex1) -- (sys) node[midway,above] () {Inputs: \(\matr{A}\vec{x} = \vec{b}\), \((u_f, u_w, u_r)\)};
+    \draw [->] (sys) -- (ex2) node[midway,above] () {Ouputs: \(\vec{x}\)};
+  \end{tikzpicture}
+  \caption{System Context}
+  \label{Fig_SystemContext}
 \end{figure}
 
 \plt{For each of the entities in the system context diagram its responsibilities
@@ -428,15 +458,20 @@ characteristics and lists the system constraints.
 
 \begin{itemize}
 \item User Responsibilities:
-\begin{itemize}
-\item
-\end{itemize}
+  \begin{itemize}
+  \item Provide a sparse matrix \(\matr{A}: \mathbb{R}^{n \times n}\) in Compressed Sparse Column
+    (CSC) format (\cite{noauthor_compressed_nodate}) stored in memory with
+    appropriate data type.
+  \item Provide an/multiple vector(s) \(\vec{b}: \mathbb{R}^n\) to be solved for.
+  \item Specify 3 floating point arithmetics precisions \((u_f, u_w, u_r)\) in which
+    factorization, numeric solves, and residual computation will be performed
+    respectively.
+  \item Ensure \(\matr{A}\) satisfies the system assumption \aref{A:quasi}.
+  \end{itemize}
 \item \progname{} Responsibilities:
-\begin{itemize}
-\item Detect data type mismatch, such as a string of characters instead of a
-  floating point number
-\item
-\end{itemize}
+  \begin{itemize}
+  \item Numerically solve \(\vec{x}\) for \(\matr{A}\vec{x} = \vec{b}\).
+  \end{itemize}
 \end{itemize}
 
 \plt{Identify in what context the software will typically be used.  Is it for
@@ -462,6 +497,9 @@ numeric analysis and high performance computing such as MATLAB, C/C++, or
 Fortran. They should have a strong understanding of floating point numbers
 representations as well as the pitfalls in floating point arithmetics in modern
 computers. This is especially needed to configure the inputs for the software.
+At a minimum, the user should have completed an introductory undergraduate
+course in scientific computing, such as SFWRENG 4X03 (Scientific Computing) at
+McMaster University, or equivalent courses from another institution.
 
 \subsection{System Constraints}
 
@@ -470,8 +508,8 @@ the existing implementation of a solver with similar functionalities. This
 places constraints:
 
 \begin{enumerate}
-\item The algorithm used for internal matrix solves must be the Generalized Minimal
-  Residual Method (GMRES).
+\item Internal matrix solves must use the Generalized Minimal RESidual (GMRES)
+  method (\cite{lindquist_improving_2020}).
 \end{enumerate}
 
 \section{Specific System Description}
@@ -547,14 +585,15 @@ Optionally omitted.
 
 \subsubsection{Scope Decisions}
 
-The scope of this project is inherently limited due to the need to build upon
-the previous research work rather than formulating a completely new approach to
-the problem described in Subsection \ref{Sec_pd}. A signification portion of this
-project is dedicated to refactor the prior work, ensuring consistency with its
-methodology and results before introducing any new contributions. This project
-must loosely adhere to the same assumptions established in the original study to
-maintain comparability and validity, as altering these assumptions would
-fundamentally change the research direction.
+The scope of this project is inherently limited due to the need to build upon a
+prior research work (\cite{wong_exploring_2024}) rather than formulating a
+completely new approach to the problem described in Section \ref{Sec_pd}. A
+signification portion of this project is dedicated to refactor the prior work,
+ensuring consistency with its methodology and results before introducing any new
+contributions. This project must adhere to the same assumptions established in
+the original study to maintain comparability and validity, as altering these
+assumptions would fundamentally change the research direction. These assumptions
+are listed in detail in Section~\ref{sec_assumpt}.
 
 \subsubsection{Modelling Decisions}
 
@@ -584,12 +623,12 @@ change [LC], in which the respective assumption is used.
 
 \begin{itemize}
 \item[A\refstepcounter{assumpnum}\theassumpnum \label{A:quasi}:] The input matrix
-  \(\matr{A}\) is symmetric quasi-definite. (Definitions of symmetric matrices
-  and quasi-definite matrices are given in \ddref{DD:sym} and
-  \ddref{DD:quasidef}, respectively.)
+  \(\matr{A}\) is non-singular and symmetric quasi-definite \footnote{Definitions of
+  symmetric matrices and quasi-definite matrices are given in \ddref{DD:sym} and
+  \ddref{DD:quasidef}, respectively.}. [\tref{TM:LDL}]
 \item[A\refstepcounter{assumpnum}\theassumpnum \label{A:prec}:] The given
   precisions follow the order \(u_f \leq u_w \leq u_r\), with \(u_r\) being the
-  highest precision.
+  highest precision. [\tref{TM:IR}]
 
   \plt{Short description of each assumption. Each assumption
     should have a meaningful label. Use cross-references to identify the
@@ -627,15 +666,18 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #4 equation
 {\(\matr{P}\matr{K}\matr{P}\transpose = \matr{L}\matr{D}\matr{L}\transpose\)}
 % #5 description
-{ Symmetric quasi-definite matrices are strongly factorizable. For every
-  permutation \(\matr{P}\) there is a diagonal \(\matr{D}\) and a unit
-  lower-triangular \(\matr{L}\) such that the above equation holds. }
+{ Symmetric quasi-definite matrices are strongly factorizable. For any
+  permutation \(\matr{P}\) of some symmetric quasi-definite matrix \(\matr{K}\),
+  there is a diagonal \(\matr{D}\) and a unit
+  lower-triangular \(\matr{L}\) such that the above equation holds. \\
+  Under Assumption~\aref{A:quasi}, the input matrix \(\matr{A}\) can always be
+  decomposed into \(\matr{L}\matr{D}\matr{L}\transpose\) factors, regardless of
+  whether it is permuted.}
 % #6 Notes
 { Definitions of symmetric matrices and quasi-definite matrices are given in
-  \ddref{DD:sym} and \ddref{DD:quasidef}, respectively. In general, if the
-  \(\matr{L}\matr{D}\matr{L}\transpose\) factors are obtained for some matrix
-  \(\matr{A}\), it is easy to repeatedly solve the problem \(\matr{A}\vec{x} =
-  \vec{b}\) for different vector \(\vec{b}\)'s. }
+  \ddref{DD:sym} and \ddref{DD:quasidef}, respectively. In general, if factors
+  are obtained for some matrix \(\matr{A}\), it is easy to repeatedly solve the
+  problem \(\matr{A}\vec{x} = \vec{b}\) for different vector \(\vec{b}\)'s using these factors. }
 % #7 Source
 {\cite{vanderbei_symmetric_1995}, \cite{gill_stability_1996}}
 % #8 Referenced by
@@ -1005,7 +1047,15 @@ one which is expressed in mathematical terms. It uses concrete symbols defined
 in Section~\ref{sec_datadef} to replace the abstract symbols in the models
 identified in Sections~\ref{sec_theoretical} and~\ref{sec_gendef}.
 
-The goal \gsref{GS:Axb} is solved by \iref{IM:IM}.
+The goal \gsref{GS:Axb} is solved by \iref{IM:IM} in that under Assumption
+\aref{A:quasi},
+\begin{enumerate*}[a)]
+\item matrix \(\matr{A}\) is factorizable (symmetric quasi-definite);
+\item a unique numerical solution exists (non-singular);
+\end{enumerate*}
+and under Assumption \aref{A:prec}, this solution can be obtained by iterative
+refinement in mixed-precisions, where the factors are used to speed up the
+refinement process.
 
 ~\newline
 
@@ -1027,7 +1077,7 @@ The goal \gsref{GS:Axb} is solved by \iref{IM:IM}.
   \hline
   Output      & \(\vec{x}, \norm{\vec{r}}_2\), such that, \\
               & \(\vec{x}\) is the numerical solution to the problem \(\matr{A}\vec{x} = \vec{b}\) up to tolerance \(\epsilon\); \\
-              & \(\norm{\vec{r}}_2 = \norm{\vec{b} - \matr{A}\vec{x}}_2\). \\
+              & \(\norm{\vec{r}}_2 = \norm{\vec{b} - \matr{A}\vec{x}}_2 \leq \epsilon\). \\
   \hline
   Description & \begin{minipage}{\linewidth}
                   \begin{algorithm}[H]
@@ -1044,7 +1094,7 @@ The goal \gsref{GS:Axb} is solved by \iref{IM:IM}.
                   \end{algorithm}
                 \end{minipage} \vspace{5pt} \\
   \hline
-  Sources     & \\
+  Sources     & N/A \\
   \hline
   Ref.\ By     & \gsref{GS:Axb} \\
   \hline
@@ -1061,18 +1111,76 @@ values. The constraints are conservative, to give the user of the model the
 flexibility to experiment with unusual situations. The column of typical values
 is intended to provide a feel for a common scenario.
 
-\begin{table}[!h]
+\begin{table}[H]
   \caption{Input Variables} \label{TblInputVar}
   \renewcommand{\arraystretch}{1.2}
-  \noindent
-  \begin{longtable*}{ll}
+  \centering
+  \begin{tabularx}{.8\linewidth}{lX}
     \toprule
-    \textbf{Var} & \textbf{Software Constraints} \\
+    \textbf{Var}         & \textbf{Software Constraints}                                    \\
     \midrule
-    \(\matr{A}\)     &  \(a_{i,j}\) falls in one of ranges specified in \dtref{DT:u} \\
-    \(\vec{b}\)            &  \(b_{i}\) falls in one of ranges specified in \dtref{DT:u} \\
+    \(\matr{A}\)   & \(a_{i,j}\) fits in one of ranges specified in \dtref{DT:u} \\
+    \(\vec{b}\)          & \(b_{i}\) fits in one of ranges specified in \dtref{DT:u}   \\
+    \(u_f, u_w, u_r\) & one of the data types in \dtref{DT:u}, such that none of the
+                     elements in \(\matr{A}\) or \(\vec{b}\) overflows the lowest
+                     precision \(u_f\)                                           \\
+    \(\epsilon\)          & fits in the range of \(u_r\)                                \\
+    \(n_\mathrm{iter}\)   & positive integer value                                     \\
     \bottomrule
-\end{longtable*}
+  \end{tabularx}
+\end{table}
+
+\subsubsection{Example Input Data} \label{sec_ExampleInput}
+
+Table~\ref{TblInputDD} shows a scenario where all floating point arithmetics are
+performed at the commonly used double (D) precision in modern 64-bit
+architectures. \(\epsilon\) is some multiples of machine epsilon (unit round-off
+in \dtref{DT:u}) in double precision. \(n_\mathrm{iter}\) is an arbitrarily chosen
+positive integer.
+
+\begin{table}[H]
+  \caption{Input Example DD} \label{TblInputDD}
+  \renewcommand{\arraystretch}{1.2}
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Var}       & \textbf{Value}      \\
+    \midrule
+    \(\matr{A}\) & \(a_{i,j}\): D \\
+    \(\vec{b}\)        & \(b_{i}\): D   \\
+    \(u_f\)       & D             \\
+    \(u_w\)       & D             \\
+    \(u_r\)       & D             \\
+    \(\epsilon\)        & \num{1e-12}   \\
+    \(n_\mathrm{iter}\) & \num{1000}    \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+On the other hand, Table~\ref{TblInputSD} shows a similar scenario with the
+exception that matrix factorization is performed in single (S) precision while
+both refinements and residual evaluations are performed in double (D) precision.
+This combination of precisions is chosen with the intend to save on memory
+footprint in the matrix factorization step while keeping \(\epsilon\) (effectively, the
+accuracy of the solve) the same.
+
+\begin{table}[H]
+  \caption{Input Example SD} \label{TblInputSD}
+  \renewcommand{\arraystretch}{1.2}
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Var}       & \textbf{Value}      \\
+    \midrule
+    \(\matr{A}\) & \(a_{i,j}\): D \\
+    \(\vec{b}\)        & \(b_{i}\): D   \\
+    \(u_f\)       & S             \\
+    \(u_w\)       & D             \\
+    \(u_r\)       & D             \\
+    \(\epsilon\)        & \num{1e-12}   \\
+    \(n_\mathrm{iter}\) & \num{1000}    \\
+    \bottomrule
+  \end{tabular}
 \end{table}
 
 \subsubsection{Properties of a Correct Solution} \label{sec_CorrectSolution}
@@ -1099,14 +1207,14 @@ qualities that the software is expected to exhibit.
   some tolerance \(\epsilon\), or the maximum number of iterations
   \(n_\mathrm{iter}\) is exhausted, whichever comes first. This iterative
   process should strictly follow the operational specifications of \iref{IM:IM}.
-\item[R\refstepcounter{reqnum}\thereqnum \label{R:MP}:] The solver should offer
-  customizability on the arithmetic precision used to perform matrix
-  factorization, iterative refinement, and residual evaluation.
-
-\item[R\refstepcounter{reqnum}\thereqnum \label{R:ex}:] The accompanying package
-  should provide one or many example programs to demonstrate the process of
-  preparing the inputs for the solver, consuming the solver APIs, and observing
-  the outputs of the solver.
+\item[R\refstepcounter{reqnum}\thereqnum \label{R:MP}:] The solver should allow a
+  configuration of three floating point arithmetic precisions to be used for
+  matrix factorization, iterative refinement, and residual evaluation
+  respectively.
+\item[R\refstepcounter{reqnum}\thereqnum \label{R:ex}:] The software package
+  accompanying the solver should provide one example program to demonstrate the
+  process of preparing the inputs for the solver, invoking the solver APIs, and
+  observing the outputs from the solver.
 
 \end{itemize}
 
@@ -1148,10 +1256,12 @@ be covered in the Verification and Validation document.}
     Validation Plan.''  A link to the VnV plan would be a nice extra.}
 
 \item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:use}:] \textbf{Usability} The
-  library should offer a set of streamlined public application programming
+  solver should offer a set of streamlined public application programming
   interfaces (APIs), such that when integrated into other software as a
   dependent library, the interfaces are self-contained, readable and easy to
-  consume.
+  consume for the intended user characterized in
+  Section~\ref{SecUserCharacteristics}. See \cite{VnVPlan} for details in
+  verifying the usability of the software through a usability survey.
 
   \plt{Characterize the usability by giving the context/use for the
     software. You should likely reference the user characteristics section. The
@@ -1185,6 +1295,32 @@ be covered in the Verification and Validation document.}
 \plt{Provide a rationale for the decisions made in the documentation.  Rationale
 should be provided for scope decisions, modelling decisions, assumptions and
 typical values.}
+
+The scope, modeling choices, and assumptions outlined in this document are
+primarily informed by Dr. N. Nedialkov's research on mixed-precision techniques
+in sparse linear solvers. In particular, Kim Ying Wong's recent work establishes
+the theoretical foundation for combining preconditioned GMRES with iterative
+refinement in a mixed-precision setting and proposes an implementation based on
+this approach (\cite{wong_exploring_2024}). This project builds upon Wong’s
+implementation, inheriting and refining the models and assumptions established
+in prior research.
+
+The decision to use the GMRES method with iterative refinement is motivated by
+its relevance to ongoing research in mixed-precision solvers
+(\cite{bassi_investigating_2022}). The iterative refinement process specifically
+requires a solver that:
+\begin{enumerate*}[a)]
+\item Supports factorization at arbitrary floating-point precision, and
+\item Exposes computed factors for further processing.
+\end{enumerate*}
+To meet these requirements, the research team has adopted the QDLDL solver in
+the mixed-precision (\cite{shahrooz_derakhshan_using_2023}). However, this
+choice introduces an additional constraint: the input matrix must be symmetric
+and quasi-definite. Consequently, Assumption \aref{A:quasi} ensures
+compatibility with QDLDL, enabling factorization to be efficiently offloaded.
+Additionally, Assumption \aref{A:prec} is made to guarantee the progress of
+iterative refinement, as each iteration depends on obtaining an accurate
+residual estimation.
 
 \section{Likely Changes}
 
@@ -1251,7 +1387,7 @@ the assumptions.
 % \lcref{LC:generic}
 % \lcref{LC:sparse}
 
-\begin{table}[h!]
+\begin{table}[H]
   \centering
   \begin{tabular}{|c|c|c|}                                      \hline
                         & \aref{A:quasi} & \aref{A:prec} \\ \hline
@@ -1281,7 +1417,7 @@ the assumptions.
 \end{table}
 
 
-\begin{table}[h!]
+\begin{table}[H]
   \centering
   \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
                         & \tref{TM:LDL} & \tref{TM:Krylov} & \tref{TM:Precond} & \tref{TM:IR} & \dref{GD:GMRES} & \ddref{DD:sym} & \ddref{DD:posdef} & \ddref{DD:quasidef} & \ddref{DD:2norm} & \dtref{DT:u} & \iref{IM:IM} \\ \hline
@@ -1301,7 +1437,7 @@ the assumptions.
   \label{Table:trace}
 \end{table}
 
-\begin{table}[h!]
+\begin{table}[H]
 \centering
 \begin{tabular}{|c|c|c|c|c|} \hline
              & \iref{IM:IM} & \rref{R:Axb} & \rref{R:MP} & \rref{R:ex} \\ \hline

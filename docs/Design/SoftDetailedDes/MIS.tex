@@ -2,12 +2,11 @@
 
 \usepackage{amsmath, mathtools}
 
-\usepackage[round]{natbib}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{colortbl}
-\usepackage{xr}
+\usepackage{xr,xr-hyper}
 \usepackage{hyperref}
 \usepackage{longtable}
 \usepackage{xfrac}
@@ -21,20 +20,24 @@
 \usepackage{fullpage}
 
 \hypersetup{
-bookmarks=true,     % show bookmarks bar?
-colorlinks=true,       % false: boxed links; true: colored links
-linkcolor=red,          % color of internal links (change box color with linkbordercolor)
-citecolor=blue,      % color of links to bibliography
-filecolor=magenta,  % color of file links
-urlcolor=cyan          % color of external links
+  bookmarks=true,    % show bookmarks bar?
+  colorlinks=true,   % false: boxed links; true: colored links
+  linkcolor=red,     % color of internal links (change box color with linkbordercolor)
+  citecolor=blue,    % color of links to bibliography
+  filecolor=magenta, % color of file links
+  urlcolor=cyan      % color of external links
 }
 
 \usepackage{array}
 
 \externaldocument{../../SRS/SRS}
+\newcommand{\iref}[1]{IM\ref{#1}}
 
 \input{../../Comments}
 \input{../../Common}
+
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{../../../refs/References.bib}
 
 \begin{document}
 
@@ -53,8 +56,7 @@ urlcolor=cyan          % color of external links
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Date 1 & 1.0 & Notes\\
-Date 2 & 1.1 & Notes\\
+\date{19 March 2025} & 1.0 & Initial draft \\
 \bottomrule
 \end{tabularx}
 
@@ -62,9 +64,7 @@ Date 2 & 1.1 & Notes\\
 
 \section{Symbols, Abbreviations and Acronyms}
 
-See SRS Documentation at \wss{give url}
-
-\wss{Also add any additional symbols, abbreviations or acronyms}
+See SRS Documentation at \cite{SRS}
 
 \newpage
 
@@ -77,39 +77,40 @@ See SRS Documentation at \wss{give url}
 \section{Introduction}
 
 The following document details the Module Interface Specifications for
-\wss{Fill in your project name and description}
+\progname{}. It is intended to solve a sparse linear system with an iterative
+method in mixed-precisions.
 
-Complementary documents include the System Requirement Specifications
-and Module Guide.  The full documentation and implementation can be
-found at \url{...}.  \wss{provide the url for your repo}
+Complementary documents include the System Requirement Specifications and Module
+Guide. The full documentation and implementation can be found at \cite{SRS} and
+\cite{MG}.
 
 \section{Notation}
 
 \wss{You should describe your notation.  You can use what is below as
   a starting point.}
 
-The structure of the MIS for modules comes from \citet{HoffmanAndStrooper1995},
-with the addition that template modules have been adapted from
-\cite{GhezziEtAl2003}.  The mathematical notation comes from Chapter 3 of
-\citet{HoffmanAndStrooper1995}.  For instance, the symbol := is used for a
-multiple assignment statement and conditional rules follow the form $(c_1
-\Rightarrow r_1 | c_2 \Rightarrow r_2 | ... | c_n \Rightarrow r_n )$.
+The structure of the MIS for modules comes from \cite{HoffmanAndStrooper1995}, with
+the addition that template modules have been adapted from \cite{GhezziEtAl2003}.
+The mathematical notation comes from Chapter 3 of \cite{HoffmanAndStrooper1995}.
+For instance, the symbol := is used for a multiple assignment statement and
+conditional rules follow the form
+$(c_1 \Rightarrow r_1 | c_2 \Rightarrow r_2 | ... | c_n \Rightarrow r_n )$.
 
-The following table summarizes the primitive data types used by \progname. 
+The following table summarizes the primitive data types used by \progname.
 
 \begin{center}
-\renewcommand{\arraystretch}{1.2}
-\noindent 
-\begin{tabular}{l l p{7.5cm}} 
-\toprule 
-\textbf{Data Type} & \textbf{Notation} & \textbf{Description}\\ 
-\midrule
-character & char & a single symbol or digit\\
-integer & $\mathbb{Z}$ & a number without a fractional component in (-$\infty$, $\infty$) \\
-natural number & $\mathbb{N}$ & a number without a fractional component in [1, $\infty$) \\
-real & $\mathbb{R}$ & any number in (-$\infty$, $\infty$)\\
-\bottomrule
-\end{tabular} 
+  \renewcommand{\arraystretch}{1.2}
+  \noindent
+  \begin{tabular}{l l p{7.5cm}}
+    \toprule
+    \textbf{Data Type}   & \textbf{Notation} & \textbf{Description}                                         \\
+    \midrule
+    character      & char        & a single symbol or digit                               \\
+    integer        & $\mathbb{Z}$        & a number without a fractional component in (-$\infty$, $\infty$) \\
+    natural number & $\mathbb{N}$        & a number without a fractional component in [1, $\infty$)    \\
+    real           & $\mathbb{R}$        & any number in (-$\infty$, $\infty$)                              \\
+    \bottomrule
+  \end{tabular}
 \end{center}
 
 \noindent
@@ -124,93 +125,246 @@ described by giving their type signature followed by their specification.
 
 The following table is taken directly from the Module Guide document for this project.
 
-\begin{table}[h!]
-\centering
-\begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
-\toprule
-\textbf{Level 1} & \textbf{Level 2}\\
-\midrule
-
-{Hardware-Hiding} & ~ \\
-\midrule
-
-\multirow{7}{0.3\textwidth}{Behaviour-Hiding} & Input Parameters\\
-& Output Format\\
-& Output Verification\\
-& Temperature ODEs\\
-& Energy Equations\\ 
-& Control Module\\
-& Specification Parameters Module\\
-\midrule
-
-\multirow{3}{0.3\textwidth}{Software Decision} & {Sequence Data Structure}\\
-& ODE Solver\\
-& Plotting\\
-\bottomrule
-
-\end{tabular}
-\caption{Module Hierarchy}
-\label{TblMH}
+\begin{table}[H]
+  \centering
+  \begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
+    \toprule
+    \textbf{Level 1}                                            & \textbf{Level 2}                               \\
+    \midrule
+    {Hardware-Hiding Module}                              & --                                       \\
+    \midrule
+    \multirow{4}{0.3\textwidth}{Behaviour-Hiding Module}  & Read Matrix Module                       \\
+                                                          & Solver Output Module                     \\
+                                                          & Matrix Factorization Module              \\
+                                                          & Iterative Solves Module                  \\
+    \midrule
+    \multirow{1}{0.3\textwidth}{Software Decision Module} & Example Program Module                   \\
+    \bottomrule
+  \end{tabular}
+  \caption{Module Hierarchy}
+  \label{TblMH}
 \end{table}
 
 \newpage
-~\newpage
 
-\section{MIS of \wss{Module Name}} \label{Module} \wss{Use labels for
-  cross-referencing}
-
-\wss{You can reference SRS labels, such as R\ref{R_Inputs}.}
-
-\wss{It is also possible to use \LaTeX for hypperlinks to external documents.}
+\section{MIS of Matrix Factorization Module} \label{M:factor}
 
 \subsection{Module}
 
-\wss{Short name for the module}
+Factorize
 
 \subsection{Uses}
 
+None
 
 \subsection{Syntax}
-
-\subsubsection{Exported Constants}
 
 \subsubsection{Exported Access Programs}
 
 \begin{center}
-\begin{tabular}{p{2cm} p{4cm} p{4cm} p{2cm}}
-\hline
-\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
-\hline
-\wss{accessProg} & - & - & - \\
-\hline
-\end{tabular}
+  \begin{tabular}{p{3cm} p{5cm} p{5cm} p{2cm}}
+    \hline
+    \textbf{Name}       & \textbf{In}                                           & \textbf{Out}                          & \textbf{Exceptions} \\
+    \hline
+    QDLDL\_etree  & \(\matr{A}: \mathbb{R}^{n \times n}\)                         & \(L_\mathrm{nz}: \mathbb{N}, \vec{E}: \mathbb{R}^n\)          & NOT\_UPPER    \\
+    QDLDL\_factor & \(\matr{A}: \mathbb{R}^{n \times n}, L_\mathrm{nz}: \mathbb{N}, \vec{E}: \mathbb{R}^n, u_f\) & \(\matr{L}: \mathbb{R}^{n \times n}, \vec{d}: \mathbb{R}^n\) & FAC\_FAILED   \\
+    QDLDL\_solve  & \(\matr{L}: \mathbb{R}^{n \times n}, \vec{d}: \mathbb{R}^n, \vec{b}: \mathbb{R}^n, u_w\)     & \(\vec{x}: \mathbb{R}^n\)                      & --            \\
+    \hline
+  \end{tabular}
 \end{center}
 
 \subsection{Semantics}
 
 \subsubsection{State Variables}
 
-\wss{Not all modules will have state variables.  State variables give the module
-  a memory.}
-
-\subsubsection{Environment Variables}
-
-\wss{This section is not necessary for all modules.  Its purpose is to capture
-  when the module has external interaction with the environment, such as for a
-  device driver, screen interface, keyboard, file, etc.}
+None
 
 \subsubsection{Assumptions}
 
-\wss{Try to minimize assumptions and anticipate programmer errors via
-  exceptions, but for practical purposes assumptions are sometimes appropriate.}
+The (sparse) matrix used or returned by this module is stored in Compressed
+Sparse Column (CSC) format (\cite{noauthor_compressed_nodate}). The input matrix
+\(\matr{A}\) only contains data for the upper triangular part.
 
 \subsubsection{Access Routine Semantics}
 
-\noindent \wss{accessProg}():
+\noindent QDLDL\_etree(\(\matr{A}\)):
 \begin{itemize}
-\item transition: \wss{if appropriate} 
-\item output: \wss{if appropriate} 
-\item exception: \wss{if appropriate} 
+\item output: \(\vec{E} \coloneq\) elimination tree for the factorization \(\matr{A} =
+  \matr{L}\matr{D}\matr{L}\transpose{}\), \(L_\mathrm{nz} \coloneq\) the number of
+  non-zeros in the \(\matr{L}\) factor.
+\item exception: \(err \coloneq (\text{entries found in lower triangle} \implies
+  \text{NOT\_UPPER})\)
+\end{itemize}
+
+\noindent QDLDL\_factor<\(u_f\)>(\(\matr{A}, L_\mathrm{nz}, \vec{E}\)):
+\begin{itemize}
+\item output: \(\matr{L}, \matr{D} \coloneq \text{factors of } \matr{A}\) in \(u_f\)
+  precision, where diagonal matrix \(\matr{D}\) is simply represented by a
+  vector \(\vec{d}\) as there's only non-zero elements along the diagonal.
+\item exception: \(err \coloneq ((\exists\,i: \vec{d}_i = 0) \implies \text{FAC\_FAILED})\)
+\end{itemize}
+
+\noindent QDLDL\_solve<\(u_w\)>(\(\matr{L}, \vec{d}, \vec{b}\)):
+\begin{itemize}
+\item output: solves \(\matr{A}\vec{x} = \matr{L}\matr{D}\matr{L}\transpose{} \vec{x} = \vec{b}
+  \) in \(u_w\) precision, where \(\matr{D}\) is reinterpreted from \(\vec{d}\).
+  Let \(\vec{y} = \matr{D}\matr{L}\transpose{} \vec{x}\), we have
+  \(\matr{L}\matr{D}\matr{L}\transpose{} \vec{x} = \matr{L}
+  (\matr{D}\matr{L}\transpose{} \vec{x}) = \matr{L}\vec{y}\). Solve
+  \(\matr{L}\vec{y} = \vec{b}\) by back substitution (triangular solve). Solve
+  \(\matr{D}\matr{L}\transpose{} \vec{x}\) by multiplying \(\vec{y}\) with
+  \(\frac{1}{d_i}\) followed by another triangular solve.
+\end{itemize}
+
+\newpage
+
+\section{MIS of Solver Output Module} \label{M:output}
+
+\subsection{Module}
+
+Stats
+
+\subsection{Uses}
+
+None
+
+
+\subsection{Semantics}
+
+\subsubsection{State Variables}
+
+\begin{center}
+  \begin{tabular}{p{2cm} p{8cm}}
+    \hline
+    \textbf{Field}           & \textbf{Description}                                 \\
+    \hline
+    \(n: \mathbb{N}\)          & size of the matrix being solved                \\
+    \(n_\mathrm{nz}: \mathbb{N}\)     & number of non-zeros in the matrix              \\
+    \(L_\mathrm{nz}: \mathbb{N}\)     & number of non-zeros in the \(\matr{L}\) factor \\
+    \(t_\mathrm{fact}: \mathbb{R}\)   & time spent in numeric factorization            \\
+    \(t_\mathrm{solve}: \mathbb{R}\)  & time spent in iterative solves                 \\
+    \(n_\mathrm{refine}: \mathbb{N}\) & number of refinement steps                     \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\newpage
+
+\section{MIS of Iterative Solves Module} \label{M:solve}
+
+\subsection{Module}
+
+Solve
+
+\subsection{Uses}
+
+Factorize (Section~\ref{M:factor}), Stats (Section~\ref{M:output})
+
+\subsection{Syntax}
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+  \begin{tabular}{p{2cm} p{8cm} p{3cm} p{2cm}}
+    \hline
+    \textbf{Name} & \textbf{In}                                                            & \textbf{Out}               & \textbf{Exceptions} \\
+    \hline
+    solve   & \(\matr{A}: \mathbb{R}^{n \times n}, \vec{b}: \mathbb{R}^n, \epsilon: \mathbb{R}, n_\mathrm{iter}: \mathbb{N}, u_f, u_w, u_r\) & \(\vec{x}: \mathbb{R}^n\), s: Stats & --            \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{Assumptions}
+
+The input matrix \(\matr{A}\) is non-singular, quasi-definite, and is stored in
+CSC format.
+
+\subsubsection{Access Routine Semantics}
+
+\noindent solve<\(u_f, u_w, u_r\)>(\(\matr{A}, \vec{b}, \epsilon, n_\mathrm{iter}\)):
+\begin{itemize}
+\item transition: fill all fields in an instance of Stats record.
+\item output: solves \(\matr{A}\vec{x} = \vec{b} \) in \(u_w\) precision following the algorithm
+  specified in \iref{IM:IM} in \cite{SRS}.
+\end{itemize}
+
+\newpage
+
+\section{MIS of Read Matrix Module} \label{M:input}
+
+\subsection{Module}
+
+ReadMatrix
+
+\subsection{Uses}
+
+None
+
+\subsection{Syntax}
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+  \begin{tabular}{p{3cm} p{5cm} p{5cm} p{2cm}}
+    \hline
+    \textbf{Name}     & \textbf{In}            & \textbf{Out}                  & \textbf{Exceptions} \\
+    \hline
+    ReadMMtoCSC & filename: string & \(\matr{A}: \mathbb{R}^{n \times n}\) & --            \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{Assumptions}
+
+The file (filename) contains a sparse matrix in Matrix Market Exchange format
+(\cite{noauthor_matrix_2013}).
+
+\subsubsection{Access Routine Semantics}
+
+\noindent ReadMMtoCSC(filename):
+\begin{itemize}
+\item output: \(\matr{A} \coloneq \) the sparse matrix parsed and compressed in CSC.
+\end{itemize}
+
+\newpage
+
+\section{MIS of Example Program Module} \label{M:example}
+
+\subsection{Module}
+
+Example
+
+\subsection{Uses}
+
+ReadMatrix (Section~\ref{M:input}), Solve (Section~\ref{M:solve}), Stats (Section~\ref{M:input})
+
+\subsection{Syntax}
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+  \begin{tabular}{p{3cm} p{5cm} p{5cm} p{2cm}}
+    \hline
+    \textbf{Name} & \textbf{In}            & \textbf{Out} & \textbf{Exceptions} \\
+    \hline
+    demo    & filename: string & -      & -             \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{Access Routine Semantics}
+
+\noindent demo():
+\begin{itemize}
+\item transition: read matrix from file (filename), invoke the solver with a
+  predefined set of \(\vec{b}, \epsilon, n_\mathrm{iter}, u_f, u_w, u_r\), and
+  finally print the outputs and stats returned by the solver.
 \end{itemize}
 
 \wss{A module without environment variables or state variables is unlikely to
@@ -220,7 +374,7 @@ The following table is taken directly from the Module Guide document for this pr
 \wss{Modules rarely have both a transition and an output.  In most cases you
   will have one or the other.}
 
-\subsubsection{Local Functions}
+% \subsubsection{Local Functions}
 
 \wss{As appropriate} \wss{These functions are for the purpose of specification.
   They are not necessarily something that is going to be implemented
@@ -229,42 +383,6 @@ The following table is taken directly from the Module Guide document for this pr
 
 \newpage
 
-\bibliographystyle {plainnat}
-\bibliography {../../../refs/References}
-
-\newpage
-
-\section{Appendix} \label{Appendix}
-
-\wss{Extra information if required}
-
-\newpage{}
-
-\section*{Appendix --- Reflection}
-
-\wss{Not required for CAS 741 projects}
-
-The information in this section will be used to evaluate the team members on the
-graduate attribute of Problem Analysis and Design.
-
-\input{../../Reflection.tex}
-
-\begin{enumerate}
-  \item What went well while writing this deliverable? 
-  \item What pain points did you experience during this deliverable, and how
-    did you resolve them?
-  \item Which of your design decisions stemmed from speaking to your client(s)
-  or a proxy (e.g. your peers, stakeholders, potential users)? For those that
-  were not, why, and where did they come from?
-  \item While creating the design doc, what parts of your other documents (e.g.
-  requirements, hazard analysis, etc), it any, needed to be changed, and why?
-  \item What are the limitations of your solution?  Put another way, given
-  unlimited resources, what could you do to make the project better? (LO\_ProbSolutions)
-  \item Give a brief overview of other design solutions you considered.  What
-  are the benefits and tradeoffs of those other designs compared with the chosen
-  design?  From all the potential options, why did you select the documented design?
-  (LO\_Explores)
-\end{enumerate}
-
+\printbibliography{}
 
 \end{document}
