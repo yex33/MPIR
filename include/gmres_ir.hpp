@@ -51,6 +51,10 @@ template <typename T, typename Ta, typename Tb>
 std::vector<T> VectorSubtract(const std::vector<Ta> &a,
                               const std::vector<Tb> &b);
 
+template <typename T, typename Tx>
+  requires Refinable<Tx, T>
+T Dnrm2(const std::vector<Tx> &x);
+
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 class GmresLDLIR {
@@ -70,9 +74,6 @@ class GmresLDLIR {
 
   std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
                                const std::vector<UW> &b);
-
-  template <typename T>
-  T Dnrm2(const std::vector<T> &x);
 
  public:
   GmresLDLIR() = default;
@@ -141,31 +142,6 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
                                                      const std::vector<UW> &b) {
 }
 
-template <typename UF, typename UW, typename UR>
-  requires Refinable<UF, UW, UR>
-template <typename T>
-T GmresLDLIR<UF, UW, UR>::Dnrm2(const std::vector<T> &x) {
-  if (x.size() == 0) {
-    return static_cast<T>(0);
-  } else if (x.size() == 1) {
-    return std::abs(x[0]);
-  }
-  T scale = static_cast<T>(0);
-  T ssq   = static_cast<T>(1);
-  for (std::size_t i = x.size(); i-- > 0;) {
-    if (x[i] != static_cast<T>(0)) {
-      T x_abs = std::abs(x[i]);
-      if (scale < x_abs) {
-        ssq   = static_cast<T>(1) + ssq * ((scale / x_abs) * (scale / x_abs));
-        scale = x_abs;
-      } else {
-        ssq = ssq + ((x_abs / scale) * (x_abs / scale));
-      }
-    }
-  }
-  return scale * std::sqrt(ssq);
-}
-
 template <typename T, typename Ta, typename Tx>
   requires Refinable<Ta, Tx, T>
 std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
@@ -184,6 +160,43 @@ std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
     }
   }
   return y;
+}
+
+template <typename T, typename Ta, typename Tb>
+  requires Refinable<Ta, T> && Refinable<Tb, T>
+std::vector<T> VectorSubtract(const std::vector<Ta> &a,
+                              const std::vector<Tb> &b) {
+  std::vector<T> res(a.size());
+  for (const auto [i, pair] : std::views::zip(a, b) | std::views::enumerate) {
+    const auto [ai, bi] = pair;
+
+    res[i] = static_cast<T>(ai) - static_cast<T>(bi);
+  }
+  return res;
+}
+
+template <typename T, typename Tx>
+  requires Refinable<Tx, T>
+T Dnrm2(const std::vector<Tx> &x) {
+  if (x.size() == 0) {
+    return static_cast<T>(0);
+  } else if (x.size() == 1) {
+    return std::abs(static_cast<T>(x[0]));
+  }
+  T scale = static_cast<T>(0);
+  T ssq   = static_cast<T>(1);
+  for (std::size_t i = x.size(); i-- > 0;) {
+    if (static_cast<T>(x[i]) != static_cast<T>(0)) {
+      T x_abs = std::abs(static_cast<T>(x[i]));
+      if (scale < x_abs) {
+        ssq   = static_cast<T>(1) + ssq * ((scale / x_abs) * (scale / x_abs));
+        scale = x_abs;
+      } else {
+        ssq = ssq + ((x_abs / scale) * (x_abs / scale));
+      }
+    }
+  }
+  return scale * std::sqrt(ssq);
 }
 
 // End of GMRES_IR_HPP
