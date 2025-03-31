@@ -8,7 +8,8 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
-#include <type_traits>
+#include <limits>
+#include <ranges>
 #include <vector>
 
 #include "qdldl.hpp"
@@ -20,26 +21,38 @@ constexpr bool is_all_floating_point_v =
 template <typename T>
 constexpr bool is_all_floating_point_v<T> = std::floating_point<T>;
 
+template <typename... Ts>
+concept FloatingPoint = is_all_floating_point_v<Ts...>;
+
 template <typename T, typename... Ts>
-constexpr bool is_partial_ordered_v =
-    (std::convertible_to<T, Ts> && ...) && is_partial_ordered_v<Ts...>;
+constexpr bool is_partial_ordered_v = ((std::numeric_limits<T>().epsilon() >=
+                                        std::numeric_limits<Ts>().epsilon()) &&
+                                       ...) &&
+                                      is_partial_ordered_v<Ts...>;
 
 template <typename T>
 constexpr bool is_partial_ordered_v<T> = true;
 
 template <typename... Ts>
-concept refinable =
-    is_all_floating_point_v<Ts...> && is_partial_ordered_v<Ts...>;
+concept PartialOrdered = is_partial_ordered_v<Ts...>;
 
-template <typename T, typename A, typename X>
-  requires refinable<A, X, T>
+template <typename... Ts>
+concept Refinable = FloatingPoint<Ts...> && PartialOrdered<Ts...>;
+
+template <typename T, typename Ta, typename Tx>
+  requires Refinable<Ta, Tx, T>
 std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
                               const std::vector<std::size_t> &Ai,
-                              const std::vector<A>           &Ax,
-                              const std::vector<X>           &x);
+                              const std::vector<Ta>          &Ax,
+                              const std::vector<Tx>          &x);
+
+template <typename T, typename Ta, typename Tb>
+  requires Refinable<Ta, Tb, T>
+std::vector<T> VectorSubtract(const std::vector<Ta> &a,
+                              const std::vector<Tb> &b);
 
 template <typename UF, typename UW, typename UR>
-  requires refinable<UF, UW, UR>
+  requires Refinable<UF, UW, UR>
 class GmresLDLIR {
  private:
   std::size_t              n_;
@@ -74,7 +87,7 @@ class GmresLDLIR {
 };
 
 template <typename UF, typename UW, typename UR>
-  requires refinable<UF, UW, UR>
+  requires Refinable<UF, UW, UR>
 void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
                                      std::vector<std::size_t> Ai,
                                      std::vector<UW>          Ax) {
@@ -98,7 +111,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   std::vector<UF> Dinv(n_);
   bool           *bwork = new bool[n_];
   std::vector<UF> fwork(n_);
-  if constexpr (std::is_same_v<UF, UW>) {
+  if constexpr (std::same_as<UF, UW>) {
     QDLDL_factor(n_, Ap_.data(), Ai_.data(), Ax_.data(), Lp_.data(), Li_.data(),
                  Lx_.data(), D.data(), Dinv.data(), Lcolnz.data(), etree.data(),
                  bwork, iwork.data(), fwork.data());
@@ -114,7 +127,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 }
 
 template <typename UF, typename UW, typename UR>
-  requires refinable<UF, UW, UR>
+  requires Refinable<UF, UW, UR>
 void GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   if (ir_iter_ == 0) {
   }
@@ -123,13 +136,13 @@ void GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
 }
 
 template <typename UF, typename UW, typename UR>
-  requires refinable<UF, UW, UR>
+  requires Refinable<UF, UW, UR>
 std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
                                                      const std::vector<UW> &b) {
 }
 
 template <typename UF, typename UW, typename UR>
-  requires refinable<UF, UW, UR>
+  requires Refinable<UF, UW, UR>
 template <typename T>
 T GmresLDLIR<UF, UW, UR>::Dnrm2(const std::vector<T> &x) {
   if (x.size() == 0) {
@@ -153,12 +166,12 @@ T GmresLDLIR<UF, UW, UR>::Dnrm2(const std::vector<T> &x) {
   return scale * std::sqrt(ssq);
 }
 
-template <typename T, typename A, typename X>
-  requires refinable<A, X, T>
+template <typename T, typename Ta, typename Tx>
+  requires Refinable<Ta, Tx, T>
 std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
                               const std::vector<std::size_t> &Ai,
-                              const std::vector<A>           &Ax,
-                              const std::vector<X>           &x) {
+                              const std::vector<Ta>          &Ax,
+                              const std::vector<Tx>          &x) {
   std::vector<T> y(x.size());
   const size_t   n = Ap.size() - 1;
   for (std::size_t col = 0; col < n; col++) {
