@@ -47,8 +47,12 @@
  *
  */
 template <typename INT>
-INT QDLDL_etree(const INT n, const INT *Ap, const INT *Ai, INT *work, INT *Lnz,
-                INT *etree) {
+INT QDLDL_etree(const INT  n,
+                const INT *Ap,
+                const INT *Ai,
+                INT       *work,
+                INT       *Lnz,
+                INT       *etree) {
   INT sumLnz;
   INT i, j, p;
 
@@ -140,8 +144,12 @@ INT QDLDL_etree(const INT n, const INT *Ap, const INT *Ai, INT *work, INT *Lnz,
  */
 
 template <typename INT, typename PREC>
-void mul_sub(const PREC *Lx, PREC yVals_cidx, const INT *Li, INT beg, INT end,
-             PREC *yVals) {
+void mul_sub(const PREC *Lx,
+             PREC        yVals_cidx,
+             const INT  *Li,
+             INT         beg,
+             INT         end,
+             PREC       *yVals) {
   int constexpr BLOCKSIZE = 8;
   INT  j                  = beg;
   PREC tmp[BLOCKSIZE];
@@ -163,9 +171,20 @@ void mul_sub(const PREC *Lx, PREC yVals_cidx, const INT *Li, INT beg, INT end,
 }
 
 template <typename INT, typename PREC>
-INT QDLDL_factor(INT n, const INT *Ap, const INT *Ai, const PREC *Ax, INT *Lp,
-                 INT *Li, PREC *Lx, PREC *D, PREC *Dinv, const INT *Lnz,
-                 const INT *etree, bool *bwork, INT *iwork, PREC *fwork) {
+INT QDLDL_factor(INT         n,
+                 const INT  *Ap,
+                 const INT  *Ai,
+                 const PREC *Ax,
+                 INT        *Lp,
+                 INT        *Li,
+                 PREC       *Lx,
+                 PREC       *D,
+                 PREC       *Dinv,
+                 const INT  *Lnz,
+                 const INT  *etree,
+                 bool       *bwork,
+                 INT        *iwork,
+                 PREC       *fwork) {
   INT   i, k, nnzY, bidx, cidx, nextIdx, nnzE, tmpIdx;
   INT  *yIdx, *elimBuffer, *LNextSpaceInCol;
   PREC *yVals;
@@ -270,7 +289,7 @@ INT QDLDL_factor(INT n, const INT *Ap, const INT *Ai, const PREC *Ax, INT *Lp,
     }  // end for i
 
     // This for loop places nonzeros values in the k^th row
-    for (i = (nnzY - 1); i >= 0; i--) {
+    for (i = nnzY; i-- > 0;) {
       // which column are we working on?
       cidx = yIdx[i];
 
@@ -342,8 +361,8 @@ INT QDLDL_factor(INT n, const INT *Ap, const INT *Ai, const PREC *Ax, INT *Lp,
  * in which we compute the results.
  */
 template <typename INT, typename FACTPREC, typename XPREC>
-void QDLDL_Lsolve(INT n, const INT *Lp, const INT *Li, const FACTPREC *Lx,
-                  XPREC *x) {
+void QDLDL_Lsolve(
+    INT n, const INT *Lp, const INT *Li, const FACTPREC *Lx, XPREC *x) {
   INT i, j;
   for (i = 0; i < n; i++) {
     XPREC val = x[i];  // store x[i] into  val of precision XPREC.
@@ -369,10 +388,10 @@ void QDLDL_Lsolve(INT n, const INT *Lp, const INT *Li, const FACTPREC *Lx,
  * in the precision of x.
  */
 template <typename INT, typename FACTPREC, typename XPREC>
-void QDLDL_Ltsolve(INT n, const INT *Lp, const INT *Li, const FACTPREC *Lx,
-                   XPREC *x) {
+void QDLDL_Ltsolve(
+    INT n, const INT *Lp, const INT *Li, const FACTPREC *Lx, XPREC *x) {
   INT i, j;
-  for (i = n - 1; i >= 0; i--) {
+  for (i = n; i-- > 0;) {
     XPREC val = x[i];
     for (j = Lp[i]; j < Lp[i + 1]; j++) {
       val -= XPREC(Lx[j]) * x[Li[j]];
@@ -397,8 +416,12 @@ void QDLDL_Ltsolve(INT n, const INT *Lp, const INT *Li, const FACTPREC *Lx,
  * The factors are in FACT_PREC. The solving is done in X_PREC.
  */
 template <typename INT, typename FACTPREC, typename XPREC>
-void QDLDL_solve(const INT n, const INT *Lp, const INT *Li, const FACTPREC *Lx,
-                 const FACTPREC *Dinv, XPREC *x) {
+void QDLDL_solve(const INT       n,
+                 const INT      *Lp,
+                 const INT      *Li,
+                 const FACTPREC *Lx,
+                 const FACTPREC *Dinv,
+                 XPREC          *x) {
   INT i;
 
   // Solves Ax = LDL' x = b
