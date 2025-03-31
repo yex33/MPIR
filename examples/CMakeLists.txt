@@ -17,6 +17,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fast_matrix_market)
 
+# Compiler options
+add_compile_options(
+  -Wall -Wextra
+  $<$<CONFIG:DEBUG>:-g>
+  $<$<CONFIG:DEBUG>:-fsanitize=address>
+  $<$<CONFIG:DEBUG>:-fno-omit-frame-pointer>
+  $<$<CONFIG:RELEASE>:-O2>
+)
+add_link_options(
+  $<$<CONFIG:DEBUG>:-fsanitize=address>
+)
+
 add_executable(example ${EXAMPLES_DIR}/example.cpp)
 # target_compile_options(example
 #   PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>
@@ -26,11 +38,9 @@ add_executable(example ${EXAMPLES_DIR}/example.cpp)
 # )
 target_link_libraries(example PUBLIC
   # PUBLIC $<LINK_ONLY:MKL::MKL>
+  MPIR
   Eigen3::Eigen
   OpenMP::OpenMP_CXX
   fast_matrix_market::fast_matrix_market
-  MPIR
 )
-
-# target_include_directories(example PRIVATE ${INCLUDE_DIR} ${QDLDL_INCLUDE_DIR})
 # target_link_libraries(example PRIVATE GSL::gsl quadmath)
