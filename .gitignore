@@ -380,3 +380,5 @@ CMakeUserPresets.json
 .pdf-view-restore
 *.mtx
 build/
+.idea/
+cmake-build-debug/
