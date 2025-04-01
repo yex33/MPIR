@@ -13,6 +13,13 @@
 #include "ops.hpp"
 #include "qdldl.hpp"
 
+/**
+ * @brief Class implementing GMRES with LDLT-based iterative refinement in
+ * mixed-precisions.
+ * @tparam UF Factorization precision.
+ * @tparam UW Working precision.
+ * @tparam UR Residual precision.
+ */
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 class GmresLDLIR {
@@ -37,13 +44,40 @@ class GmresLDLIR {
 
  public:
   GmresLDLIR() = default;
-  void            Compute(std::vector<std::size_t> Ap,
-                          std::vector<std::size_t> Ai,
-                          std::vector<UW>          Ax);
+  /**
+   * @brief Computes and stores the LDLT factorization of the given sparse
+   * matrix A.
+   * @param Ap Column pointers of A in CSC format.
+   * @param Ai Row indices of A in CSC format.
+   * @param Ax Non-zero values of A in CSC format.
+   */
+  void Compute(std::vector<std::size_t> Ap,
+               std::vector<std::size_t> Ai,
+               std::vector<UW>          Ax);
+  /**
+   * @brief Solves the linear system Ax = b using GMRES with LDLT-based
+   * refinement.
+   * @param b Right-hand side vector.
+   * @return Solution vector x.
+   */
   std::vector<UW> Solve(const std::vector<UW> &b);
 
+  /**
+   * @brief Sets the maximum number of iterative refinement iterations.
+   * @param n Number of iterative refinement iterations.
+   */
   void SetMaxIRIterations(std::size_t n) { ir_iter_ = n; }
+
+  /**
+   * @brief Sets the maximum number of GMRES iterations.
+   * @param n Number of GMRES iterations.
+   */
   void SetMaxGmresIterations(std::size_t n) { gmres_iter_ = n; }
+
+  /**
+   * @brief Sets the convergence tolerance for the solver.
+   * @param tol Convergence tolerance value.
+   */
   void SetTolerance(UR tol) { tol_ = tol; }
 };
 
