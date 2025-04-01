@@ -25,7 +25,9 @@ int main() {
     return EXIT_FAILURE;
   }
 
+  using UF = std::float32_t;
   using UW = std::float64_t;
+  using UR = std::float64_t;
 
   fmm::matrix_market_header header;
   std::vector<std::size_t>  rows, cols;
@@ -84,7 +86,7 @@ int main() {
     Ap[i + 1] += Ap[i];
   }
 
-  GmresLDLIR<std::float32_t, UW, std::float64_t> solver;
+  GmresLDLIR<UF, UW, UR> solver;
   solver.Compute(std::move(Ap), std::move(Ai), std::move(Ax));
   std::vector<UW> b(n, 1);
   solver.Solve(b);
