@@ -2,9 +2,7 @@
 #define QDLDL_HPP
 #pragma once
 
-#include <iostream>
 #include <limits>  //for the INT_TYPE_MAX
-#include <type_traits>
 
 #define QDLDL_UNKNOWN (-1)
 #define QDLDL_USED (1)
