@@ -1,0 +1,195 @@
+%\documentclass[handout]{beamer}
+\documentclass[t,12pt,numbers,fleqn]{beamer}
+%\documentclass[ignorenonframetext]{beamer}
+
+\newif\ifquestions
+%\questionstrue
+\questionsfalse
+
+\usepackage{pgfpages}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    filecolor=blue,
+    urlcolor=blue,
+    unicode=false}
+\urlstyle{same}
+
+\usepackage{booktabs}
+
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup[figure]{font=scriptsize,labelfont=scriptsize}
+
+\usepackage[version=4]{mhchem}
+\usepackage[print-unity-mantissa=false]{siunitx}
+\usepackage{tabularx}
+
+\usepackage{algpseudocode,algorithm}
+
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{../../../refs/References.bib}
+
+\input{../../Common}
+
+%\usetheme{Iimenau}
+
+\useoutertheme{split} %so the footline can be seen, without needing pgfpages
+
+%\pgfpagesuselayout{resize to}[letterpaper,border shrink=5mm,landscape]  %if this is uncommented, the hyperref links do not work
+
+\mode<presentation>{}
+
+\input{../../def-beamer}
+
+\newcommand{\topic}{\progname{} Implementations}
+
+\input{../../titlepage}
+
+\begin{document}
+
+\input{../../footline}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{General Information}
+
+\begin{itemize}
+\item \progname{} is a sparse linear solver designed to solve large, sparse real
+  matrices efficiently.
+\item It uses the General Minimal Residual (GMRES) method for internal matrix
+  solves and iterative refinement techniques to improve both speed and accuracy.
+\item Intended for use in computational science, engineering, and numerical
+  analysis applications.
+\item As a complete library suite, the software also includes example programs to
+  demonstrate the solver interfaces and practical use cases of the solver.
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Inputs}
+
+\begin{table}[hp]
+  \centering
+  \label{tab:inputs}
+  \begin{tabularx}{1.0\linewidth}{rX}
+    \toprule
+    \textbf{Variable}  & \textbf{Description} \\
+    \midrule
+    \(\matr{A}\) & \(n \times n\) matrix \\
+    \(\vec{b}\)        & \(n\)-vector \\
+    \(\epsilon\)        & a solution is found if the norm of the residual is less than \(\epsilon\) \\
+    \(n_\mathrm{iter}\) & the maximum number of iterations to perform \\
+    \(u_f\)       & factorization precision \\
+    \(u_w\)       & working precision \\
+    \(u_r\)       & precision in which the residuals are computed \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Assumptions and Constraints}
+
+\begin{enumerate}[{A}1]
+\item Matrix \(\matr{A}\) is symmetric quasi-definite.
+\item \(\matr{A}\) is stored in \cite{noauthor_compressed_nodate} format.
+\item Only the upper triangular part of \(\matr{A}\) is stored.
+\item The precisions follow the order \(u_f \leq u_w \leq u_r\), with \(u_r\) being the
+  highest precision.
+\end{enumerate}
+
+\begin{enumerate}[{C}1]
+\item Use preconditioned GMRES for solving the error correction vector.
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Core Algorithms}
+
+  \begin{algorithm}[H]
+    \caption{Iterative refinement}
+    \begin{algorithmic}[1]
+      \For{\(m \gets 1, 2, \dots\), the \(m\)th iteration}
+      \State \(\vec{r}_m \gets \vec{b} - \matr{A}\vec{x}_m\) \Comment{Compute the residuals}\label{algo:ir:residual}
+      \State Solve \(\matr{A}\vec{d}_m = \vec{r}_m\) for \(\vec{d}_m\) \Comment{Compute the correction}\label{algo:ir:solve}
+      \State \(\vec{x}_{m + 1} = \vec{x}_m + \vec{d}_m\) \Comment{Add the correction}
+      \EndFor
+    \end{algorithmic}
+  \end{algorithm}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Core Algorithms}
+
+  \begin{algorithm}[H]
+    \caption{GMRES-IR with \(\matr{L}\matr{D}\matr{L}\transpose\) factorization in MP}
+    \begin{algorithmic}[1]
+      \State Perform \(\matr{L}\matr{D}\matr{L}\transpose\) factorization of \(\matr{A}\) \Comment{at \(u_f\)}
+      \State Solve \(\matr{L}\matr{D}\matr{L}\transpose \vec{x}_0 = \vec{b}\) \Comment{at \(u_f\)}
+      \For{\(i \gets 0, 1, \dots, n_\mathrm{iter}\) and \(\norm{r_i}_2 \geq \epsilon\)}
+      \State \(r_i \gets \vec{b} - \matr{A}\vec{x}_i\) \Comment{at \(u_r\)}
+      \State GMRES Solve \((\matr{L}\matr{D}\matr{L}\transpose)^{-1}\matr{A}\vec{d}_i = (\matr{L}\matr{D}\matr{L}\transpose)^{-1}\vec{r_i}\) \Comment{at \(u_w\)}
+      \State \(\vec{x}_{i + 1} = \vec{x}_i + \vec{d}_i\) \Comment{at \(u_r\)}
+      \EndFor
+    \end{algorithmic}
+  \end{algorithm}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Demo}
+
+\begin{itemize}
+\item C++ templates: a bit of metaprogramming to ensure \(u_f \leq u_w \leq u_r\).
+\item CMake/CTest: portability, project dependencies, unit test driver, CI/CD.
+\item clang-format: also with CI/CD.
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Future Work}
+
+\begin{enumerate}
+\item Performance testing
+\item Hardly converges in low precisions
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{References}
+
+\printbibliography[heading=none]{}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Questions}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
