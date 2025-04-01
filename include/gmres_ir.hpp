@@ -183,8 +183,8 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
                  [rho](UR ri) { return static_cast<UW>(ri / rho); });
 
   std::vector<UW> g(gmres_iter_ + 1, 0);
-  std::vector<UW> alpha(gmres_iter_, 0);
-  std::vector<UW> beta(gmres_iter_, 0);
+  std::vector<UW> c(gmres_iter_, 0);
+  std::vector<UW> s(gmres_iter_, 0);
   g[0] = static_cast<UW>(rho);
 
   for (std::size_t k = 0; k < gmres_iter_ && rho > tol_; k++) {
@@ -218,8 +218,8 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
 
     // Apply Givens rotation
     for (std::size_t j = 0; k > 0 && j <= k; j++) {
-      UW w1       = alpha[j] * h[j][k] + beta[j] * h[j + 1][k];
-      UW w2       = beta[j] * h[j][k] - alpha[j] * h[j + 1][k];
+      UW w1       = c[j] * h[j][k] - s[j] * h[j + 1][k];
+      UW w2       = s[j] * h[j][k] + c[j] * h[j + 1][k];
       h[j][k]     = w1;
       h[j + 1][k] = w2;
     }
@@ -227,18 +227,16 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     // Form k-th Givens rotation
     UW nu = Dnrm2<UW>(std::vector<UW>{h[k][k], h[k + 1][k]});
     if (nu != 0) {
-      alpha[k] = h[k][k] / nu;
-      beta[k]  = -h[k + 1][k] / nu;
+      c[k] = h[k][k] / nu;
+      s[k] = -h[k + 1][k] / nu;
 
-      UW w1    = alpha[k] * g[k];
-      UW w2    = -beta[k] * g[k];
+      h[k][k]     = c[k] * h[k][k] - s[k] * h[k + 1][k];
+      h[k + 1][k] = 0;
+
+      UW w1    = c[k] * g[k] - s[k] * g[k + 1];
+      UW w2    = s[k] * g[k] + s[k] * g[k + 1];
       g[k]     = w1;
       g[k + 1] = w2;
-
-      w1          = alpha[k] * h[k][k] + beta[k] * h[k + 1][k];
-      w2          = beta[k] * h[k][k] - alpha[k] * h[k + 1][k];
-      h[k][k]     = w1;
-      h[k + 1][k] = w2;
     }
     rho = std::abs(g[k + 1]);
     std::cout << rho << std::endl;
