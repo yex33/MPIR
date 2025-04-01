@@ -175,16 +175,15 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     return x0;
   }
 
-  std::vector<std::vector<UW>> h(gmres_iter_ + 1,
-                                 std::vector<UW>(gmres_iter_, 0));
-
   std::vector<std::vector<UW>> v(gmres_iter_ + 1, std::vector<UW>(n_, 0));
   std::transform(r.cbegin(), r.cend(), v[0].begin(),
                  [rho](UR ri) { return static_cast<UW>(ri / rho); });
 
-  std::vector<UW> g(gmres_iter_ + 1, 0);
-  std::vector<UW> c(gmres_iter_, 0);
-  std::vector<UW> s(gmres_iter_, 0);
+  std::vector<std::vector<UW>> h(gmres_iter_ + 1,
+                                 std::vector<UW>(gmres_iter_, 0));
+  std::vector<UW>              g(gmres_iter_ + 1, 0);
+  std::vector<UW>              c(gmres_iter_, 0);
+  std::vector<UW>              s(gmres_iter_, 0);
   g[0] = static_cast<UW>(rho);
 
   for (std::size_t k = 0; k < gmres_iter_ && rho > tol_; k++) {
@@ -217,7 +216,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     }
 
     // Apply Givens rotation
-    for (std::size_t j = 0; k > 0 && j <= k; j++) {
+    for (std::size_t j = 0; j < k; j++) {
       UW w1       = c[j] * h[j][k] - s[j] * h[j + 1][k];
       UW w2       = s[j] * h[j][k] + c[j] * h[j + 1][k];
       h[j][k]     = w1;
@@ -239,7 +238,6 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
       g[k + 1] = w2;
     }
     rho = std::abs(g[k + 1]);
-    std::cout << rho << std::endl;
   }
 
   return std::vector<UW>();
