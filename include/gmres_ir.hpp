@@ -8,7 +8,6 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
-#include <format>
 #include <limits>
 #include <numeric>
 #include <vector>
@@ -73,6 +72,9 @@ template <typename T, typename Tx>
   requires Refinable<Tx, T>
 T Dnrm2(const std::vector<Tx> &x);
 
+template <typename T>
+T InfNrm(const std::vector<T> &x);
+
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 class GmresLDLIR {
@@ -92,8 +94,8 @@ class GmresLDLIR {
   std::size_t gmres_iter_ = 20;
   UR          tol_        = 1e-10;
 
-  std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
-                               const std::vector<UW> &b);
+  std::vector<UR> PrecondGmres(const std::vector<UW> &x0,
+                               const std::vector<UR> &b);
 
  public:
   GmresLDLIR() = default;
@@ -154,47 +156,49 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   }
   std::vector<UW> x(b);
   QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), x.data());
-  for (std::size_t _ = 0; _ < ir_iter_; _++) {
-    std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
-    std::vector<UR> r  = VectorSubtract<UR>(b, b0);
+  std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
+  std::vector<UR> r  = VectorSubtract<UR>(b, b0);
+  std::cout << Dnrm2<UR>(r) << std::endl;
+  for (std::size_t _ = 0; _ < ir_iter_ && Dnrm2<UR>(r) > tol_; _++) {
+    UR r_infnorm       = InfNrm(r);
+    r                  = VectorScale<UR>(r, static_cast<UR>(1) / r_infnorm);
+    std::vector<UR> d  = PrecondGmres(std::vector<UW>(), r);
+    d                  = VectorScale<UR>(d, r_infnorm);
+    std::vector<UR> xd = VectorAdd<UR>(x, d);
+    std::transform(xd.cbegin(), xd.cend(), x.begin(),
+                   [](UR x) { return static_cast<UW>(x); });
+    b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
+    r  = VectorSubtract<UR>(b, b0);
     std::cout << Dnrm2<UR>(r) << std::endl;
-    UR r_infnorm = *std::max_element(r.begin(), r.end());
-    r            = VectorScale<UR>(r, static_cast<UR>(1) / r_infnorm);
-    std::vector<UW> r_UW(r.size());
-    std::transform(r.cbegin(), r.cend(), r_UW.begin(),
-                   [](UR ri) { return static_cast<UW>(ri); });
-    std::vector<UW> d = PrecondGmres(std::vector<UW>(), r_UW);
-    d                 = VectorScale<UW>(d, static_cast<UW>(r_infnorm));
-    x                 = VectorAdd<UW>(x, d);
   }
   return x;
 }
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
-std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
-                                                     const std::vector<UW> &b) {
+std::vector<UR> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
+                                                     const std::vector<UR> &b) {
   if (b.size() != n_) {
     // TODO set solver info
-    return std::vector<UW>();
+    return std::vector<UR>();
   }
 
-  std::vector<UW> res(n_, 0);
+  std::vector<UR> res(n_, 0);
 
   std::vector<UR> r(n_);
-  if (x0.size() == 0) {
-    std::transform(b.cbegin(), b.cend(), r.begin(),
-                   [](UW x) { return static_cast<UR>(x); });
+  if (x0.empty()) {
+    r = b;
   } else {
     std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x0);
     r                  = VectorSubtract<UR>(b, b0);
-    res                = x0;
+    std::transform(x0.cbegin(), x0.cend(), res.begin(),
+                   [](UW x) { return static_cast<UR>(x); });
   }
 
   QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), r.data());
   UR rho = Dnrm2<UR>(r);
   if (rho < tol_) {
-    return x0;
+    return res;
   }
 
   std::vector<std::vector<UW>> v;
@@ -267,7 +271,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   }
 
   // Solve upper Hessenberg matrix
-  std::vector<UW> y(k);
+  std::vector<UW> y(k, 0);
   for (std::size_t i = k; i-- > 0;) {
     y[i] = g[i];
     for (std::size_t j = i + 1; j < k; j++) {
@@ -279,7 +283,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   // Apply correction
   for (std::size_t i = 0; i < n_; i++) {
     for (std::size_t j = 0; j < k; j++) {
-      res[i] += v[j][i] * y[j];
+      res[i] += static_cast<UR>(v[j][i]) * static_cast<UR>(y[j]);
     }
   }
   return res;
@@ -498,6 +502,35 @@ TEST_CASE("[MPIR] Dnrm2") {
 
   std::vector<double> empty;
   CHECK_EQ(Dnrm2<double>(empty), 0.0);  // Norm of empty vector should be 0
+}
+#endif
+
+template <typename T>
+T InfNrm(const std::vector<T> &x) {
+  return std::abs(*std::max_element(x.cbegin(), x.cend(), [](T a, T b) {
+    return std::abs(a) < std::abs(b);
+  }));
+}
+
+#ifdef DOCTEST_LIBRARY_INCLUDED
+TEST_CASE("[MPIR] InfNrm") {
+  std::vector<double> v1 = {3.0, -4.0, 5.5, -6.1};
+  CHECK_EQ(InfNrm<double>(v1),
+           doctest::Approx(6.1));  // Max absolute value is 6.1
+
+  std::vector<double> v2 = {-1.1, -2.2, -3.3};
+  CHECK_EQ(InfNrm<double>(v2),
+           doctest::Approx(3.3));  // Max absolute value is 3.3
+
+  std::vector<double> v3 = {0.0, 0.0, 0.0};
+  CHECK_EQ(InfNrm<double>(v3), 0.0);  // Max absolute value is 0
+
+  std::vector<double> v4 = {7.5};
+  CHECK_EQ(InfNrm<double>(v4), doctest::Approx(7.5));  // Single element case
+
+  std::vector<double> v5 = {-3.14, 2.71, -1.41, 5.89};
+  CHECK_EQ(InfNrm<double>(v5),
+           doctest::Approx(5.89));  // Max absolute value is 5.89
 }
 #endif
 
