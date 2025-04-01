@@ -8,6 +8,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
+#include <format>
 #include <limits>
 #include <numeric>
 #include <vector>
@@ -48,6 +49,10 @@ std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
 
 template <typename T, typename Ta, typename Tb>
   requires Refinable<Ta, T> && Refinable<Tb, T>
+std::vector<T> VectorAdd(const std::vector<Ta> &a, const std::vector<Tb> &b);
+
+template <typename T, typename Ta, typename Tb>
+  requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorSubtract(const std::vector<Ta> &a,
                               const std::vector<Tb> &b);
 
@@ -84,7 +89,7 @@ class GmresLDLIR {
   std::vector<UF>          Dinv_;
 
   std::size_t ir_iter_    = 10;
-  std::size_t gmres_iter_ = 10;
+  std::size_t gmres_iter_ = 20;
   UR          tol_        = 1e-10;
 
   std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
@@ -92,10 +97,10 @@ class GmresLDLIR {
 
  public:
   GmresLDLIR() = default;
-  void Compute(std::vector<std::size_t> Ap,
-               std::vector<std::size_t> Ai,
-               std::vector<UW>          Ax);
-  void Solve(const std::vector<UW> &b);
+  void            Compute(std::vector<std::size_t> Ap,
+                          std::vector<std::size_t> Ai,
+                          std::vector<UW>          Ax);
+  std::vector<UW> Solve(const std::vector<UW> &b);
 
   void SetMaxIRIterations(std::size_t n) { ir_iter_ = n; }
   void SetMaxGmresIterations(std::size_t n) { gmres_iter_ = n; }
@@ -144,12 +149,25 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
-void GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
-  PrecondGmres(std::vector<UW>(), b);
+std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   if (ir_iter_ == 0) {
   }
+  std::vector<UW> x(b);
+  QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), x.data());
   for (std::size_t _ = 0; _ < ir_iter_; _++) {
+    std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
+    std::vector<UR> r  = VectorSubtract<UR>(b, b0);
+    std::cout << Dnrm2<UR>(r) << std::endl;
+    UR r_infnorm = *std::max_element(r.begin(), r.end());
+    r            = VectorScale<UR>(r, static_cast<UR>(1) / r_infnorm);
+    std::vector<UW> r_UW(r.size());
+    std::transform(r.cbegin(), r.cend(), r_UW.begin(),
+                   [](UR ri) { return static_cast<UW>(ri); });
+    std::vector<UW> d = PrecondGmres(std::vector<UW>(), r_UW);
+    d                 = VectorScale<UW>(d, static_cast<UW>(r_infnorm));
+    x                 = VectorAdd<UW>(x, d);
   }
+  return x;
 }
 
 template <typename UF, typename UW, typename UR>
@@ -160,6 +178,9 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     // TODO set solver info
     return std::vector<UW>();
   }
+
+  std::vector<UW> res(n_, 0);
+
   std::vector<UR> r(n_);
   if (x0.size() == 0) {
     std::transform(b.cbegin(), b.cend(), r.begin(),
@@ -167,6 +188,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   } else {
     std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x0);
     r                  = VectorSubtract<UR>(b, b0);
+    res                = x0;
   }
 
   QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), r.data());
@@ -175,7 +197,9 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     return x0;
   }
 
-  std::vector<std::vector<UW>> v(gmres_iter_ + 1, std::vector<UW>(n_, 0));
+  std::vector<std::vector<UW>> v;
+  v.reserve(gmres_iter_ + 1);
+  v.emplace_back(n_, 0);
   std::transform(r.cbegin(), r.cend(), v[0].begin(),
                  [rho](UR ri) { return static_cast<UW>(ri / rho); });
 
@@ -186,7 +210,9 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   std::vector<UW>              s(gmres_iter_, 0);
   g[0] = static_cast<UW>(rho);
 
-  for (std::size_t k = 0; k < gmres_iter_ && rho > tol_; k++) {
+  std::size_t k;
+  for (k = 0; k < gmres_iter_ && rho > tol_; k++) {
+    v.emplace_back(n_, 0);
     v[k + 1] = MatrixMultiply<UW>(Ap_, Ai_, Ax_, v[k]);
     // Apply preconditioner
     QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(),
@@ -240,7 +266,23 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     rho = std::abs(g[k + 1]);
   }
 
-  return std::vector<UW>();
+  // Solve upper Hessenberg matrix
+  std::vector<UW> y(k);
+  for (std::size_t i = k; i-- > 0;) {
+    y[i] = g[i];
+    for (std::size_t j = i + 1; j < k; j++) {
+      y[i] -= h[i][j] * y[j];
+    }
+    y[i] /= h[i][i];
+  }
+
+  // Apply correction
+  for (std::size_t i = 0; i < n_; i++) {
+    for (std::size_t j = 0; j < k; j++) {
+      res[i] += v[j][i] * y[j];
+    }
+  }
+  return res;
 }
 
 template <typename T, typename Ta, typename Tx>
@@ -262,6 +304,34 @@ std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
   }
   return y;
 }
+
+template <typename T, typename Ta, typename Tb>
+  requires Refinable<Ta, T> && Refinable<Tb, T>
+std::vector<T> VectorAdd(const std::vector<Ta> &a, const std::vector<Tb> &b) {
+  std::vector<T> res(a.size());
+  std::transform(
+      a.cbegin(), a.cend(), b.cbegin(), res.begin(),
+      [](Ta ai, Tb bi) { return static_cast<T>(ai) + static_cast<T>(bi); });
+  return res;
+}
+
+#ifdef DOCTEST_LIBRARY_INCLUDED
+TEST_CASE("[MPIR] VectorAdd") {
+  std::vector<double> v1      = {5.5, 6.6, 7.7};
+  std::vector<double> v2      = {1.1, 2.2, 3.3};
+  auto                result1 = VectorAdd<double>(v1, v2);
+  CHECK(std::equal(result1.begin(), result1.end(),
+                   std::vector<double>{6.6, 8.8, 11.0}.begin(),
+                   [](double a, double b) { return doctest::Approx(a) == b; }));
+
+  std::vector<double> v3      = {10.0, 20.0, 30.0};
+  std::vector<double> v4      = {5.0, 10.0, 15.0};
+  auto                result2 = VectorAdd<double>(v3, v4);
+  CHECK(std::equal(result2.begin(), result2.end(),
+                   std::vector<double>{15.0, 30.0, 45.0}.begin(),
+                   [](double a, double b) { return doctest::Approx(a) == b; }));
+}
+#endif
 
 template <typename T, typename Ta, typename Tb>
   requires Refinable<Ta, T> && Refinable<Tb, T>
