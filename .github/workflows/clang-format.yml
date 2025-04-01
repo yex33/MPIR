@@ -11,4 +11,4 @@ jobs:
       - uses: RafikFarhad/clang-format-github-action@v3
         with:
           sources: "**/*.hpp,**/*.cpp"
-          style: file
+          style: GNU
