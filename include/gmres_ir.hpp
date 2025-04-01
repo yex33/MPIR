@@ -24,7 +24,7 @@ template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 class GmresLDLIR {
  private:
-  std::size_t              n_;
+  std::size_t              n_ = 0;
   std::vector<std::size_t> Ap_;
   std::vector<std::size_t> Ai_;
   std::vector<UW>          Ax_;

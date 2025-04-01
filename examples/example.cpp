@@ -43,14 +43,14 @@ int main() {
     // rs and cs are swapped here, matrix read is transposed
     fmm::read_matrix_market_triplet(fin, header, cs, rs, vs, options);
     std::cout << (header.symmetry == fmm::symmetry_type::symmetric
-                      ? "symetric"
-                      : "non symetric")
+                      ? "symmetric"
+                      : "non symmetric")
               << std::endl;
     // Find sort permutation
     std::size_t              n = rs.size();
     std::vector<std::size_t> perm(n);
     std::iota(perm.begin(), perm.end(), 0);
-    std::sort(perm.begin(), perm.end(), [&](std::size_t i, std::size_t j) {
+    std::ranges::sort(perm, [&](const std::size_t i, const std::size_t j) {
       if (cs[i] != cs[j]) {
         return cs[i] < cs[j];
       }
@@ -63,16 +63,16 @@ int main() {
     rows.reserve(n);
     cols.reserve(n);
     vals.reserve(n);
-    std::transform(perm.begin(), perm.end(), std::back_inserter(rows),
-                   [&](std::size_t i) { return rs[i]; });
-    std::transform(perm.begin(), perm.end(), std::back_inserter(cols),
-                   [&](std::size_t i) { return cs[i]; });
+    std::ranges::transform(perm, std::back_inserter(rows),
+                           [&](const std::size_t i) { return rs[i]; });
+    std::ranges::transform(perm, std::back_inserter(cols),
+                           [&](const std::size_t i) { return cs[i]; });
     std::transform(perm.begin(), perm.end(), std::back_inserter(vals),
                    [&](std::size_t i) { return vs[i]; });
   }
 
-  std::size_t              n   = static_cast<std::size_t>(header.nrows);
-  std::size_t              nnz = static_cast<std::size_t>(header.nnz);
+  auto                     n   = static_cast<std::size_t>(header.nrows);
+  auto                     nnz = static_cast<std::size_t>(header.nnz);
   std::vector<std::size_t> Ai(std::move(rows));
   std::vector<UW>          Ax(std::move(vals));
   std::vector<std::size_t> Ap(n + 1);
