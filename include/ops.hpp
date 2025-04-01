@@ -10,26 +10,42 @@
 
 #include "fp_concepts.hpp"
 
+/**
+ * @brief Multiplies a sparse matrix in CSC format by a vector.
+ * @tparam T Precision of the matrix-vector product.
+ * @param Ap Column pointers of the matrix in CSC format.
+ * @param Ai Row indices of the matrix in CSC format.
+ * @param Ax Non-zero values of the matrix in CSC format.
+ * @param x Vector being multiplied.
+ * @return The matrix-vector product.
+ */
 template <typename T, typename Ta, typename Tx>
   requires Refinable<Ta, Tx, T>
 std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
                               const std::vector<std::size_t> &Ai,
                               const std::vector<Ta>          &Ax,
                               const std::vector<Tx>          &x) {
-  std::vector<T> y(x.size());
+  std::vector<T> res(x.size());
   const size_t   n = Ap.size() - 1;
   for (std::size_t col = 0; col < n; col++) {
     for (std::size_t idx = Ap[col]; idx < Ap[col + 1]; idx++) {
       const size_t row = Ai[idx];
-      y[col] += static_cast<T>(Ax[idx]) * static_cast<T>(x[row]);
+      res[col] += static_cast<T>(Ax[idx]) * static_cast<T>(x[row]);
       if (row < col) {
-        y[row] += static_cast<T>(Ax[idx]) * static_cast<T>(x[col]);
+        res[row] += static_cast<T>(Ax[idx]) * static_cast<T>(x[col]);
       }
     }
   }
-  return y;
+  return res;
 }
 
+/**
+ * @brief Adds two vectors element-wise.
+ * @tparam T Precision of the sum.
+ * @param a First input vector.
+ * @param b Second input vector.
+ * @return The element-wise sum of vectors a and b.
+ */
 template <typename T, typename Ta, typename Tb>
   requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorAdd(const std::vector<Ta> &a, const std::vector<Tb> &b) {
@@ -58,6 +74,13 @@ TEST_CASE("[MPIR] VectorAdd") {
 }
 #endif
 
+/**
+ * @brief Subtracts one vector from another element-wise.
+ * @tparam T Precision of the difference.
+ * @param a First input vector.
+ * @param b Second input vector.
+ * @return The element-wise difference of vectors a and b.
+ */
 template <typename T, typename Ta, typename Tb>
   requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorSubtract(const std::vector<Ta> &a,
@@ -87,6 +110,13 @@ TEST_CASE("[MPIR] VectorSubtract") {
 }
 #endif
 
+/**
+ * @brief Multiplies two vectors element-wise.
+ * @tparam T Precision of the product.
+ * @param a First input vector.
+ * @param b Second input vector.
+ * @return The element-wise product of vectors a and b.
+ */
 template <typename T, typename Ta, typename Tb>
   requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorMultiply(const std::vector<Ta> &a,
@@ -116,6 +146,13 @@ TEST_CASE("[MPIR] VectorMultiply") {
 }
 #endif
 
+/**
+ * @brief Scales a vector by a scalar value.
+ * @tparam T Precision of the vector after scaling.
+ * @param a Input vector.
+ * @param b Scalar multiplier.
+ * @return The vector a scaled by b.
+ */
 template <typename T, typename Ta, typename Tb>
   requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorScale(const std::vector<Ta> &a, Tb b) {
@@ -143,6 +180,13 @@ TEST_CASE("[MPIR] VectorScale") {
 }
 #endif
 
+/**
+ * @brief Computes the dot product of two vectors.
+ * @tparam T Precision of the dot product.
+ * @param a First input vector.
+ * @param b Second input vector.
+ * @return The dot product of vectors a and b.
+ */
 template <typename T, typename Ta, typename Tb>
   requires Refinable<Ta, T> && Refinable<Tb, T>
 T VectorDot(const std::vector<Ta> &a, const std::vector<Tb> &b) {
@@ -173,6 +217,12 @@ TEST_CASE("[MPIR] VectorDot") {
 }
 #endif
 
+/**
+ * @brief Computes the Euclidean norm (2-norm) of a vector.
+ * @tparam T Precision of the 2-norm.
+ * @param x Input vector.
+ * @return The 2-norm of vector x.
+ */
 template <typename T, typename Tx>
   requires Refinable<Tx, T>
 T Dnrm2(const std::vector<Tx> &x) {
@@ -226,6 +276,12 @@ TEST_CASE("[MPIR] Dnrm2") {
 }
 #endif
 
+/**
+ * @brief Computes the infinity norm (maximum absolute value) of a vector.
+ * @tparam T Precision of the infinity norm.
+ * @param x Input vector.
+ * @return The infinity norm of vector x.
+ */
 template <typename T>
 T InfNrm(const std::vector<T> &x) {
   return std::abs(*std::max_element(x.cbegin(), x.cend(), [](T a, T b) {
