@@ -16,8 +16,8 @@ if(WIN32)
   )
 else()
   add_compile_options(
-    -Wall -Wextra -Wpedantic
-    $<$<CONFIG:DEBUG>:-Og>
+    -Wall -Wextra -Wpedantic -Wconversion -Wno-sign-conversion -Wno-sign-compare
+    $<$<CONFIG:DEBUG>:-O0>
     $<$<CONFIG:DEBUG>:-fsanitize=address>
     $<$<CONFIG:DEBUG>:-fno-omit-frame-pointer>
     $<$<CONFIG:RELEASE>:-O2>
@@ -37,5 +37,6 @@ set(QDLDL_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/../qdldl-luir-stdloat/include")
 add_library(MPIR INTERFACE)
 target_include_directories(MPIR INTERFACE include)
 
+enable_testing()
 add_subdirectory(test)
 add_subdirectory(examples)

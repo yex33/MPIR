@@ -17,18 +17,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fast_matrix_market)
 
-# Compiler options
-add_compile_options(
-  -Wall -Wextra
-  $<$<CONFIG:DEBUG>:-g>
-  $<$<CONFIG:DEBUG>:-fsanitize=address>
-  $<$<CONFIG:DEBUG>:-fno-omit-frame-pointer>
-  $<$<CONFIG:RELEASE>:-O2>
-)
-add_link_options(
-  $<$<CONFIG:DEBUG>:-fsanitize=address>
-)
-
 add_executable(example ${EXAMPLES_DIR}/example.cpp)
 # target_compile_options(example
 #   PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>
