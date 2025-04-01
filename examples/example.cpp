@@ -17,25 +17,27 @@ namespace fs  = std::filesystem;
 namespace fmm = fast_matrix_market;
 
 int main() {
-  // const fs::path mtx_path{"matrices/moderate/2cubes_sphere.mtx"};
-  const fs::path mtx_path{"matrices/symmetric/cbuckle.mtx"};
-  // const fs::path mtx_path{"matrices/symmetric/1138_bus.mtx"};
+  // const fs::path mtx_path{"../matrices/symmetric/cbuckle.mtx"};
+  // const fs::path mtx_path{"../matrices/moderate/2cubes_sphere.mtx"};
+  const fs::path mtx_path{"../matrices/symmetric/1138_bus.mtx"};
   if (!fs::exists(mtx_path)) {
     std::cout << "Matrix file does not exist" << std::endl;
     return EXIT_FAILURE;
   }
 
-  fmm::matrix_market_header   header;
-  std::vector<std::size_t>    rows, cols;
-  std::vector<std::float64_t> vals;
+  using UW = std::float64_t;
+
+  fmm::matrix_market_header header;
+  std::vector<std::size_t>  rows, cols;
+  std::vector<UW>           vals;
 
   // Load and sort matrix by column indices
   {
     fmm::read_options options;
     options.generalize_symmetry = false;
-    std::ifstream               fin{mtx_path};
-    std::vector<std::size_t>    rs, cs;
-    std::vector<std::float64_t> vs;
+    std::ifstream            fin{mtx_path};
+    std::vector<std::size_t> rs, cs;
+    std::vector<UW>          vs;
     // rs and cs are swapped here, matrix read is transposed
     fmm::read_matrix_market_triplet(fin, header, cs, rs, vs, options);
     std::cout << (header.symmetry == fmm::symmetry_type::symmetric
@@ -49,11 +51,11 @@ int main() {
     std::sort(perm.begin(), perm.end(), [&](std::size_t i, std::size_t j) {
       if (cs[i] != cs[j]) {
         return cs[i] < cs[j];
-      } else if (rs[i] != rs[j]) {
-        return rs[i] < rs[j];
-      } else {
-        return false;
       }
+      if (rs[i] != rs[j]) {
+        return rs[i] < rs[j];
+      }
+      return false;
     });
     // Apply permutation
     rows.reserve(n);
@@ -67,11 +69,11 @@ int main() {
                    [&](std::size_t i) { return vs[i]; });
   }
 
-  std::size_t                 n   = static_cast<std::size_t>(header.nrows);
-  std::size_t                 nnz = static_cast<std::size_t>(header.nnz);
-  std::vector<std::size_t>    Ai(std::move(rows));
-  std::vector<std::float64_t> Ax(std::move(vals));
-  std::vector<std::size_t>    Ap(n + 1);
+  std::size_t              n   = static_cast<std::size_t>(header.nrows);
+  std::size_t              nnz = static_cast<std::size_t>(header.nnz);
+  std::vector<std::size_t> Ai(std::move(rows));
+  std::vector<UW>          Ax(std::move(vals));
+  std::vector<std::size_t> Ap(n + 1);
   // Convert COO to CSC. Source:
   // https://stackoverflow.com/questions/23583975/convert-coo-to-csr-format-in-c
   Ap[0] = 0;
@@ -82,6 +84,8 @@ int main() {
     Ap[i + 1] += Ap[i];
   }
 
-  GmresLDLIR<std::float64_t, std::float64_t, std::float64_t> solver;
+  GmresLDLIR<std::float32_t, UW, std::float64_t> solver;
   solver.Compute(std::move(Ap), std::move(Ai), std::move(Ax));
+  std::vector<UW> b(n, 1);
+  solver.Solve(b);
 }
