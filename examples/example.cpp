@@ -8,7 +8,6 @@
 #include <iterator>
 #include <numeric>
 #include <stdfloat>
-#include <utility>
 #include <vector>
 
 #include "gmres_ir.hpp"
