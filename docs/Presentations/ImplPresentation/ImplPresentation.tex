@@ -152,6 +152,25 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{frame}
+\frametitle{Floating Point Precisions}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\linewidth}{lcccl} \toprule
+    \textbf{Arithmetic} & \textbf{Sym.} & \multicolumn{2}{c}{\textbf{Bits}} & \textbf{Type}                                 \\ \cline{3-4}
+                  &         & \textbf{Sig.}            & \textbf{Exp.} &                               \\ \midrule
+    bfloat16      & B       & 8                  & 8       & \texttt{std::bfloat16\_t}           \\
+    fp16          & H       & 11                 & 5       & \texttt{std::float16\_t}            \\
+    fp32          & S       & 24                 & 8       & \texttt{std::float32\_t}, \texttt{float}  \\
+    fp64          & D       & 53                 & 11      & \texttt{std::float64\_t}, \texttt{double} \\
+    fp128         & Q       & 113                & 15      & \texttt{std::float128\_t}           \\ \bottomrule
+  \end{tabularx}
+\end{table}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
 \frametitle{Demo}
 
 \begin{itemize}
