@@ -212,9 +212,6 @@ in.}
 
 \pagenumbering{arabic}
 
-This document provides an introductory blurb and roadmap of the Verification and
-Validation (VnV) plan
-
 \section{General Information}
 
 This section provides a brief description of the project background and
@@ -315,6 +312,8 @@ The table below summarizes the VnV Team for the project:
   Xunzhou Ye     & Lead developer and tester         \\
   Qianlin Chen   & ``Domain expert'', provides feedbacks on documents per course
                    guidelines and document templates \\
+  Dr. Smith      & Course instructor, provides feedbacks on documents per course
+                   requirements                      \\
   Dr. Nedialkov  & Primary stakeholder, oversees project direction and validates
                    all documents                     \\
   \bottomrule
@@ -343,17 +342,44 @@ The table below summarizes the VnV Team for the project:
 
 \subsection{SRS Verification Plan}
 
-The SRS will be verified via feedbacks from the assigned domain expert and the
-project supervisor. A SRS checklist (\cite{SRS_checklist}) will be used to guide
-the review process. After each major revision of the SRS, a meeting with the
-project supervisor shall be scheduled within two weeks of the revision date.
-Changes to the SRS shall be presented and discussed with the supervisor. All
-feedbacks from both the domain expert and the supervisor will be documented in
-the form of GitHub issues assigned to the project owner. The project owner is
-responsible to address and close these issues as they iterate and revise the SRS
-document. The key objective is to verify that the software requirements and the
-documentation are sound and coherent to the intended users and defined in the
-SRS.
+The SRS will be verified through an iterative review process with the project
+supervisor. The objective is to ensure that the documented software requirements
+accurately reflect the project’s goals, are technically sound, and meet quality
+standards for scientific software development.
+
+\subsubsection{Supervisor Walkthrough Meetings}
+\label{sec:walkthroughmeeting}
+
+After each major revision of the SRS, a walkthrough meeting will be scheduled
+within two weeks. The meeting will be led by the author(s) of the SRS and
+structured to maximize clarity, engagement, and feedback. To avoid the
+inefficiencies of a full line-by-line review, the walkthrough will instead:
+
+\begin{itemize}
+\item Begin with a brief overview of the SRS document structure and purpose,
+  reaffirming the role of each section in capturing software requirements.
+\item Focus the discussion on key functional and non-functional requirements,
+  underlying assumptions, and any newly introduced models or scope changes.
+\item Use figures, equations, and tables as prompts for discussion and
+  clarification, ensuring their interpretation aligns with the supervisor’s
+  understanding.
+\item Be guided by open-ended questions posed by the author (e.g., “What are your
+  thoughts on the maintainability test design?” or “How well does the
+  portability requirement reflect our deployment targets?”), rather than binary
+  yes/no queries.
+\item Encourage clarifications, suggestions, and identification of gaps or
+  inconsistencies in the document.
+\end{itemize}
+
+\subsubsection{Feedback Management}
+\label{sec:feedbackmanagement}
+
+Feedback from the walkthrough will be documented as GitHub issues assigned to
+the project owner. Each issue will include a clear summary of the feedback
+point, context, and the proposed or required action. The project owner is
+responsible for addressing and closing these issues through successive
+iterations of the SRS.
+
 
 \subsection{Design Verification Plan}
 
