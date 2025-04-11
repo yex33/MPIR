@@ -153,9 +153,10 @@
 \section*{Revision History}
 
 \begin{tabularx}{\textwidth}{p{4cm}p{2cm}X}
-  \toprule {\bf Date} & {\bf Version} & {\bf Notes}   \\
+  \toprule {\bf Date}     & {\bf Version} & {\bf Notes}                   \\
   \midrule
-  24 February 2025    & 1.0           & Initial draft \\
+  \date{24 February 2025} & 1.0           & Initial draft                 \\
+  \date{11 April 2025}    & 1.1           & Refine according to feedbacks \\
   \bottomrule
 \end{tabularx}
 
@@ -181,8 +182,8 @@ in.}
 \listoftables
 \wss{Remove this section if it isn't needed}
 
-\listoffigures
-\wss{Remove this section if it isn't needed}
+% \listoffigures
+% \wss{Remove this section if it isn't needed}
 
 \newpage
 
@@ -383,13 +384,6 @@ iterations of the SRS.
 
 \subsection{Design Verification Plan}
 
-Since the software design is derived from a research study, the underlying
-algorithms and mathematical models are predefined. As a result, the scope for
-structural modifications is limited, and design decisions must align with the
-established research framework. The primary focus is on enhancing performance,
-ensuring software quality, and maintaining consistency with the research
-objectives.
-
 The VnV team will conduct structured reviews of the design, leveraging their
 professional expertise to provide informed feedback. This evaluation will be
 guided by the MG and MIS checklists (\cite{MG_checklist, MIS_checklist}) to ensure
@@ -415,9 +409,26 @@ of tools and its use in the project will be discussed in
 Section~\ref{sec:autom-test-verif} below. Plans and schemes for automated
 dynamic tests will be done at various levels of abstraction, including unit
 tests, system tests. Details are listed in Section~\ref{sec:system-tests} and
-\ref{sec:unit-test-descr}. A detailed code walkthrough on core algorithms will
-be conducted with the project supervisor to ensure that the implementation align
-with the established research work that this project is based on.
+\ref{sec:unit-test-descr}.
+
+In addition to automated testing, a manual code walkthrough will be conducted
+with the project supervisor. This walkthrough will serve as a key verification
+activity to ensure that the implementation adheres to the research foundation
+upon which the project is built. The walkthrough will specifically focus on the
+implementation of the core numerical algorithms, including:
+
+\begin{itemize}
+\item The iterative refinement process, which is central to the solver's
+  mixed-precision accuracy and convergence behavior.
+\item The GMRES method, used for solving the inner linear systems during
+  refinement.
+\end{itemize}
+
+During the walkthrough, the author of the implementation will present the
+relevant source code, explain design decisions, and describe how each function
+aligns with the intended mathematical formulations. The project supervisor will
+review the logic, verify consistency with the theoretical foundations, and
+provide direct feedback.
 
 \subsection{Automated Testing and Verification Tools}
 \label{sec:autom-test-verif}
@@ -459,21 +470,36 @@ are also used:
 
 \subsection{Software Validation Plan}
 
-A valid linear solver is one that correctly solves linear systems. In the
-context of this project, the validity of the software is primarily determined by
-its correctness---ensuring that the computed solutions satisfy the given
-equations within an acceptable tolerance. Since this software is part of a
-research study, its validity is also assessed by how well the implementation
-adheres to the established specifications and aligns with prior research work.
-To verify this, code walkthroughs of the core algorithms will be conducted with
-the project supervisor.
+A valid linear solver must not only produce correct results but also effectively
+serve its intended real-world applications. In this project, validation will
+focus on demonstrating that the solver meets its intended performance and
+usability requirements under realistic conditions.
 
-Beyond correctness, performance also plays a role in validation. The solver is
-designed to offer advantages over existing solutions, making performance
-benchmarking an essential validation step. To assess this, an automated
-performance benchmark will be conducted, generating empirical runtime data for
-different problem sizes. These results will be manually compared against
-established solvers to evaluate the solver’s computational efficiency.
+To validate correctness, the solver will be evaluated on a suite of benchmark
+problems that represent typical sparse linear systems encountered in
+computational science and engineering. The computed solutions will be compared
+against established reference solutions to confirm that they satisfy the
+underlying equations within the predefined tolerance.
+
+Performance validation will involve automated benchmarking tests that measure
+runtime, memory usage, and scalability across a range of problem sizes. The
+solver's performance will be compared against existing solvers, ensuring that
+the mixed-precision approach delivers the expected improvements in computational
+efficiency.
+
+Dr. Nedialkov has done some investigations on how mixed-precision computing can
+reduce computation time and memory usage, and it compares various solvers
+against a double-precision baseline (\cite{bassi_investigating_2022}).
+Benchmarks used and results from this paper will be used to validate both
+solution accuracy and performance of \progname{}.
+
+Finally, validation will extend to acceptance testing in simulated real-world
+scenarios. These tests will involve applying the solver to representative use
+cases to confirm that its performance and behavior align with the practical
+needs of its target users. Feedback from these end-use tests will provide
+critical insights into any adjustments required before deployment, ensuring that
+the solver is not only correct in a controlled environment but also effective in
+practice.
 
 \section{System Tests}
 \label{sec:system-tests}
@@ -495,7 +521,7 @@ This section covers the requirement \rref{R:ex} of the SRS. This includes
 essentially a ``driver'' for the solver which loads sparse matrices from a text
 file in Matrix Market Exchange (.mtx) Format (\cite{noauthor_matrix_2013}) into memory,
 invokes the solver interfaces, and outputs the results returned from the solver.
-The tests described below will verify that such ``driver'' is functional.
+The tests described below will verify that such a ``driver'' is functional.
 
 \begin{itemize}
 
@@ -503,15 +529,15 @@ The tests described below will verify that such ``driver'' is functional.
 
 Control: Automatic
 
-Initial State: A hard coded matrix \(\matr{A}\) of size \(\num{100} \times
-\num{100}\) in the programming language of choice is instantiated.
+Initial State: Solver and driver initiated.
 
 Input: matrix \(\matr{A}\) in plain text .mtx format of size \(\num{100} \times
-\num{100}\), a random vector \(\vec{b}\) of size \num{100}. \(u_f = u_w = u_r =
+\num{100}\), filled from top to bottom, left to right with integers from 1 to
+\num{10000}, a random vector \(\vec{b}\) of size \num{100}. \(u_f = u_w = u_r =
 \texttt{double}\)
 
-Output: The elements of \(\matr{A}\) matches the hard-coded one. \(\vec{x}\) of size
-\num{100}
+Output: The elements of \(\matr{A}\) matches exactly the one in the .mtx file.
+Some result solution \(\vec{x}\) of size \num{100}, values does not matter.
 
 Test Case Derivation: N/A
 
@@ -520,12 +546,13 @@ How test will be performed: Automatic
 \end{itemize}
 
 \subsubsection{Correctness Tests with Manufactured Solutions}
+\label{sec:corr-tests-with}
 
 This section covers one of the ways to verify the requirements \rref{R:Axb} and
-\rref{R:MP} of the SRS. This includes tests on the accuracy of the yielded
-solution from the solver by manufacturing an exact solution \(\vec{x}_\mathrm{ref}\) to the
-problem \(\matr{A}\vec{x} = \vec{b}\). This manufacturing process loosely follows the scheme
-below:
+\rref{R:MP} of the SRS. This includes tests on the accuracy of the solution from
+the solver by manufacturing an exact solution \(\vec{x}_\mathrm{ref}\) to the
+problem \(\matr{A}\vec{x} = \vec{b}\). This manufacturing process loosely
+follows the scheme below:
 
 \begin{enumerate}
 \item \(\vec{x}_\mathrm{ref} \gets \text{some random vector}\)
@@ -534,7 +561,15 @@ below:
 \item \(e \gets \displaystyle \frac{\norm{\vec{x} - \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2}\)
 \end{enumerate}
 
-The relative error \(e\) will be used as the accuracy metric.
+The relative error \(e\) will be used as the accuracy metric. The values of the
+manufactured reference solution \(\vec{x}_\mathrm{ref}\) in this section is
+uniformly distributed in the range of \([\min(a_{i,j}), \max(a_{i,j})]\). For
+the test cases in Sections~\ref{sec:corr-tests-with},
+\ref{sec:corr-tests-against}, and below, the \texttt{bundle1} matrix
+(\cite{m_lourakis_lourakisbundle1_2006}) from the Florida Sparse Matrix
+Collection (\cite{davis_university_2011}) will be used as the input matrix
+\(\matr{A}\). This matrix has a size of \(\num{10581} \times \num{10581}\) and
+\num{770811} non-zeros. The estimated condition number is \num{1.3e4}.
 
 \begin{itemize}
 
@@ -543,14 +578,13 @@ The relative error \(e\) will be used as the accuracy metric.
 Control: Automatic
 
 Initial State: matrix \(\matr{A}\) is read from file and stored in memory.
-An expected exact solution \(\vec{x}_\mathrm{ref}\) is prepared.
+An expected exact solution \(\vec{x}_\mathrm{ref}\) and the corresponding \(\vec{b} =
+\matr{A}\vec{x}_\mathrm{ref}\) are prepared.
 
-Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
-\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f =
-u_w = u_r = \texttt{double}\)
+Input: \(\matr{A}, \vec{b}, u_f = u_w = u_r = \texttt{double}\)
 
-Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
-    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+Output: \(\vec{x}\) such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-10}\)
 
 Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} = \matr{A}\vec{x}_\mathrm{ref}\)
 
@@ -561,24 +595,25 @@ How test will be performed: Automatic
 Control: Automatic
 
 Initial State: matrix \(\matr{A}\) is read from file and stored in memory.
-An expected exact solution \(\vec{x}_\mathrm{ref}\) is prepared.
+An expected exact solution \(\vec{x}_\mathrm{ref}\) and the corresponding \(\vec{b} =
+\matr{A}\vec{x}_\mathrm{ref}\) are prepared.
 
-Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
-\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f = \texttt{single}, u_w
-= u_r = \texttt{double}\)
+Input: \(\matr{A}, \vec{b}, u_f = \texttt{single}, u_w = u_r = \texttt{double}\)
 
-Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
-    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+Output: \(\vec{x}\) such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-10}\)
 
 Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} =
-\matr{A}\vec{x}_\mathrm{ref}\). Matrix factorization is done in single precision while
-working and residual computing are done in double precision.
+\matr{A}\vec{x}_\mathrm{ref}\). Matrix factorization is done in \texttt{single}
+precision while working and residual evaluations are done in \texttt{double}
+precision.
 
 How test will be performed: Automatic
 
 \end{itemize}
 
 \subsubsection{Correctness Tests against Trusted Solvers}
+\label{sec:corr-tests-against}
 
 This section covers the other way to verify the requirements \rref{R:Axb} and
 \rref{R:MP} of the SRS. This includes tests on the accuracy of the yielded
@@ -592,7 +627,9 @@ below:
 \item \(e \gets \displaystyle \frac{\norm{\vec{x} - \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2}\)
 \end{enumerate}
 
-The relative error \(e\) will be used as the accuracy metric.
+The relative error \(e\) will be used as the accuracy metric. For the test cases
+in this Section, MATLAB\textsuperscript{\textregistered} will be used as the
+external reference solver.
 
 \begin{itemize}
 
@@ -604,14 +641,12 @@ Initial State: matrix \(\matr{A}\) is read from file and stored in memory. The
 same problem \(\matr{A}\vec{x} = \vec{b}\) is passed to the external solver. A
 reference solution \(\vec{x}_\mathrm{ref}\) is prepared.
 
-Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
-\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f =
-u_w = u_r = \texttt{double}\)
+Input: \(\matr{A}, \vec{b}, u_f = u_w = u_r = \texttt{double}\)
 
-Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
-    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+Output: \(\vec{x}\) such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-10}\)
 
-Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} = \matr{A}\vec{x}_\mathrm{ref}\)
+Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated.
 
 How test will be performed: Automatic
 
@@ -623,16 +658,14 @@ Initial State: matrix \(\matr{A}\) is read from file and stored in memory. The
 same problem \(\matr{A}\vec{x} = \vec{b}\) is passed to the external solver. A
 reference solution \(\vec{x}_\mathrm{ref}\) is prepared.
 
-Input: matrix \(\matr{A}\) of size \(\num{10000} \times \num{10000}\) with
-\(\cond{\matr{A}} \approx \num{1e2}\), \(\vec{b}\) of size \num{10000}, \(u_f = \texttt{single}, u_w
-= u_r = \texttt{double}\)
+Input: \(\matr{A}, \vec{b}, u_f = \texttt{single}, u_w = u_r = \texttt{double}\)
 
-Output: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle \frac{\norm{\vec{x} -
-    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-12}\)
+Output: \(\vec{x}\) such that \(e = \displaystyle \frac{\norm{\vec{x} -
+    \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} < \num{1e-10}\)
 
-Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. \(\vec{b} =
-\matr{A}\vec{x}_\mathrm{ref}\). Matrix factorization is done in single precision while
-working and residual computing are done in double precision.
+Test Case Derivation: \(\vec{x}_\mathrm{ref}\) is randomly generated. Matrix factorization is
+done in single precision while working and residual evaluations are done in
+double precision.
 
 How test will be performed: Automatic
 
@@ -665,32 +698,36 @@ requirements as listed in the SRS (\cite{SRS}).
 The accuracy of the solver will be assessed by verifying that it converges to a
 solution within the user-defined tolerance \(\epsilon\). The level of accuracy
 required for computational science and engineering applications will be
-evaluated through the relative residual norm after convergence. The following
-tests will be performed to verify the nonfunctional requirement \nfrref{NFR:acc}
-in the SRS:
+evaluated through the relative residual norm after convergence. The functional
+tests \tref{T:gdd}, \tref{T:gsd}, \tref{T:exdd}, \tref{T:exsd} are sufficient to
+verify the nonfunctional requirement \nfrref{NFR:acc} in the SRS with an
+accuracy metric of \(\epsilon \approx \num{1e-10}\). Considering that the
+residual precision \(u_r = \texttt{double}\), the chosen \(\epsilon \approx
+\num{1e-10}\) is reasonably close to the machine epsilon in \texttt{double}
+precise \(\epsilon_\mathrm{mach} \approx \num{1.1e-16}\).
 
-\begin{itemize}
+% \begin{itemize}
 
-\item[T\refstepcounter{testnum}\thetestnum \label{T:acc}:]{nfr-acc}
+% \item[T\refstepcounter{testnum}\thetestnum \label{T:acc}:]{nfr-acc}
 
-Type: Functional, Automated
+% Type: Functional, Automated
 
-Initial State: Similar to \tref{T:gdd}, matrix \(\matr{A}\) is read from file
-and stored in memory. An manufactured expected exact solution
-\(\vec{x}_\mathrm{ref}\) is prepared.
+% Initial State: Similar to \tref{T:gdd}, matrix \(\matr{A}\) is read from file
+% and stored in memory. An manufactured expected exact solution
+% \(\vec{x}_\mathrm{ref}\) is prepared.
 
-Input: Similar to \tref{T:gdd}, with an extra input for user-specified tolerance
-\(\epsilon = \num{1e-12}\).
+% Input: Similar to \tref{T:gdd}, with an extra input for user-specified tolerance
+% \(\epsilon = \num{1e-12}\).
 
-Output/Result: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle
-\frac{\norm{\vec{x} - \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} <
-\epsilon = \num{1e-12}\). The computed solution’s residual norm should be below
-the threshold \(\epsilon\). If convergence is not achieved after iterations, a
-warning should be issued.
+% Output/Result: \(\vec{x}\) of size \num{10000} such that \(e = \displaystyle
+% \frac{\norm{\vec{x} - \vec{x}_\mathrm{ref}}_2}{\norm{\vec{x}_\mathrm{ref}}_2} <
+% \epsilon = \num{1e-12}\). The computed solution’s residual norm should be below
+% the threshold \(\epsilon\). If convergence is not achieved after iterations, a
+% warning should be issued.
 
-How test will be performed: Automatic
+% How test will be performed: Automatic
 
-\end{itemize}
+% \end{itemize}
 
 \subsubsection{Usability}
 \label{sec:usability}
@@ -710,17 +747,32 @@ Type: Static, Review, Survey-Based
 
 Initial State: The API documentation and usage examples are available. The API
 documentation of an external, established sparse linear solver is also presented
-as a comparable reference.
+as a comparable reference. Here the sparse solvers concept from the Eigen
+library is used as the reference (\cite{noauthor_eigen_nodate}).
 
-Input: VnV team members review the API and compare it against that of the
-external solver.
+Input: A detailed usability survey questionnaire will be distributed to all VnV
+team members. The survey will include both open-ended and Likert-scale questions
+focused on API clarity, ease of integration, and documentation quality. VnV team
+members with expertise in numerical software development will serve as the
+primary reviewers.
 
-Output/Result: Feedback on clarity, ease of integration, pros and cons, and
-suggestions for improvements.
+Output/Result: A consolidated report of survey responses will summarize feedback
+on the API’s clarity, ease of integration, advantages and drawbacks, and provide
+specific suggestions for improvements. The report will highlight areas for
+enhancement based on a comparative analysis with the external reference API.
 
-How test will be performed: A usability survey will be conducted (see
-Appendix~\ref{sec:usab-surv-quest}). API walkthroughs and documentation inspections
-will be used to ensure that function calls and configurations are intuitive.
+How test will be performed:
+\begin{enumerate}
+\item The VnV team will first independently review the API documentation and usage
+  examples.
+\item Each reviewer will complete the usability survey (see
+  Appendix~\ref{sec:usab-surv-quest}).
+\item After submitting the survey, a follow-up meeting will be scheduled where each
+  reviewer presents their feedback, and common themes and specific issues are
+  discussed.
+\item The discussion and agreed-upon action items will be documented, and
+  suggestions for improvements will be tracked via GitHub issues.
+\end{enumerate}
 
 \end{itemize}
 
@@ -740,31 +792,49 @@ Type: Static, Code Review
 
 Initial State: The codebase is available and structured.
 
-Input: Introduce a minor algorithmic modification or API extension.
+Input: Introduce an API extension to support solving matrices stored in
+Compressed Sparse Row (CSR) format in addition to the existing support for
+Compressed Sparse Column (CSC) format.
 
 Output/Result: Measure the number of files and lines of code modified, as well
 as time taken.
 
-How test will be performed: A code walkthrough will be conducted with team
-members to assess maintainability using the MG and MIS guidelines.
+How test will be performed:
 
-
-\item[T\refstepcounter{testnum}\thetestnum \label{T:fmt}:]{nfr-format}
-
-Type: Static, Automated
-
-Initial State: The source code is available in a repository with predefined
-formatting and linting rules.
-
-Input: Run automated checks using clang-format for code style enforcement and
-clang-tidy for static analysis.
-
-Output/Result: The code should conform to the predefined formatting rules, and
-no critical linting warnings or errors should remain unaddressed.
-
-How test will be performed: As part of the CI pipeline, clang-format and
-clang-tidy will be executed on every commit. Any violations must be resolved
-before merging changes.
+\begin{enumerate}
+\item Before starting, the current state of the codebase will be documented. This
+  includes recording the total number of files, the overall lines of code (LOC),
+  and any existing metrics related to code complexity. These baseline
+  measurements serve as a reference for evaluating the changes.
+\item The developer will work on introducing the new CSR support. During this
+  phase, the developer is expected to follow established coding standards and
+  utilize existing modules to minimize unnecessary modifications. The process
+  should include:
+  \begin{itemize}
+  \item Designing the API changes needed to accommodate CSR format.
+  \item Modifying relevant modules to handle both CSR and CSC formats where
+    applicable.
+  \item Integrating new code with the current codebase using modular and reusable
+    practices.
+  \end{itemize}
+\item After the API extension is implemented, a code review will be conducted. The
+  review team will assess the following:
+  \begin{itemize}
+  \item The number of files modified.
+  \item The total lines of code added, removed, or altered.
+  \item The time taken from the start of the implementation to the final
+    integration.
+  \item An evaluation of the complexity changes introduced by the new code.
+  \end{itemize}
+\item The measured modifications and time are then compared against the predefined
+  threshold (\hyperref[tab:symbolic]{FRACTION} of the original development
+  time). If the modifications exceed the acceptable limits, this could indicate
+  potential maintainability issues that need to be addressed.
+\item All findings will be documented in detail, and the results will be discussed
+  in a follow-up review meeting. Any issues or suggestions for reducing the
+  modification effort will be recorded as GitHub issues for further refinement
+  of the codebase.
+\end{enumerate}
 
 \end{itemize}
 
@@ -782,10 +852,11 @@ in the SRS:
 
 Type: Functional, Automated
 
-Initial State: The solver is compiled and deployed on different machines with
-different operating systems.
+Initial State: A Linux machine loaded with Docker images of the latest version
+of Windows 11, Ubuntu LTS (Linux), and MacOS.
 
-Input: Run both the example programs and all automated functional tests
+Input: Compile both the solver and the example program in each virtual
+environment. Run both the example program and all automated functional tests
 described in Section~\ref{sec:tests-funct-requ}.
 
 Output/Result: The solver successfully compiles, executes test cases, and
@@ -797,6 +868,64 @@ each environment and confirming consistent results.
 
 \end{itemize}
 
+
+\subsubsection{Performance}
+
+To fulfill the nonfunctional requirement for performance \nfrref{NFR:perf}, a
+manual benchmark test will be conducted to evaluate the solver’s runtime
+efficiency when using mixed-precision arithmetic. The runtime of the functional
+tests \tref{T:gdd} and \tref{T:gsd} will serve as the basis for comparing
+performance between two configurations:
+\begin{enumerate}
+\item Mixed-precision mode: factorization in single precision, internal solves and
+  residual evaluations in double precision.
+\item Double-precision mode: all computations in double precision.
+\end{enumerate}
+Each test will be executed multiple times to account for variability and ensure
+statistically stable results. This is necessary because clock-time measurements
+on modern processors can be affected by factors such as CPU caching, thermal
+throttling, and OS-level scheduling.
+
+\begin{itemize}
+
+\item[T\refstepcounter{testnum}\thetestnum \label{T:perf}:]{nfr-perf}
+
+Type: Functional, Manual, Benchmark-Based
+
+Initial State: As described in \tref{T:gdd} and \tref{T:gsd}. Benchmarking tools
+with high-resolution timing functions (e.g., std::chrono in C++) are available
+for accurate runtime measurements.
+
+Input: Manually run the solver in both configurations on the selected matrix.
+The matrix should be solved multiple times (e.g., 10 runs per configuration) to
+account for performance variability.
+
+Output/Result: Record the average runtime of each configuration for each matrix.
+The mixed-precision version should demonstrate a consistent runtime reduction of
+at least \hyperref[tab:symbolic]{PERF\_GAIN}. Results can be presented in a
+comparison chart.
+
+How test will be performed:
+
+The benchmark will be conducted on a single machine to ensure consistency. Prior
+to testing, CPU frequency scaling will be disabled (e.g., using
+\texttt{cpufreq-set -g performance} on Linux), background processes will be
+minimized, and the solver will be pinned to a single CPU core using tools such
+as \texttt{taskset} to reduce variability from OS-level scheduling. Before
+measurement, several warm-up runs will be performed in each configuration to
+stabilize caching behavior and eliminate anomalies from first-time execution.
+The solver will then be run 10 times on a single representative sparse matrix
+using both the mixed-precision configuration (single precision for
+factorization, double precision for solves and residuals) and the full
+double-precision configuration. Runtime for each run will be measured using
+embedded high-resolution timers. The average runtime and standard deviation for
+each configuration will be calculated and compared. A consistent runtime
+reduction in the mixed-precision mode will confirm that the performance
+requirement is met. The results will be visualized in a plot to clearly
+illustrate the performance difference between the two configurations.
+
+\end{itemize}
+
 \subsection{Traceability Between Test Cases and Requirements}
 
 % \tref{T:io}
@@ -804,7 +933,6 @@ each environment and confirming consistent results.
 % \tref{T:gsd}
 % \tref{T:exdd}
 % \tref{T:exsd}
-% \tref{T:acc}
 % \tref{T:use}
 % \tref{T:mt}
 % \tref{T:fmt}
@@ -816,21 +944,21 @@ each environment and confirming consistent results.
 % \nfrref{NFR:use}
 % \nfrref{NFR:mt}
 % \nfrref{NFR:port}
+% \nfrref{NFR:perf}
 
 \begin{table}[H]
   \centering
-  \begin{tabular}{|c|c|c|c|c|c|c|c|}                                      \hline
-                  & \rref{R:Axb} & \rref{R:MP} & \rref{R:ex} & \nfrref{NFR:acc} & \nfrref{NFR:use} & \nfrref{NFR:mt} & \nfrref{NFR:port} \\ \hline
-    \tref{T:io}   &              &             & X           &                  &                  &                 &                   \\ \hline
-    \tref{T:gdd}  & X            & X           &             &                  &                  &                 &                   \\ \hline
-    \tref{T:gsd}  & X            & X           &             &                  &                  &                 &                   \\ \hline
-    \tref{T:exdd} & X            & X           &             &                  &                  &                 &                   \\ \hline
-    \tref{T:exsd} & X            & X           &             &                  &                  &                 &                   \\ \hline
-    \tref{T:acc}  &              &             &             & X                &                  &                 &                   \\ \hline
-    \tref{T:use}  &              &             &             &                  & X                &                 &                   \\ \hline
-    \tref{T:mt}   &              &             &             &                  &                  & X               &                   \\ \hline
-    \tref{T:fmt}  &              &             &             &                  &                  & X               &                   \\ \hline
-    \tref{T:port} &              &             &             &                  &                  &                 & X                 \\ \hline
+  \begin{tabular}{|c|c|c|c|c|c|c|c|c|}                                      \hline
+                  & \rref{R:Axb} & \rref{R:MP} & \rref{R:ex} & \nfrref{NFR:acc} & \nfrref{NFR:use} & \nfrref{NFR:mt} & \nfrref{NFR:port} & \nfrref{NFR:perf} \\ \hline
+    \tref{T:io}   &              &             & X           &                  &                  &                 &                   &                   \\ \hline
+    \tref{T:gdd}  & X            & X           &             & X                &                  &                 &                   &                   \\ \hline
+    \tref{T:gsd}  & X            & X           &             & X                &                  &                 &                   &                   \\ \hline
+    \tref{T:exdd} & X            & X           &             & X                &                  &                 &                   &                   \\ \hline
+    \tref{T:exsd} & X            & X           &             & X                &                  &                 &                   &                   \\ \hline
+    \tref{T:use}  &              &             &             &                  & X                &                 &                   &                   \\ \hline
+    \tref{T:mt}   &              &             &             &                  &                  & X               &                   &                   \\ \hline
+    \tref{T:port} &              &             &             &                  &                  &                 & X                 &                   \\ \hline
+    \tref{T:perf} &              &             &             &                  &                  &                 &                   & X                 \\ \hline
   \end{tabular}
   \caption{Traceability matrix showing the connections between test cases and
     requirements}
@@ -843,125 +971,125 @@ each environment and confirming consistent results.
 This section should not be filled in until after the MIS (detailed design
   document) has been completed.
 
-% \wss{Reference your MIS (detailed design document) and explain your overall
-% philosophy for test case selection.}
+\wss{Reference your MIS (detailed design document) and explain your overall
+philosophy for test case selection.}
 
-% \wss{To save space and time, it may be an option to provide less detail in this section.
-% For the unit tests you can potentially layout your testing strategy here.  That is, you
-% can explain how tests will be selected for each module.  For instance, your test building
-% approach could be test cases for each access program, including one test for normal behaviour
-% and as many tests as needed for edge cases.  Rather than create the details of the input
-% and output here, you could point to the unit testing code.  For this to work, you code
-% needs to be well-documented, with meaningful names for all of the tests.}
+\wss{To save space and time, it may be an option to provide less detail in this section.
+For the unit tests you can potentially layout your testing strategy here.  That is, you
+can explain how tests will be selected for each module.  For instance, your test building
+approach could be test cases for each access program, including one test for normal behaviour
+and as many tests as needed for edge cases.  Rather than create the details of the input
+and output here, you could point to the unit testing code.  For this to work, you code
+needs to be well-documented, with meaningful names for all of the tests.}
 
-% \subsection{Unit Testing Scope}
+\subsection{Unit Testing Scope}
 
-% \wss{What modules are outside of the scope.  If there are modules that are
-%   developed by someone else, then you would say here if you aren't planning on
-%   verifying them.  There may also be modules that are part of your software, but
-%   have a lower priority for verification than others.  If this is the case,
-%   explain your rationale for the ranking of module importance.}
+\wss{What modules are outside of the scope.  If there are modules that are
+  developed by someone else, then you would say here if you aren't planning on
+  verifying them.  There may also be modules that are part of your software, but
+  have a lower priority for verification than others.  If this is the case,
+  explain your rationale for the ranking of module importance.}
 
-% \subsection{Tests for Functional Requirements}
+\subsection{Tests for Functional Requirements}
 
-% \wss{Most of the verification will be through automated unit testing.  If
-%   appropriate specific modules can be verified by a non-testing based
-%   technique.  That can also be documented in this section.}
+\wss{Most of the verification will be through automated unit testing.  If
+  appropriate specific modules can be verified by a non-testing based
+  technique.  That can also be documented in this section.}
 
-% \subsubsection{Module 1}
+\subsubsection{Module 1}
 
-% \wss{Include a blurb here to explain why the subsections below cover the module.
-%   References to the MIS would be good.  You will want tests from a black box
-%   perspective and from a white box perspective.  Explain to the reader how the
-%   tests were selected.}
+\wss{Include a blurb here to explain why the subsections below cover the module.
+  References to the MIS would be good.  You will want tests from a black box
+  perspective and from a white box perspective.  Explain to the reader how the
+  tests were selected.}
 
-% \begin{enumerate}
+\begin{enumerate}
 
-% \item{test-id1\\}
+\item{test-id1\\}
 
-% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-%   be automatic}
+Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+  be automatic}
 
-% Initial State:
+Initial State:
 
-% Input:
+Input:
 
-% Output: \wss{The expected result for the given inputs}
+Output: \wss{The expected result for the given inputs}
 
-% Test Case Derivation: \wss{Justify the expected value given in the Output field}
+Test Case Derivation: \wss{Justify the expected value given in the Output field}
 
-% How test will be performed:
+How test will be performed:
 
-% \item{test-id2\\}
+\item{test-id2\\}
 
-% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-%   be automatic}
+Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+  be automatic}
 
-% Initial State:
+Initial State:
 
-% Input:
+Input:
 
-% Output: \wss{The expected result for the given inputs}
+Output: \wss{The expected result for the given inputs}
 
-% Test Case Derivation: \wss{Justify the expected value given in the Output field}
+Test Case Derivation: \wss{Justify the expected value given in the Output field}
 
-% How test will be performed:
+How test will be performed:
 
-% \item{...\\}
+\item{...\\}
 
-% \end{enumerate}
+\end{enumerate}
 
-% \subsubsection{Module 2}
+\subsubsection{Module 2}
 
-% ...
+...
 
-% \subsection{Tests for Nonfunctional Requirements}
+\subsection{Tests for Nonfunctional Requirements}
 
-% \wss{If there is a module that needs to be independently assessed for
-%   performance, those test cases can go here.  In some projects, planning for
-%   nonfunctional tests of units will not be that relevant.}
+\wss{If there is a module that needs to be independently assessed for
+  performance, those test cases can go here.  In some projects, planning for
+  nonfunctional tests of units will not be that relevant.}
 
-% \wss{These tests may involve collecting performance data from previously
-%   mentioned functional tests.}
+\wss{These tests may involve collecting performance data from previously
+  mentioned functional tests.}
 
-% \subsubsection{Module ?}
+\subsubsection{Module ?}
 
-% \begin{enumerate}
+\begin{enumerate}
 
-% \item{test-id1\\}
+\item{test-id1\\}
 
-% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-%   be automatic}
+Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+  be automatic}
 
-% Initial State:
+Initial State:
 
-% Input/Condition:
+Input/Condition:
 
-% Output/Result:
+Output/Result:
 
-% How test will be performed:
+How test will be performed:
 
-% \item{test-id2\\}
+\item{test-id2\\}
 
-% Type: Functional, Dynamic, Manual, Static etc.
+Type: Functional, Dynamic, Manual, Static etc.
 
-% Initial State:
+Initial State:
 
-% Input:
+Input:
 
-% Output:
+Output:
 
-% How test will be performed:
+How test will be performed:
 
-% \end{enumerate}
+\end{enumerate}
 
-% \subsubsection{Module ?}
+\subsubsection{Module ?}
 
-% ...
+...
 
-% \subsection{Traceability Between Test Cases and Modules}
+\subsection{Traceability Between Test Cases and Modules}
 
-% \wss{Provide evidence that all of the modules have been considered.}
+\wss{Provide evidence that all of the modules have been considered.}
 
 \newpage
 
@@ -977,6 +1105,21 @@ This is where you can place additional information.
 
 The definition of the test cases will call for SYMBOLIC\_CONSTANTS.
 Their values are defined in this section for easy maintenance.
+
+\renewcommand{\arraystretch}{1.2}
+\begin{table}[H]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{symbol}  & \textbf{value}          \\
+    \midrule
+    FRACTION   & \SI{30}{\percent} \\
+    PERF\_GAIN & \SI{10}{\percent} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Symbolic Parameters}
+  \label{tab:symbolic}
+\end{table}
 
 \subsection{Usability Survey Questions}
 \label{sec:usab-surv-quest}

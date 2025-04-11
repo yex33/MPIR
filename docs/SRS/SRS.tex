@@ -1244,9 +1244,9 @@ be covered in the Verification and Validation document.}
 
 \item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:acc}:] \textbf{Accuracy} The solver
   should converge to a solution within a user-defined tolerance \(\epsilon\),
-  with a default threshold of \textit{DEFAULT\_TOL} for residual norm reduction.
-  If the solves fails to converge after \(n_\mathrm{iter}\) iterations, the
-  solver should warn about such failure.
+  with a default threshold of \hyperref[tab:const]{DEFAULT\_TOL} for residual
+  norm reduction. If the solves fails to converge after \(n_\mathrm{iter}\)
+  iterations, the solver should warn about such failure.
 
   \plt{Characterize the accuracy by giving the context/use for
     the software.  Maybe something like, ``The accuracy of the computed
@@ -1271,8 +1271,8 @@ be covered in the Verification and Validation document.}
 
 \item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:mt}:]
   \textbf{Maintainability} The effort required to make any of the likely changes
-  listed for \progname{} should be less than \textit{FRACTION} of the original
-  development time.
+  listed for \progname{} should be less than \hyperref[tab:const]{FRACTION} of
+  the original development time.
 
 \item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:port}:] \textbf{Portability}
   The library should run on all actively maintained operating systems including
@@ -1284,6 +1284,14 @@ be covered in the Verification and Validation document.}
     verifiable a statement could be made that the tests from a given section of
     the VnV plan can be successfully run on all of the possible operating
     environments.}
+
+\item[NFR\refstepcounter{nfrnum}\thenfrnum \label{NFR:perf}:] \textbf{Performance} The
+  solver must achieve a consistent performance gain in runtime of at least
+  \hyperref[tab:const]{PERF\_GAIN} by leveraging mixed-precision arithmetic,
+  such that, for example, performing factorization in single precision, followed
+  by internal solves and residual computations in double precision, is
+  demonstrably faster than executing all these operations entirely in double
+  precision.
 
 % \item Other NFRs that might be discussed include verifiability, understandability
 %   and reusability.
@@ -1384,6 +1392,7 @@ the assumptions.
 % \nfrref{NFR:use}
 % \nfrref{NFR:mt}
 % \nfrref{NFR:port}
+% \nfrref{NFR:perf}
 % \lcref{LC:generic}
 % \lcref{LC:sparse}
 
@@ -1409,6 +1418,7 @@ the assumptions.
     \nfrref{NFR:use}    &                &               \\ \hline
     \nfrref{NFR:mt}     &                &               \\ \hline
     \nfrref{NFR:port}   &                &               \\ \hline
+    \nfrref{NFR:perf}   &                &               \\ \hline
     \lcref{LC:generic}  & X              &               \\ \hline
     \lcref{LC:sparse}   &                &               \\ \hline
   \end{tabular}
@@ -1503,15 +1513,20 @@ Their values are defined in this section for easy maintenance.}
 \plt{The value of FRACTION, for the Maintainability NFR would be given here.}
 
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{ll}
-  \toprule
-  \textbf{symbol}    & \textbf{value}          \\
-  \midrule
-  DEFAULT\_TOL & \num{1e-6}        \\
-  FRACTION     & \SI{30}{\percent} \\
-  \bottomrule
-\end{tabular}
-
+\begin{table}[H]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{symbol}    & \textbf{value}          \\
+    \midrule
+    DEFAULT\_TOL & \num{1e-10}        \\
+    FRACTION     & \SI{30}{\percent} \\
+    PERF\_GAIN   & \SI{10}{\percent} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Auxiliary constants}
+  \label{tab:const}
+\end{table}
 \newpage
 
 \printbibliography{}
