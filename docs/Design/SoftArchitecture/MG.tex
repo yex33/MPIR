@@ -18,6 +18,7 @@
 \usepackage{tikz}
 \usetikzlibrary{calc}
 \usetikzlibrary{arrows}
+\usetikzlibrary{shapes}
 
 \input{../../Comments}
 \input{../../Common}
@@ -53,10 +54,11 @@
 \section{Revision History}
 
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
-\toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
-\midrule
-\date{19 March 2025} & 1.0 & Initial draft \\
-\bottomrule
+  \toprule {\bf Date}  & {\bf Version} & {\bf Notes}                   \\
+  \midrule
+  \date{19 March 2025} & 1.0           & Initial draft                 \\
+  \date{14 April 2025} & 1.1           & Refine according to feedbacks \\
+  \bottomrule
 \end{tabularx}
 
 \newpage
@@ -169,17 +171,12 @@ adapted here is called design for change.
 \item[\refstepcounter{acnum} \actheacnum \label{AC:factor}:] The assumed properties
   that the input matrix holds, which further determines the solver/algorithm
   used to factorize the matrix.
-\item[\refstepcounter{acnum} \actheacnum \label{AC:precision}:] The floating point
-  precisions in which the refinement steps are performed.
+\item[\refstepcounter{acnum} \actheacnum \label{AC:concepts}:] The required
+  properties of the user-defined mixed-precision configurations.
+\item[\refstepcounter{acnum} \actheacnum \label{AC:ops}:] The implementation of
+  common matrix-vector operations in arbitrary precisions.
 \item[\refstepcounter{acnum} \actheacnum \label{AC:solve}:] The algorithm used for
   internal solves during the refinement steps.
-
-\item[\refstepcounter{acnum} \actheacnum \label{AC:input}:] The format of the
-  initial input data.
-\item[\refstepcounter{acnum} \actheacnum \label{AC:output}:] The format of the
-  final output data.
-\item[\refstepcounter{acnum} \actheacnum \label{AC:example}:] How the example
-  program demonstrates the use of \progname{}.
 \end{description}
 
 \wss{Anticipated changes relate to changes that would be made in requirements,
@@ -216,28 +213,27 @@ actually be implemented.
 \item [\refstepcounter{mnum} \mthemnum \label{M:hw}:] Hardware-Hiding Module
   \footnote{\progname{} is intended to run on any general purposed operation
     system (OS). \mref{M:hw} is assumed to be by implemented by the OS.}
-\item [\refstepcounter{mnum} \mthemnum \label{M:factor}:] Matrix Factorization
+\item [\refstepcounter{mnum} \mthemnum \label{M:factor}:] Factorization
   Module
-\item [\refstepcounter{mnum} \mthemnum \label{M:solve}:] Iterative Solves Module
-\item [\refstepcounter{mnum} \mthemnum \label{M:input}:] Read Matrix Module
-\item [\refstepcounter{mnum} \mthemnum \label{M:output}:] Solver Output Module
-\item [\refstepcounter{mnum} \mthemnum \label{M:example}:] Example Program Module
+\item [\refstepcounter{mnum} \mthemnum \label{M:concepts}:] Floating Point Concepts Module
+\item [\refstepcounter{mnum} \mthemnum \label{M:ops}:] Matrix Operations Module
+\item [\refstepcounter{mnum} \mthemnum \label{M:solve}:] Iterative Solver Module
 \end{description}
 
 \begin{table}[h!]
   \centering
   \begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
     \toprule
-    \textbf{Level 1}                                            & \textbf{Level 2}                               \\
+    \textbf{Level 1}                                            & \textbf{Level 2}                     \\
     \midrule
-    {Hardware-Hiding Module}                              & --                                       \\
+    {Hardware-Hiding Module}                              & --                             \\
     \midrule
-    \multirow{4}{0.3\textwidth}{Behaviour-Hiding Module}  & Read Matrix Module                       \\
-                                                          & Solver Output Module                     \\
-                                                          & Matrix Factorization Module              \\
-                                                          & Iterative Solves Module                  \\
+    \multirow{4}{0.3\textwidth}{Behaviour-Hiding Module}  & Floating Point Concepts Module \\
+                                                          & Matrix Operations Module       \\
+                                                          & Factorization Module           \\
+                                                          & Iterative Solver Module        \\
     \midrule
-    \multirow{1}{0.3\textwidth}{Software Decision Module} & Example Program Module                   \\
+    \multirow{1}{0.3\textwidth}{Software Decision Module} &                                \\
     \bottomrule
   \end{tabular}
   \caption{Module Hierarchy}
@@ -296,28 +292,7 @@ to be implemented.
 \item[Implemented By:] --
 \end{description}
 
-\subsubsection{Read Matrix Module (\mref{M:input})}
-
-\begin{description}
-\item[Secrets:] The format and structure of the input data, how a matrix stored in
-  a plain text file is read and parsed, how a sparse matrix is represented.
-\item[Services:] Converts the input data into the data structure and format
-  consumed by the solver.
-\item[Implemented By:] \cite{noauthor_gsl_nodate}
-\item[Type of Module:] Library
-\end{description}
-
-\subsubsection{Solver Output Module (\mref{M:output})}
-
-\begin{description}
-\item[Secrets:] The format and structure of the output data.
-\item[Services:] Outputs the results of the calculations, including the input
-  parameters, solve time, residuals.
-\item[Implemented By:] \progname{}
-\item[Type of Module:] Record
-\end{description}
-
-\subsubsection{Matrix Factorization (\mref{M:factor})}
+\subsubsection{Factorization Module (\mref{M:factor})}
 
 \begin{description}
 \item[Secrets:] The structure of the input matrix, how to factorize the input
@@ -328,14 +303,39 @@ to be implemented.
 \item[Type of Module:] Library
 \end{description}
 
-\subsubsection{Iterative Solves Module (\mref{M:solve})}
+\subsubsection{Floating Point Concepts Module (\mref{M:concepts})}
 
 \begin{description}
-\item[Secrets:] The structure of the input matrix
+\item[Secrets:] Internal details of the user-defined mixed-precision configuration,
+  specifically the types selected for various stages of solver arithmetic.
+\item[Services:] Validates the user-defined mixed-precision configuration.
+\item[Implemented By:] \progname{}
+\item[Type of Module:] Generic Interface \footnote{The ``mixed-precision configuration''
+    refers to a set of type parameters used for arithmetic operations within the
+    solver. This module provides meta-programming constructs to constrain and
+    validate the allowable type combinations.}
+\end{description}
+
+\subsubsection{Matrix Operations Module (\mref{M:ops})}
+
+\begin{description}
+\item[Secrets:] N/A
+\item[Services:] Provides routines for basic matrix operations, including
+  matrix-vector multiplication, vector-vector multiplication, vector dot
+  product, vector Euclidean norm, etc.
+\item[Implemented By:] \progname{}
+\item[Type of Module:] Library
+\end{description}
+
+\subsubsection{Iterative Solver Module (\mref{M:solve})}
+
+\begin{description}
+\item[Secrets:] The structure of the input matrix, content of the input matrix,
+  factors of the input matrix
 \item[Services:] Provides the main logics of the solver. Solves a given linear
   system with iterative refinement.
 \item[Implemented By:] \progname{}
-\item[Type of Module:] Abstract Object
+\item[Type of Module:] Abstract Data Type
 \end{description}
 
 \subsection{Software Decision Module}
@@ -351,17 +351,6 @@ to be implemented.
 \item[Implemented By:] --
 \end{description}
 
-\subsubsection{Iterative Solves Module (\mref{M:example})}
-
-\begin{description}
-\item[Secrets:] The input matrix
-\item[Services:] Provides an example of invoking the APIs exposed by \progname{}.
-  Demonstrates the process of reading a matrix from file, generating inputs for
-  the solver, and displays the output from the solver.
-\item[Implemented By:] \progname{}
-\item[Type of Module:] Abstract Object
-\end{description}
-
 \section{Traceability Matrix} \label{SecTM}
 
 This section shows two traceability matrices: between the modules and the
@@ -372,27 +361,23 @@ requirements and between the modules and the anticipated changes.
 % \rref{R:ex}
 % \acref{AC:hw}
 % \acref{AC:factor}
-% \acref{AC:precision}
+% \acref{AC:concepts}
 % \acref{AC:solve}
-% \acref{AC:input}
-% \acref{AC:output}
-% \acref{AC:example}
 % \mref{M:hw}
 % \mref{M:factor}
+% \mref{M:concepts}
+% \mref{M:ops}
 % \mref{M:solve}
-% \mref{M:input}
-% \mref{M:output}
-% \mref{M:example}
 
 \begin{table}[H]
   \centering
   \begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
     \toprule
-    \textbf{Req.}      & \textbf{Modules}                                       \\
+    \textbf{Req.}      & \textbf{Modules}                      \\
     \midrule
-    \rref{R:Axb} & \mref{M:factor}, \mref{M:solve}, \mref{M:output} \\
-    \rref{R:MP}  & \mref{M:factor}, \mref{M:solve}                  \\
-    \rref{R:ex}  & \mref{M:input}, \mref{M:example}                 \\
+    \rref{R:Axb} & \mref{M:factor}, \mref{M:solve} \\
+    \rref{R:MP}  & \mref{M:concepts}, \mref{M:ops} \\
+    \rref{R:ex}  & \mref{M:factor}                 \\
     \bottomrule
   \end{tabular}
   \caption{Trace Between Requirements and Modules}
@@ -403,15 +388,13 @@ requirements and between the modules and the anticipated changes.
   \centering
   \begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
     \toprule
-    \textbf{AC}                & \textbf{Modules}                      \\
+    \textbf{AC}               & \textbf{Modules}        \\
     \midrule
-    \acref{AC:hw}        & \mref{M:hw}                     \\
-    \acref{AC:factor}    & \mref{M:factor}                 \\
-    \acref{AC:precision} & \mref{M:solve}, \mref{M:factor} \\
-    \acref{AC:solve}     & \mref{M:solve}                  \\
-    \acref{AC:input}     & \mref{M:input}                  \\
-    \acref{AC:output}    & \mref{M:output}                 \\
-    \acref{AC:example}   & \mref{M:example}                \\
+    \acref{AC:hw}       & \mref{M:hw}       \\
+    \acref{AC:factor}   & \mref{M:factor}   \\
+    \acref{AC:concepts} & \mref{M:concepts} \\
+    \acref{AC:ops}      & \mref{M:ops}      \\
+    \acref{AC:solve}    & \mref{M:solve}    \\
     \bottomrule
   \end{tabular}
   \caption{Trace Between Anticipated Changes and Modules}
@@ -452,19 +435,27 @@ arrows in the diagram typically correspond to the presence of import statement.}
       align=center,
       minimum height=2em
     },
+    circ/.style={
+      ellipse,
+      draw=black,
+      thick,
+      text width=7em,
+      align=center,
+      minimum height=2em
+    },
     thick,
     >=stealth'
     ]
-    \draw (0,0) node[block] (example) {Example Program Module (\mref{M:example})};
-    \draw (-5,-4) node[block] (input) {Read Matrix Module (\mref{M:input})};
-    \draw (0,-4) node[block] (solve) {Iterative Solves Module (\mref{M:solve})};
-    \draw (7,-2.5) node[block] (output) {Solver Output Module (\mref{M:output})};
+    \draw (0,0) node[circ] (driver) {Solver Driver};
+    \draw (-5,-4) node[block] (input) {Read Matrix Module (\mref{M:ops})};
+    \draw (0,-4) node[block] (solve) {Iterative Solves Module (\mref{M:concepts})};
+    \draw (7,-2.5) node[block] (output) {Solver Output Module (\mref{M:solve})};
     \draw (7,-5.5) node[block] (factor) {Matrix Factorization Module (\mref{M:factor})};
     \draw (0,-8) node[block] (hw) {Hardware Hiding Module (\mref{M:hw})};
 
-    \draw [->] (example) -- (input);
-    \draw [->] (example) -- (solve);
-    \draw [->] (example) -- (output);
+    \draw [->] (driver) -- (input);
+    \draw [->] (driver) -- (solve);
+    \draw [->] (driver) -- (output);
     \draw [->] (solve) -- (factor);
     \draw [->] (solve) -- (output);
     \draw [->] (input) -- (hw);
