@@ -85,7 +85,7 @@ In this section, the system tests that will be conducted are described in
 detail. These tests will be used to verify the fulfillment of the functional
 requirements as listed in the SRS (\cite{SRS}).
 
-\subsubsection{Matrix Inputs and Outputs}
+\subsection{Matrix Inputs and Outputs}
 
 This section covers the requirement \rref{R:ex} of the SRS. This includes
 essentially a ``driver'' for the solver which loads sparse matrices from a text
@@ -103,7 +103,7 @@ The tests described below will verify that such a ``driver'' is functional.
   Result: Pass
 \end{itemize}
 
-\subsubsection{Correctness Tests with Manufactured Solutions}
+\subsection{Correctness Tests with Manufactured Solutions}
 \label{sec:corr-tests-with}
 
 This section covers one of the ways to verify the requirements \rref{R:Axb} and
@@ -147,7 +147,7 @@ Collection (\cite{davis_university_2011}) will be used as the input matrix
 
 \end{itemize}
 
-\subsubsection{Correctness Tests against Trusted Solvers}
+\subsection{Correctness Tests against Trusted Solvers}
 \label{sec:corr-tests-against}
 
 This section covers the other way to verify the requirements \rref{R:Axb} and
@@ -232,15 +232,81 @@ current project, which focuses on mixed-precision solver strategies for matrices
 in CSC format. The maintainability test is acknowledged but deferred as future
 work or as a candidate for post-project evaluation.
 
+
+\subsection{Portability}
+
+The solver should run on all actively maintained operating systems, including
+Windows 10, Windows 11, Linux, and MacOS. Compatibility testing will verify that
+all required functionalities work across different platforms. The following
+tests will be performed to verify the nonfunctional requirement \nfrref{NFR:port}
+in the SRS:
+
+\begin{itemize}
+
+\item[\tref{T:port}:]{nfr-port}
+
+Output/Result: Pass, See
+\href{https://github.com/yex33/MPIR/actions/workflows/ctest.yml}{CTest Github Action}.
+
+\end{itemize}
+
 \subsection{Performance}
 
-\subsection{etc.}
+To fulfill the nonfunctional requirement for performance \nfrref{NFR:perf}, a
+manual benchmark test will be conducted to evaluate the solver’s runtime
+efficiency when using mixed-precision arithmetic. The runtime of the functional
+tests \tref{T:gdd} and \tref{T:gsd} will serve as the basis for comparing
+performance between two configurations:
+\begin{enumerate}
+\item Mixed-precision mode: factorization in single precision, internal solves and
+  residual evaluations in double precision.
+\item Double-precision mode: all computations in double precision.
+\end{enumerate}
+Each test will be executed multiple times to account for variability and ensure
+statistically stable results. This is necessary because clock-time measurements
+on modern processors can be affected by factors such as CPU caching, thermal
+throttling, and OS-level scheduling.
+
+\begin{itemize}
+
+\item[\tref{T:perf}:]{nfr-perf}
+
+  Output/Result: The mixed-precision configuration consistently outperformed the
+  full double-precision mode, achieving a 24.25\% reduction in runtime on a
+  representative sparse matrix. The results meet the nonfunctional performance
+  requirement outlined in \nfrref{NFR:perf}, confirming the efficiency advantage
+  of the mixed-precision implementation. Test data is attached in
+  Appendix~\ref{sec:perf-test-results}.
+
+\end{itemize}
 
 \section{Comparison to Existing Implementation}
 
-This section will not be appropriate for every project.
+A detailed comparison of the current implementation of the preconditioned GMRES
+algorithm against the previous prototype is provided in
+Appendix~\ref{sec:textttpr-comp}. The improvements made to this core algorithm
+reflect a broader design philosophy adopted throughout the development of
+\progname{}:
+
+\begin{itemize}
+\item A cleaner and safer C++ interface, with significantly fewer template
+  parameters.
+\item Use of standard containers (\texttt{std::vector}) to eliminate manual memory
+  management and reduce the risk of resource leaks.
+\item Decomposition of complex numerical routines into self-contained, reusable
+  primitives, enhancing both readability and testability.
+\item A consistent type-safety mechanism using the \texttt{Refinable} concept, replacing
+  scattered manual casts.
+\item Direct return of computed results, enabling more idiomatic error handling and
+  seamless integration.
+\end{itemize}
 
 \section{Unit Testing}
+\label{sec:unit-testing}
+
+All tests passing. See
+\href{https://github.com/yex33/MPIR/actions/workflows/ctest.yml}{CTest Github
+  Action}.
 
 \section{Changes Due to Testing}
 
@@ -249,14 +315,56 @@ the supervisor (when one exists) shaped the final product.  In particular
 the feedback from the Rev 0 demo to the supervisor (or to potential users)
 should be highlighted.}
 
+Due to project time constraints and the scope of the current phase, no further
+implementation changes were made following this round of testing.
+
 \section{Automated Testing}
+
+Refer to Section~\ref{sec:unit-testing}.
 
 \section{Trace to Requirements}
 
+\begin{table}[H]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|c|c|}                                      \hline
+                  & \rref{R:Axb} & \rref{R:MP} & \rref{R:ex} & \nfrref{NFR:acc} & \nfrref{NFR:use} & \nfrref{NFR:mt} & \nfrref{NFR:port} & \nfrref{NFR:perf} \\ \hline
+    \tref{T:io}   &              &             & X           &                  &                  &                 &                   &                   \\ \hline
+    \tref{T:gdd}  & X            & X           &             & X                &                  &                 &                   &                   \\ \hline
+    \tref{T:gsd}  & X            & X           &             & X                &                  &                 &                   &                   \\ \hline
+    \tref{T:exdd} & X            & X           &             & X                &                  &                 &                   &                   \\ \hline
+    \tref{T:exsd} & X            & X           &             & X                &                  &                 &                   &                   \\ \hline
+    \tref{T:use}  &              &             &             &                  & X                &                 &                   &                   \\ \hline
+    \tref{T:mt}   &              &             &             &                  &                  & X               &                   &                   \\ \hline
+    \tref{T:port} &              &             &             &                  &                  &                 & X                 &                   \\ \hline
+    \tref{T:perf} &              &             &             &                  &                  &                 &                   & X                 \\ \hline
+  \end{tabular}
+  \caption{Traceability matrix showing the connections between test cases and
+    requirements}
+  \label{Table:T_trace}
+\end{table}
+
 \section{Trace to Modules}
+
+No specific test case is given in Section~\ref{sec:unit-testing}, but the unit
+testing strategy has been covered for each tested module.
 
 \section{Code Coverage Metrics}
 
+Code coverage testing was not performed in this project due to the following
+considerations:
+
+\begin{itemize}
+\item Given the limited development timeline, priority was given to functional
+  correctness, numerical accuracy, and performance testing—areas more critical
+  for a numerical solver in a research context.
+\item The primary objective of the project was to validate the correctness and
+  performance of the underlying numerical methods (e.g., mixed-precision GMRES
+  and iterative refinement), rather than achieving high test coverage metrics.
+\item Since the solver is structured around reusable, well-scoped numerical
+  routines that are individually tested with known inputs and analytical
+  results, the marginal benefit of computing line or branch coverage was minimal
+  compared to the effort required to instrument and interpret those metrics.
+\end{itemize}
 \newpage{}
 
 \printbibliography{}
@@ -405,28 +513,196 @@ suggested for documentation and configurability. All reviewers would recommend
 it for use in larger numerical projects, provided additional examples and
 higher-level wrappers are included.
 
+\newpage{}
 
-\section{Reflection}
+\section{Performance Test Results}
+\label{sec:perf-test-results}
 
-The information in this section will be used to evaluate the team members on the
-graduate attribute of Reflection.
+\subsection{Raw Runtime Data Table}
 
-\input{../Reflection.tex}
+\begin{table}[H]
+  \centering
+  \caption{Runtime measurements for mixed-precision vs. double-precision (10 runs)}
+  \begin{tabular}{c|c|c}
+    \toprule
+    \textbf{Run} & \textbf{Mixed Precision (ms)} & \textbf{Double Precision (ms)} \\
+    \midrule
+    1      & 11.8                    & 15.4                     \\
+    2      & 11.7                    & 15.5                     \\
+    3      & 11.6                    & 15.4                     \\
+    4      & 11.9                    & 15.3                     \\
+    5      & 11.8                    & 15.6                     \\
+    6      & 11.7                    & 15.5                     \\
+    7      & 11.6                    & 15.4                     \\
+    8      & 11.7                    & 15.6                     \\
+    9      & 11.8                    & 15.5                     \\
+    10     & 11.6                    & 15.5                     \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:perf-raw}
+\end{table}
 
-% \begin{enumerate}
-%   \item What went well while writing this deliverable?
-%   \item What pain points did you experience during this deliverable, and how
-%     did you resolve them?
-%   \item Which parts of this document stemmed from speaking to your client(s) or
-%   a proxy (e.g. your peers)? Which ones were not, and why?
-%   \item In what ways was the Verification and Validation (VnV) Plan different
-%   from the activities that were actually conducted for VnV?  If there were
-%   differences, what changes required the modification in the plan?  Why did
-%   these changes occur?  Would you be able to anticipate these changes in future
-%   projects?  If there weren't any differences, how was your team able to clearly
-%   predict a feasible amount of effort and the right tasks needed to build the
-%   evidence that demonstrates the required quality?  (It is expected that most
-%   teams will have had to deviate from their original VnV Plan.)
-% \end{enumerate}
+\subsection{Summary Statistics Table}
+
+\begin{table}[H]
+  \centering
+  \caption{Summary of performance results}
+  \begin{tabular}{l|c|c}
+    \toprule
+    \textbf{Metric}               & \textbf{Mixed Precision} & \textbf{Double Precision} \\
+    \midrule
+    Average Runtime (ms)    & 11.72              & 15.47               \\
+    Standard Deviation (ms) & 0.11               & 0.09                \\
+    Measured Gain           & \textbf{24.25\%}         & --                  \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:perf-summary}
+\end{table}
+
+\newpage{}
+
+\section{\texttt{PrecondGmres} Implementation Comparison}
+\label{sec:textttpr-comp}
+
+This section compares the new \texttt{PrecondGmres} implementation with the prior
+research prototype \texttt{gmres\_cond} and \texttt{gmres\_cond2}. The goal is
+to highlight improvements in modularity, safety, readability, and type handling.
+The comparison focuses on six major dimensions: interface design, memory
+management, core algorithm logic, type safety, maintainability, and return
+behavior.
+
+\subsection*{Interface Design}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.2}
+  \begin{tabularx}{\linewidth}{%
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    }
+    \toprule
+    \textbf{Aspect}            & \textbf{Old Implementation}                                                                      & \textbf{New Implementation}                                              \\
+    \midrule
+    Templating           & Six template parameters (\texttt{ATVPREC}, \texttt{T}, \texttt{FACTPREC}, \texttt{RESPREC}, \texttt{WORKPREC}, \texttt{XPREC}) & Three template parameters constrained via \texttt{Refinable<UF, UW, UR>} \\
+    Parameter Style      & Long list of raw pointers interleaved with outputs                                         & Clean API with STL containers and logical parameter order          \\
+    Preconditioner Input & Passed as separate pointer arrays                                                          & Encapsulated as class members                                      \\
+    Callback for \texttt{A*v}  & \texttt{std::function} passed per call                                                           & Replaced with internal \texttt{MatrixMultiply} + \texttt{QDLDL\_solve} calls   \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Interface Design Comparison}
+\end{table}
+
+\subsection*{Memory Management}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\linewidth}{%
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    }
+    \toprule
+    \textbf{Aspect}         & \textbf{Old Implementation}                   & \textbf{New Implementation}                             \\
+    \midrule
+    Memory Handling   & Raw \texttt{new[]}/\texttt{delete[]} for all arrays & Automatic \texttt{std::vector} usage                    \\
+    Resource Safety   & Manual cleanup at multiple return paths & RAII via containers ensures exception safety      \\
+    Temporary Buffers & All manually allocated and deallocated  & Constructed on-demand and destroyed automatically \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Memory and Resource Management}
+\end{table}
+
+\subsection*{Algorithm Structure and Numerical Logic}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\linewidth}{%
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    }
+    \toprule
+    \textbf{Aspect}            & \textbf{Old Implementation}                         & \textbf{New Implementation}                                  \\
+    \midrule
+    Arnoldi Loop         & Inline pointer math with duplicated logic     & Modular functions (\texttt{VectorDot}, \texttt{VectorScale}, etc.) \\
+    Reorthogonalization  & Implemented via nested loops manually         & Same logic using modular vector operations             \\
+    Givens Rotations     & Explicit array indexing and logic inside loop & Decomposed into reusable transformations               \\
+    Residual Computation & Custom residual + norm macros                 & Uses templated \texttt{Dnrm2} and subtraction helpers        \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Numerical Logic and Algorithm Flow}
+\end{table}
+
+\subsection*{Precision and Type Handling}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\linewidth}{%
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    }
+    \toprule
+    \textbf{Aspect}             & \textbf{Old Implementation}                    & \textbf{New Implementation}                    \\
+    \midrule
+    Precision Control     & Manual cast between six different types  & Centralized via \texttt{Refinable<UF, UW, UR>} \\
+    Casting Overhead      & Frequent \texttt{static\_cast} at use sites    & Type conversions localized and explicit  \\
+    Precision Consistency & Developer responsible for type coherence & Enforced via compile-time constraints    \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Precision and Type Safety}
+\end{table}
+
+\subsection*{Maintainability and Readability}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\linewidth}{%
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    }
+    \toprule
+    \textbf{Aspect}       & \textbf{Old Implementation}                        & \textbf{New Implementation}                       \\
+    \midrule
+    Function Length & 500+ lines in one function                   & Structured into ~50-line modular components \\
+    Naming          & Many temporary or cryptic variable names     & Clear variable names and helper functions   \\
+    Readability     & Difficult to trace control flow              & Code reads like algorithm pseudocode        \\
+    Extensibility   & Difficult to adapt to new formats or solvers & Designed for modular extension              \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Maintainability and Readability}
+\end{table}
+
+\subsection*{Return and Error Handling}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\linewidth}{%
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    }
+    \toprule
+    \textbf{Aspect}        & \textbf{Old Implementation}                    & \textbf{New Implementation}                                      \\
+    \midrule
+    Return Method    & Outputs written to raw pointer arguments & Returns computed vector directly                           \\
+    Error Handling   & No explicit error path                   & Returns empty vector on failure (e.g., size mismatch)      \\
+    Status Reporting & Total iterations via output reference    & Embedded in solver’s internal state (TBD for next version) \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Return Value and Error Handling}
+\end{table}
+
+\subsection*{Summary}
+
+The new \texttt{PrecondGmres} implementation significantly improves over the previous
+research prototype in terms of code clarity, modularity, type safety, and
+maintainability. By adopting standard C++ constructs and a principled separation
+of responsibilities, the solver becomes easier to reason about, extend, and
+integrate. The use of constraints through the \texttt{Refinable} concept further
+ensures compile-time precision correctness, reducing the risk of errors in
+mixed-precision configurations.
 
 \end{document}
