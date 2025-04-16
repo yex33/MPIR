@@ -18,6 +18,8 @@
 \usepackage[section]{placeins}
 \usepackage{caption}
 \usepackage{fullpage}
+\usepackage{enumitem}
+\usepackage{algpseudocode,algorithm}
 
 \hypersetup{
   bookmarks=true,    % show bookmarks bar?
@@ -54,9 +56,10 @@
 \section{Revision History}
 
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
-\toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
+\toprule {\bf Date}  & {\bf Version} & {\bf Notes}                   \\
 \midrule
-\date{19 March 2025} & 1.0 & Initial draft \\
+\date{19 March 2025} & 1.0           & Initial draft                 \\
+\date{16 April 2025} & 1.1           & Refine according to feedbacks \\
 \bottomrule
 \end{tabularx}
 
@@ -121,6 +124,12 @@ different types. In addition, \progname \ uses functions, which
 are defined by the data types of their inputs and outputs. Local functions are
 described by giving their type signature followed by their specification.
 
+Variables of matrices or vectors are in math bold face. For any matrix
+\(\matr{A}\) or vector \(\vec{b}\), one with subscript \(\matr{A}_i\) or
+\(\vec{b}_i\) always means ``the \(i\)th matrix/vector''. \(a_{i,j}\) or
+\(b_{i}\) is used to reference ``the element at row \(i\) column \(j\) in matrix
+\(\matr{A}\)'' or ``the \(i\)th element in vector \(\vec{b}\)''.
+
 \section{Module Decomposition}
 
 The following table is taken directly from the Module Guide document for this project.
@@ -129,16 +138,16 @@ The following table is taken directly from the Module Guide document for this pr
   \centering
   \begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
     \toprule
-    \textbf{Level 1}                                            & \textbf{Level 2}                               \\
+    \textbf{Level 1}                                            & \textbf{Level 2}                     \\
     \midrule
-    {Hardware-Hiding Module}                              & --                                       \\
+    {Hardware-Hiding Module}                              & --                             \\
     \midrule
-    \multirow{4}{0.3\textwidth}{Behaviour-Hiding Module}  & Read Matrix Module                       \\
-                                                          & Solver Output Module                     \\
-                                                          & Matrix Factorization Module              \\
-                                                          & Iterative Solves Module                  \\
+    \multirow{4}{0.3\textwidth}{Behaviour-Hiding Module}  & Floating Point Concepts Module \\
+                                                          & Matrix Operations Module       \\
+                                                          & Factorization Module           \\
+                                                          & Iterative Solver Module        \\
     \midrule
-    \multirow{1}{0.3\textwidth}{Software Decision Module} & Example Program Module                   \\
+    \multirow{1}{0.3\textwidth}{Software Decision Module} &                                \\
     \bottomrule
   \end{tabular}
   \caption{Module Hierarchy}
@@ -147,11 +156,15 @@ The following table is taken directly from the Module Guide document for this pr
 
 \newpage
 
-\section{MIS of Matrix Factorization Module} \label{M:factor}
+\section{MIS of Factorization Module} \label{M:factor}
 
 \subsection{Module}
 
-Factorize
+qdldl\footnote{This module was originally implemented in prior research work
+  (\cite{shahrooz_derakhshan_using_2023}), and the corresponding source code is
+  provided as part of this project. The specifications presented here describe
+  the exported routines and their intended usage, without delving into the
+  underlying mathematical models or state transitions.}
 
 \subsection{Uses}
 
@@ -162,7 +175,12 @@ None
 \subsubsection{Exported Access Programs}
 
 \begin{center}
-  \begin{tabular}{p{3cm} p{5cm} p{5cm} p{2cm}}
+  \begin{tabularx}{\linewidth}{%
+    p{3cm}
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}l
+    }
     \hline
     \textbf{Name}       & \textbf{In}                                           & \textbf{Out}                          & \textbf{Exceptions} \\
     \hline
@@ -170,7 +188,7 @@ None
     QDLDL\_factor & \(\matr{A}: \mathbb{R}^{n \times n}, L_\mathrm{nz}: \mathbb{N}, \vec{E}: \mathbb{R}^n, u_f\) & \(\matr{L}: \mathbb{R}^{n \times n}, \vec{d}: \mathbb{R}^n\) & FAC\_FAILED   \\
     QDLDL\_solve  & \(\matr{L}: \mathbb{R}^{n \times n}, \vec{d}: \mathbb{R}^n, \vec{b}: \mathbb{R}^n, u_w\)     & \(\vec{x}: \mathbb{R}^n\)                      & --            \\
     \hline
-  \end{tabular}
+  \end{tabularx}
 \end{center}
 
 \subsection{Semantics}
@@ -182,21 +200,25 @@ None
 \subsubsection{Assumptions}
 
 The (sparse) matrix used or returned by this module is stored in Compressed
-Sparse Column (CSC) format (\cite{noauthor_compressed_nodate}). The input matrix
-\(\matr{A}\) only contains data for the upper triangular part.
+Sparse Column (CSC) format (\cite{noauthor_compressed_nodate}).
 
 \subsubsection{Access Routine Semantics}
 
 \noindent QDLDL\_etree(\(\matr{A}\)):
 \begin{itemize}
-\item output: \(\vec{E} \coloneq\) elimination tree for the factorization \(\matr{A} =
-  \matr{L}\matr{D}\matr{L}\transpose{}\), \(L_\mathrm{nz} \coloneq\) the number of
-  non-zeros in the \(\matr{L}\) factor.
+\item output: \(\vec{E} \coloneq\) elimination tree\footnote{An elimination tree is a directed
+    tree that encodes the dependencies between columns of a sparse symmetric
+    matrix during factorization. Each node in the tree corresponds to a column
+    of the matrix, and the edges represent the flow of fill-ins (new non-zero
+    entries) created during the elimination process.} for the factorization
+  \(\matr{A} = \matr{L}\matr{D}\matr{L}\transpose{}\), \(L_\mathrm{nz}
+  \coloneq\) the number of non-zeros in the \(\matr{L}\) factor.
 \item exception: \(err \coloneq (\text{entries found in lower triangle} \implies
   \text{NOT\_UPPER})\)
 \end{itemize}
 
-\noindent QDLDL\_factor<\(u_f\)>(\(\matr{A}, L_\mathrm{nz}, \vec{E}\)):
+\noindent QDLDL\_factor(\(u_f\))\footnote{A generic routine with type parameter
+  \(u_f\)}(\(\matr{A}, L_\mathrm{nz}, \vec{E}\)):
 \begin{itemize}
 \item output: \(\matr{L}, \matr{D} \coloneq \text{factors of } \matr{A}\) in \(u_f\)
   precision, where diagonal matrix \(\matr{D}\) is simply represented by a
@@ -204,7 +226,7 @@ Sparse Column (CSC) format (\cite{noauthor_compressed_nodate}). The input matrix
 \item exception: \(err \coloneq ((\exists\,i: \vec{d}_i = 0) \implies \text{FAC\_FAILED})\)
 \end{itemize}
 
-\noindent QDLDL\_solve<\(u_w\)>(\(\matr{L}, \vec{d}, \vec{b}\)):
+\noindent QDLDL\_solve(\(u_w\))(\(\matr{L}, \vec{d}, \vec{b}\)):
 \begin{itemize}
 \item output: solves \(\matr{A}\vec{x} = \matr{L}\matr{D}\matr{L}\transpose{} \vec{x} = \vec{b}
   \) in \(u_w\) precision, where \(\matr{D}\) is reinterpreted from \(\vec{d}\).
@@ -218,154 +240,325 @@ Sparse Column (CSC) format (\cite{noauthor_compressed_nodate}). The input matrix
 
 \newpage
 
-\section{MIS of Solver Output Module} \label{M:output}
+\section{MIS of Floating Point Concepts Module} \label{M:concepts}
 
 \subsection{Module}
 
-Stats
+fp\_concepts
 
 \subsection{Uses}
 
 None
 
+\subsection{Syntax}
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+  \begin{tabularx}{\linewidth}{%
+    p{3cm}
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}l
+    }
+    \hline
+    \textbf{Name}        & \textbf{In}                               & \textbf{Out}      & \textbf{Exceptions} \\
+    \hline
+    FloatingPoint  & tuple of \((T_1, T_2, \dots, T_n), n \geq 1\) & \(out: \mathbb{B}\) & --            \\
+    PartialOrdered & tuple of \((T_1, T_2, \dots, T_n), n \geq 1\) & \(out: \mathbb{B}\) & --            \\
+    Refinable      & tuple of \((T_1, T_2, \dots, T_n), n \geq 1\) & \(out: \mathbb{B}\) & --            \\
+    \hline
+  \end{tabularx}
+\end{center}
+
+\((T_1, T_2, \dots, T_n), n \geq 1\) is a variadic tuple of types, where \(T_n\) is some
+generic type, possible values include: \texttt{int}, \texttt{double}, \texttt{float}, \dots
 
 \subsection{Semantics}
 
 \subsubsection{State Variables}
 
-\begin{center}
-  \begin{tabular}{p{2cm} p{8cm}}
-    \hline
-    \textbf{Field}           & \textbf{Description}                                 \\
-    \hline
-    \(n: \mathbb{N}\)          & size of the matrix being solved                \\
-    \(n_\mathrm{nz}: \mathbb{N}\)     & number of non-zeros in the matrix              \\
-    \(L_\mathrm{nz}: \mathbb{N}\)     & number of non-zeros in the \(\matr{L}\) factor \\
-    \(t_\mathrm{fact}: \mathbb{R}\)   & time spent in numeric factorization            \\
-    \(t_\mathrm{solve}: \mathbb{R}\)  & time spent in iterative solves                 \\
-    \(n_\mathrm{refine}: \mathbb{N}\) & number of refinement steps                     \\
-    \hline
-  \end{tabular}
-\end{center}
-
-\newpage
-
-\section{MIS of Iterative Solves Module} \label{M:solve}
-
-\subsection{Module}
-
-Solve
-
-\subsection{Uses}
-
-Factorize (Section~\ref{M:factor}), Stats (Section~\ref{M:output})
-
-\subsection{Syntax}
-
-\subsubsection{Exported Access Programs}
-
-\begin{center}
-  \begin{tabular}{p{2cm} p{8cm} p{3cm} p{2cm}}
-    \hline
-    \textbf{Name} & \textbf{In}                                                            & \textbf{Out}               & \textbf{Exceptions} \\
-    \hline
-    solve   & \(\matr{A}: \mathbb{R}^{n \times n}, \vec{b}: \mathbb{R}^n, \epsilon: \mathbb{R}, n_\mathrm{iter}: \mathbb{N}, u_f, u_w, u_r\) & \(\vec{x}: \mathbb{R}^n\), s: Stats & --            \\
-    \hline
-  \end{tabular}
-\end{center}
-
-\subsection{Semantics}
+None
 
 \subsubsection{Assumptions}
-
-The input matrix \(\matr{A}\) is non-singular, quasi-definite, and is stored in
-CSC format.
-
-\subsubsection{Access Routine Semantics}
-
-\noindent solve<\(u_f, u_w, u_r\)>(\(\matr{A}, \vec{b}, \epsilon, n_\mathrm{iter}\)):
-\begin{itemize}
-\item transition: fill all fields in an instance of Stats record.
-\item output: solves \(\matr{A}\vec{x} = \vec{b} \) in \(u_w\) precision following the algorithm
-  specified in \iref{IM:IM} in \cite{SRS}.
-\end{itemize}
-
-\newpage
-
-\section{MIS of Read Matrix Module} \label{M:input}
-
-\subsection{Module}
-
-ReadMatrix
-
-\subsection{Uses}
 
 None
 
-\subsection{Syntax}
-
-\subsubsection{Exported Access Programs}
-
-\begin{center}
-  \begin{tabular}{p{3cm} p{5cm} p{5cm} p{2cm}}
-    \hline
-    \textbf{Name}     & \textbf{In}            & \textbf{Out}                  & \textbf{Exceptions} \\
-    \hline
-    ReadMMtoCSC & filename: string & \(\matr{A}: \mathbb{R}^{n \times n}\) & --            \\
-    \hline
-  \end{tabular}
-\end{center}
-
-\subsection{Semantics}
-
-\subsubsection{Assumptions}
-
-The file (filename) contains a sparse matrix in Matrix Market Exchange format
-(\cite{noauthor_matrix_2013}).
-
 \subsubsection{Access Routine Semantics}
 
-\noindent ReadMMtoCSC(filename):
+\noindent FloatingPoint\((T_1, T_2, \dots, T_n)\):
 \begin{itemize}
-\item output: \(\matr{A} \coloneq \) the sparse matrix parsed and compressed in CSC.
+\item output: \(out \coloneq (\forall\,i : \mathbb{N}\,|\,1 \leq i \leq n : T_i\;\text{is a floating point type}) \)
+\end{itemize}
+
+\noindent PartialOrdered\((T_1, T_2, \dots, T_n)\):
+\begin{itemize}
+\item output: \(out \coloneq (\forall\,i : \mathbb{N}\,|\,1 \leq i < n : \text{machine epsilon of} \  T_i
+  > \text{machine epsilon of} \  T_{i+1}) \)
+\end{itemize}
+
+\noindent Refinable\((T_1, T_2, \dots, T_n)\):
+\begin{itemize}
+\item output: \(out \coloneq \text{FloatingPoint}(T_1, T_2, \dots, T_n) \land \text{PartialOrdered}(T_1, T_2, \dots, T_n)\)
 \end{itemize}
 
 \newpage
 
-\section{MIS of Example Program Module} \label{M:example}
+\section{MIS of Matrix Operations Module} \label{M:ops}
 
 \subsection{Module}
 
-Example
+ops
 
 \subsection{Uses}
 
-ReadMatrix (Section~\ref{M:input}), Solve (Section~\ref{M:solve}), Stats (Section~\ref{M:input})
+fp\_concepts (Section~\ref{M:concepts})
 
 \subsection{Syntax}
 
 \subsubsection{Exported Access Programs}
 
 \begin{center}
-  \begin{tabular}{p{3cm} p{5cm} p{5cm} p{2cm}}
+  \renewcommand{\arraystretch}{1.2}
+  \begin{tabularx}{\linewidth}{%
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}l
+    >{\raggedright\arraybackslash}l
+    }
     \hline
-    \textbf{Name} & \textbf{In}            & \textbf{Out} & \textbf{Exceptions} \\
+    \textbf{Name}                                          & \textbf{In}                           & \textbf{Out}             & \textbf{Exceptions} \\
     \hline
-    demo    & filename: string & -      & -             \\
+    MatrixMuliply(\((T, T_a, T_x)\) with \par
+    Refinable\((T_a, T_x, T)\))                        & \(\matr{A}: \mathbb{R}^{n \times n}, \vec{x}: \mathbb{R}^n\) & \(\vec{res}: \mathbb{R}^n\) & --            \\
+    VectorAdd(\((T, T_a, T_b)\) with \par
+    Refinable\((T_a, T)\) \(\land\) Refinable\((T_b, T)\)) & \(\vec{a}: \mathbb{R}^n, \vec{b}: \mathbb{R}^n\)              & \(\vec{res}: \mathbb{R}^n\) & --            \\
+    VectorSubtract(\((T, T_a, T_b)\) with \par
+    Refinable\((T_a, T)\) \(\land\) Refinable\((T_b, T)\)) & \(\vec{a}: \mathbb{R}^n, \vec{b}: \mathbb{R}^n\)              & \(\vec{res}: \mathbb{R}^n\) & --            \\
+    VectorMultiply(\((T, T_a, T_b)\) with \par
+    Refinable\((T_a, T)\) \(\land\) Refinable\((T_b, T)\)) & \(\vec{a}: \mathbb{R}^n, \vec{b}: \mathbb{R}^n\)              & \(\vec{res}: \mathbb{R}^n\) & --            \\
+    VectorScale(\((T, T_a, T_b)\) with \par
+    Refinable\((T_a, T)\) \(\land\) Refinable\((T_b, T)\)) & \(\vec{a}: \mathbb{R}^n, b: \mathbb{R}\)               & \(\vec{res}: \mathbb{R}^n\) & --            \\
+    VectorDot(\((T, T_a, T_b)\) with \par
+    Refinable\((T_a, T)\) \(\land\) Refinable\((T_b, T)\)) & \(\vec{a}: \mathbb{R}^n, \vec{b}: \mathbb{R}^n\)              & \(\vec{res}: \mathbb{R}^n\) & --            \\
+    Dnrm2(\((T, T_x)\) with Refinable\((T_x, T)\))     & \(\vec{x}: \mathbb{R}^n\)                      & \(norm: \mathbb{R}\)       & --            \\
+    InfNrm(\((T, T_x)\) with Refinable\((T_x, T)\))    & \(\vec{x}: \mathbb{R}^n\)                      & \(norm: \mathbb{R}\)       & --            \\
     \hline
-  \end{tabular}
+  \end{tabularx}
 \end{center}
 
 \subsection{Semantics}
 
+\subsubsection{State Variables}
+
+None
+
+\subsubsection{Assumptions}
+
+The (sparse) matrix used by this module is stored in CSC format.
+
+\filbreak
+
 \subsubsection{Access Routine Semantics}
 
-\noindent demo():
+\noindent MatrixMuliply(\((T, T_a, T_x)\) with Refinable\((T_a, T_x,
+T)\))(\(\matr{A}, \vec{x}\)):
 \begin{itemize}
-\item transition: read matrix from file (filename), invoke the solver with a
-  predefined set of \(\vec{b}, \epsilon, n_\mathrm{iter}, u_f, u_w, u_r\), and
-  finally print the outputs and stats returned by the solver.
+\item output: \(\displaystyle res_i \coloneq \sum_{j = 1}^n a_{i,j} x_j\) for \(i = 1, 2,
+  \dots, n\), where \(a_{i,j}\) is in precision \(T_a\), \(x_j\) is in precision
+  \(T_x\), and \(res_i\) is in precision \(T\).
 \end{itemize}
+
+\noindent VectorAdd(\((T, T_a, T_b)\) with Refinable\((T_a, T)\) \(\land\)
+Refinable\((T_b, T)\))(\(\vec{a}, \vec{b}\)):
+\begin{itemize}
+\item output: \(\displaystyle res_i \coloneq a_i + b_i\) for \(i = 1, 2, \dots, n\),
+  where \(a_i\) is in precision \(T_a\), \(b_i\) is in precision \(T_b\), and
+  \(res_i\) is in precision \(T\).
+\end{itemize}
+
+\noindent VectorSubtract(\((T, T_a, T_b)\) with Refinable\((T_a, T)\) \(\land\)
+Refinable\((T_b, T)\))(\(\vec{a}, \vec{b}\)):
+\begin{itemize}
+\item output: \(\displaystyle res_i \coloneq a_i - b_i\) for \(i = 1, 2, \dots, n\),
+  where \(a_i\) is in precision \(T_a\), \(b_i\) is in precision \(T_b\), and
+  \(res_i\) is in precision \(T\).
+\end{itemize}
+
+\noindent VectorMultiply(\((T, T_a, T_b)\) with Refinable\((T_a, T)\) \(\land\)
+Refinable\((T_b, T)\))(\(\vec{a}, \vec{b}\)):
+\begin{itemize}
+\item output: \(\displaystyle res_i \coloneq a_i b_i\) for \(i = 1, 2, \dots, n\), where
+  \(a_i\) is in precision \(T_a\), \(b_i\) is in precision \(T_b\), and
+  \(res_i\) is in precision \(T\).
+\end{itemize}
+
+\noindent VectorScale(\((T, T_a, T_b)\) with Refinable\((T_a, T)\) \(\land\)
+Refinable\((T_b, T)\))(\(\vec{a}, b\)):
+\begin{itemize}
+\item output: \(\displaystyle res_i \coloneq b a_i\) for \(i = 1, 2, \dots, n\), where
+  \(a_i\) is in precision \(T_a\), \(b\) is in precision \(T_b\), and \(res_i\)
+  is in precision \(T\).
+\end{itemize}
+
+\noindent VectorDot(\((T, T_a, T_b)\) with Refinable\((T_a, T)\) \(\land\)
+Refinable\((T_b, T)\))(\(\vec{a}, \vec{b}\)):
+\begin{itemize}
+\item output: \(\displaystyle res \coloneq \sum_{i=1}^n a_ib_i\), where \(a_i\) is in
+  precision \(T_a\), \(b_i\) is in precision \(T_b\), and \(res\) is in
+  precision \(T\).
+\end{itemize}
+
+\noindent Dnrm2(\((T, T_x)\) with Refinable\((T_x, T)\))(\(\vec{x}\)):
+\begin{itemize}
+\item output: \(\displaystyle norm \coloneq \sqrt{\sum_{i=1}^n x_i^2}\), where \(x_i\) is in
+  precision \(T_x\), and \(norm\) is in precision \(T\).
+\end{itemize}
+
+\noindent InfNrm(\((T, T_x)\) with Refinable\((T_x, T)\))(\(\vec{x}\)):
+\begin{itemize}
+\item output: \(\displaystyle norm \coloneq \max_{1 \leq i \leq n}|x_i|\), where \(x_i\) is
+  in precision \(T_x\), and \(norm\) is in precision \(T\).
+\end{itemize}
+
+\newpage
+
+\section{MIS of Iterative Solver Module} \label{M:solve}
+
+\subsection{Module}
+
+GmresLDLIR\((u_f, u_w, u_r)\) with Refinable\((u_f, u_w, u_r)\)
+
+\subsection{Uses}
+
+qdldl (Section~\ref{M:factor}), fp\_concepts (Section~\ref{M:concepts}), ops
+(Section~\ref{M:ops})
+
+\subsection{Syntax}
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+  \begin{tabularx}{\linewidth}{%
+    p{5cm}
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}l
+    }
+    \hline
+    \textbf{Name}               & \textbf{In}                   & \textbf{Out}     & \textbf{Exceptions} \\
+    \hline
+    Compute               & \(\matr{A}: \mathbb{R}^{n \times n}\) & --         & --            \\
+    Solve                 & \(\vec{b}: \mathbb{R}^n\)              & \(\vec{x}: \mathbb{R}^n\) & --            \\
+    SetMaxIRIterations    & \(n: \mathbb{N}\)               & --         & --            \\
+    SetMaxGmresIterations & \(n: \mathbb{N}\)               & --         & --            \\
+    SetTolerance          & \(\epsilon: \mathbb{R}\)               & --         & --            \\
+    \hline
+  \end{tabularx}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables}
+
+\begin{itemize}[noitemsep,topsep=0pt,leftmargin=2mm,label={}]
+\item n\_: \(\mathbb{N}\), size of the matrix \(\matr{A}\)
+\item Ap\_: \(\mathbb{N}^n\), column pointers of \(\matr{A}\) (part of CSC format)
+\item Ai\_: \(\mathbb{N}^{n_\mathrm{nz}}\), row indices of \(\matr{A}\) (part of CSC format),
+  \(n_\mathrm{nz}\) is the number of non-zeros
+\item Ax\_: \(\mathbb{R}^{n_\mathrm{nz}}\), non-zero values of \(\matr{A}\) (part of CSC format),
+  in precision \(u_w\)
+\item Lp\_: \(\mathbb{N}^n\), column pointers of the \(\matr{L}\) factor
+\item Li\_: \(\mathbb{N}^{L_\mathrm{nz}}\), row indices of the \(\matr{L}\) factor
+\item Lx\_: \(\mathbb{R}^{L_\mathrm{nz}}\), non-zero values of the \(\matr{L}\) factor in precision
+  \(u_f\)
+\item Dinv\_: \(\mathbb{R}^n\), non-zero values of the inverse of the \(\matr{D}\)
+  factor in precision \(u_f\)
+\item ir\_iter\_: \(\mathbb{N}\), maximum refinement iterations, default to 10
+\item gmres\_iter\_: \(\mathbb{N}\), maximum GMRES iterations, default to 10
+\item tol\_: \(\mathbb{R}\), tolerance in precision \(u_r\), default to \num{1e-10}
+\end{itemize}
+
+\subsubsection{Assumptions}
+
+The input matrix \(\matr{A}\) is non-singular, symmetric quasi-definite, and is
+stored in CSC format.
+
+\subsubsection{Access Routine Semantics}
+
+
+\noindent SetMaxIRIterations(\(n\)):
+\begin{itemize}
+\item transition: ir\_iter\_ \(\coloneq n\)
+\end{itemize}
+
+\noindent SetMaxGmresIterations(\(n\)):
+\begin{itemize}
+\item transition: gmres\_iter\_ \(\coloneq n\)
+\end{itemize}
+
+\noindent SetTolerance(\(\epsilon\)):
+\begin{itemize}
+\item transition: tol\_ \(\coloneq \epsilon\)
+\end{itemize}
+
+\noindent Compute(\(\matr{A}\)):
+\begin{itemize}
+\item transition: \par
+  n\_ \(\coloneq\) size of \(\matr{A}\), \par
+  Ap\_, Ai\_, Ax\_ \(\coloneq \matr{A}\), \par
+  Lp\_, Li\_, Lx\_, 1 / Dinv\_ \(\coloneq \text{QDLDL\_factor}(u_f)(\matr{A}, L_\mathrm{nz}, \vec{E})\), \par
+  where \(L_\mathrm{nz}, \vec{E} \coloneq \text{QDLDL\_etree}(u_f)(\matr{A})\)
+
+\end{itemize}
+
+\noindent Solve(\(\vec{b}\)):
+\begin{itemize}
+\item output: solves \(\matr{A}\vec{x} = \vec{b} \) in \(u_w\) precision following
+  Algorithm~\ref{algo:gmresir}.
+\end{itemize}
+
+\subsubsection{Algorithms}
+
+These are copied from \iref{IM:IM} in the SRS (\cite{SRS}).
+\begin{algorithm}[H]
+  \caption{GMRES-IR with \(\matr{L}\matr{D}\matr{L}\transpose\) factorization in MP}
+  \label{algo:gmresir}
+  \begin{algorithmic}[1]
+    \State Perform \(\matr{L}\matr{D}\matr{L}\transpose\) factorization of \(\matr{A}\) \Comment{at \(u_f\)}
+    \State Solve \(\matr{L}\matr{D}\matr{L}\transpose \vec{x}_0 = \vec{b}\) \Comment{at \(u_f\)}
+    \For{\(i \gets 0, 1, \dots, n_\mathrm{iter}\) and \(\norm{r_i}_2 \geq \epsilon\)}
+      \State \(r_i \gets \vec{b} - \matr{A}\vec{x}_i\) \Comment{at \(u_r\)}
+
+      \State Solve \((\matr{L}\matr{D}\matr{L}\transpose)^{-1}\matr{A}\vec{d}_i =
+      (\matr{L}\matr{D}\matr{L}\transpose)^{-1}\vec{r_i}\) with GMRES (See
+      Algorithm~\ref{algo:gmres}) \par
+      where \(\matr{M}^{-1} = (\matr{L}\matr{D}\matr{L}\transpose)^{-1}\) \Comment{at \(u_w\)}
+      \State \(\vec{x}_{i + 1} = \vec{x}_i + \vec{d}_i\) \Comment{at \(u_w\)}
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+  \caption{Restarted GMRES with left preconditioning}
+  \label{algo:gmres}
+  \begin{algorithmic}[1]
+    \State \(\matr{A} \in \mathbb{R}^{n \times n}, \quad \vec{x}_0, \vec{b} \in \mathbb{R}^n, \quad \matr{M}^{-1} \approx \matr{A}^{-1}\)
+    \For{\(k \gets 1, 2, \dots\), the \(k\)th restart}
+      \State \(\vec{z}_k \gets \vec{b} - \matr{A}\vec{x}_k\) \Comment{Compute residual}
+      \State \(\vec{r}_k \gets \matr{M}^{-1}\vec{z}_k\) \Comment{Apply preconditioning}
+      \State \(\beta \gets \norm{\vec{r}_k}_2, \quad \vec{v}_1 = \vec{r}_k / \beta, \quad \matr{V}_1 \gets [\vec{v}_1]\) \Comment{Setup for Arnoldi process}
+      \State Construct orthogonal basis of preconditioned Krylov subspace \[\mathcal{K}_m(\matr{M}^{-1}\matr{A}, \vec{r}_k) = \spann{\vec{r}_k, \matr{M}^{-1}\matr{A}\vec{r}_k, \dots, (\matr{M}^{-1}\matr{A})^{m - 1}\vec{r}_k}\]
+      \State The Arnoldi process gives \[\matr{M}^{-1}\matr{A}\matr{V}_m = \matr{V}_{m+1}\bar{\matr{H}}_m\]
+      where \(\matr{V}_m \in \mathbb{R}^{n \times m}\) contains orthonormal basis vectors for \(\mathcal{K}_m\),
+      \(\matr{V}_{m+1} \in \mathbb{R}^{n \times (m+1)}\) extends \(\matr{V}_m\) with one more vector,
+      \(\bar{\matr{H}}_m \in \mathbb{R}^{(m+1) \times m}\) is an upper Hessenberg matrix
+      \State Solve the least square problem \[\min_{\vec{y}_m\in\mathbb{R}^m} \norm{\beta e_1 - \bar{\matr{H}}_m \vec{y}_m}_2\]
+      where \(e_1 \in \mathbb{R}^{m + 1}\) is the first standard basis vector \(e_1 = [1, 0, 0, \dots, 0]\transpose\)
+      \State \(\vec{x}_{k + 1} = \vec{x}_k + \matr{V}_m \vec{y}_m\) \Comment{Add the correction}
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
 
 \wss{A module without environment variables or state variables is unlikely to
   have a state transition.  In this case a state transition can only occur if

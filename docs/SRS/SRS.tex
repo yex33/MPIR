@@ -160,6 +160,7 @@
   \midrule
   \date{26 January 2025} & 1.0           & Initial draft                                   \\
   \date{26 March 2025}   & 1.1           & Updates regarding peer and instructor feedbacks \\
+  \date{16 April 2025}   & 1.2           & Refine according to supervisor feedbacks        \\
   \bottomrule
 \end{tabularx}
 
@@ -462,7 +463,7 @@ characteristics and lists the system constraints.
   \item Provide a sparse matrix \(\matr{A}: \mathbb{R}^{n \times n}\) in Compressed Sparse Column
     (CSC) format (\cite{noauthor_compressed_nodate}) stored in memory with
     appropriate data type.
-  \item Provide an/multiple vector(s) \(\vec{b}: \mathbb{R}^n\) to be solved for.
+  \item Provide a/multiple vector(s) \(\vec{b}: \mathbb{R}^n\) to be solved for.
   \item Specify 3 floating point arithmetics precisions \((u_f, u_w, u_r)\) in which
     factorization, numeric solves, and residual computation will be performed
     respectively.
@@ -470,7 +471,7 @@ characteristics and lists the system constraints.
   \end{itemize}
 \item \progname{} Responsibilities:
   \begin{itemize}
-  \item Numerically solve \(\vec{x}\) for \(\matr{A}\vec{x} = \vec{b}\).
+  \item Numerically solve \(\matr{A}\vec{x} = \vec{b}\) for \(\vec{x}\).
   \end{itemize}
 \end{itemize}
 
@@ -666,9 +667,8 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #4 equation
 {\(\matr{P}\matr{K}\matr{P}\transpose = \matr{L}\matr{D}\matr{L}\transpose\)}
 % #5 description
-{ Symmetric quasi-definite matrices are strongly factorizable. For any
-  permutation \(\matr{P}\) of some symmetric quasi-definite matrix \(\matr{K}\),
-  there is a diagonal \(\matr{D}\) and a unit
+{ For any permutation \(\matr{P}\) of some symmetric quasi-definite matrix
+  \(\matr{K}\), there is a diagonal \(\matr{D}\) and a unit
   lower-triangular \(\matr{L}\) such that the above equation holds. \\
   Under Assumption~\aref{A:quasi}, the input matrix \(\matr{A}\) can always be
   decomposed into \(\matr{L}\matr{D}\matr{L}\transpose\) factors, regardless of
@@ -696,12 +696,12 @@ on.  \plt{Modify the examples below for your problem, and add additional models
 % #3 label
 {Krylov subspace}
 % #4 equation
-{ \(\matr{K}_m(\matr{A}, \vec{r}_0) = \spann{\vec{r}_0, \matr{A}\vec{r}_0,
+{ \(\mathcal{K}_m(\matr{A}, \vec{r}_0) = \spann{\vec{r}_0, \matr{A}\vec{r}_0,
     \matr{A}^2\vec{r}_0, \dots, \matr{A}^{m - 1}\vec{r}_0}\) }
 % #5 description
 { \(\matr{A}\) is any given real, \(n \times n\) matrix. In the context of
   solving \(\matr{A}\vec{x} = \vec{b}\), \(\vec{r}_0 = \vec{b} -
-  \matr{A}\vec{x}_0\) is the initial residual. \(\matr{K}_m(\matr{A},
+  \matr{A}\vec{x}_0\) is the initial residual. \(\mathcal{K}_m(\matr{A},
   \vec{r}_0)\) is said to be ``the Krylov subspace of \(\matr{A}\) of order
   \(m\) with respect to \(\vec{r}_0\)'' }
 % #6 Notes
@@ -743,9 +743,8 @@ on.  \plt{Modify the examples below for your problem, and add additional models
   iterative solvers to ``backtrack'' what happened before and after the
   transformation. By preconditioning \(\matr{A}\) with an approximate inverse,
   we are effectively ``undoing'' some (but not all) of the transformations,
-  taming \(\matr{A}\) down to some extent. And then we can work with a tamed
-  down, better conditioned version of \(\matr{A}\) and solve the system from
-  there. }
+  taming \(\matr{A}\) down to some extent. We can then work with a tamed down,
+  better conditioned version of \(\matr{A}\) and solve the system from there. }
 % #7 Source
 {\cite[p.~187]{ascher_first_2011}}
 % #8 Referenced by
@@ -769,7 +768,8 @@ on.  \plt{Modify the examples below for your problem, and add additional models
       \caption{Iterative refinement}
       \begin{algorithmic}[1]
         \For{\(m \gets 1, 2, \dots\), the \(m\)th iteration}
-          \State \(\vec{r}_m \gets \vec{b} - \matr{A}\vec{x}_m\) \Comment{Compute the residuals}\label{algo:ir:residual}
+          \State \(\vec{r}_m \gets \vec{b} - \matr{A}\vec{x}_m\) \Comment{Compute the residuals (in
+            high precision)}\label{algo:ir:residual}
           \State Solve \(\matr{A}\vec{d}_m = \vec{r}_m\) for \(\vec{d}_m\) \Comment{Compute the correction}\label{algo:ir:solve}
           \State \(\vec{x}_{m + 1} = \vec{x}_m + \vec{d}_m\) \Comment{Add the correction}
         \EndFor
@@ -840,9 +840,14 @@ instance models.
                         \State \(\vec{z}_k \gets \vec{b} - \matr{A}\vec{x}_k\) \Comment{Compute residual}
                         \State \(\vec{r}_k \gets \matr{M}^{-1}\vec{z}_k\) \Comment{Apply preconditioning}
                         \State \(\beta \gets \norm{\vec{r}_k}_2, \quad \vec{v}_1 = \vec{r}_k / \beta, \quad \matr{V}_1 \gets [\vec{v}_1]\) \Comment{Setup for Arnoldi process}
-                        \State Construct an orthogonal basis of preconditioned Krylov subspace \[\spann{\vec{r}_k, \matr{M}^{-1}\matr{A}\vec{r}_k, \dots, (\matr{M}^{-1}\matr{A})^{m - 1}\vec{r}_k}\]
-                        \State Solve the least square problem and compute the correction
-                        \State \(\vec{x}_{k + 1} = \vec{x}_k + \vec{d}_k\) \Comment{Add the correction}
+                        \State Construct orthogonal basis of preconditioned Krylov subspace \[\mathcal{K}_m(\matr{M}^{-1}\matr{A}, \vec{r}_k) = \spann{\vec{r}_k, \matr{M}^{-1}\matr{A}\vec{r}_k, \dots, (\matr{M}^{-1}\matr{A})^{m - 1}\vec{r}_k}\]
+                        \State The Arnoldi process gives \[\matr{M}^{-1}\matr{A}\matr{V}_m = \matr{V}_{m+1}\bar{\matr{H}}_m\]
+                        where \(\matr{V}_m \in \mathbb{R}^{n \times m}\) contains orthonormal basis vectors for \(\mathcal{K}_m\),
+                        \(\matr{V}_{m+1} \in \mathbb{R}^{n \times (m+1)}\) extends \(\matr{V}_m\) with one more vector,
+                        \(\bar{\matr{H}}_m \in \mathbb{R}^{(m+1) \times m}\) is an upper Hessenberg matrix
+                        \State Solve the least square problem \[\min_{\vec{y}_m\in\mathbb{R}^m} \norm{\beta e_1 - \bar{\matr{H}}_m \vec{y}_m}_2\]
+                        where \(e_1 \in \mathbb{R}^{m + 1}\) is the first standard basis vector \(e_1 = [1, 0, 0, \dots, 0]\transpose\)
+                        \State \(\vec{x}_{k + 1} = \vec{x}_k + \matr{V}_m \vec{y}_m\) \Comment{Add the correction}
                       \EndFor
                     \end{algorithmic}
                   \end{algorithm}
@@ -1087,7 +1092,8 @@ refinement process.
                       \State Solve \(\matr{L}\matr{D}\matr{L}\transpose \vec{x}_0 = \vec{b}\) \Comment{at \(u_f\)}
                       \For{\(i \gets 0, 1, \dots, n_\mathrm{iter}\) and \(\norm{r_i}_2 \geq \epsilon\)}
                         \State \(r_i \gets \vec{b} - \matr{A}\vec{x}_i\) \Comment{at \(u_r\)}
-                        \State Solve \((\matr{L}\matr{D}\matr{L}\transpose)^{-1}\matr{A}\vec{d}_i = (\matr{L}\matr{D}\matr{L}\transpose)^{-1}\vec{r_i}\) with GMRES \Comment{at \(u_w\)}
+                        \State Solve \((\matr{L}\matr{D}\matr{L}\transpose)^{-1}\matr{A}\vec{d}_i = (\matr{L}\matr{D}\matr{L}\transpose)^{-1}\vec{r_i}\) with GMRES \par
+                        where \(\matr{M}^{-1} = (\matr{L}\matr{D}\matr{L}\transpose)^{-1}\) \Comment{at \(u_w\)}
                         \State \(\vec{x}_{i + 1} = \vec{x}_i + \vec{d}_i\) \Comment{at \(u_w\)}
                       \EndFor
                     \end{algorithmic}
