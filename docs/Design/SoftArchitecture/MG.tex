@@ -447,19 +447,18 @@ arrows in the diagram typically correspond to the presence of import statement.}
     >=stealth'
     ]
     \draw (0,0) node[circ] (driver) {Solver Driver};
-    \draw (-5,-4) node[block] (input) {Read Matrix Module (\mref{M:ops})};
-    \draw (0,-4) node[block] (solve) {Iterative Solves Module (\mref{M:concepts})};
-    \draw (7,-2.5) node[block] (output) {Solver Output Module (\mref{M:solve})};
-    \draw (7,-5.5) node[block] (factor) {Matrix Factorization Module (\mref{M:factor})};
+    \draw (-5,-5) node[block] (ops) {Matrix Operations Module (\mref{M:ops})};
+    \draw (0,-5) node[block] (concepts) {Floating Point Concepts Module (\mref{M:concepts})};
+    \draw (0,-2.5) node[block] (solve) {Iterative Solver Module (\mref{M:solve})};
+    \draw (5,-5) node[block] (factor) {Factorization Module (\mref{M:factor})};
     \draw (0,-8) node[block] (hw) {Hardware Hiding Module (\mref{M:hw})};
 
-    \draw [->] (driver) -- (input);
     \draw [->] (driver) -- (solve);
-    \draw [->] (driver) -- (output);
     \draw [->] (solve) -- (factor);
-    \draw [->] (solve) -- (output);
-    \draw [->] (input) -- (hw);
-    \draw [->] (solve) -- (hw);
+    \draw [->] (solve) -- (ops);
+    \draw [->] (solve) -- (concepts);
+    \draw [->] (ops) -- (concepts);
+    \draw [->] (ops) -- (hw);
     \draw [->] (factor) -- (hw);
   \end{tikzpicture}
   \caption{Use hierarchy among modules}
