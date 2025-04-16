@@ -16,6 +16,7 @@
 }
 \usepackage{xr,xr-hyper}
 \externaldocument{../SRS/SRS}
+\externaldocument{../Design/SoftArchitecture/MG}
 
 \usepackage[backend=biber,style=authoryear]{biblatex}
 \addbibresource{../../refs/References.bib}
@@ -23,7 +24,7 @@
 % Commands for survey template
 % https://github.com/annerosenisser/latex-surveys
 \usepackage{wasysym}  % provides \ocircle and \Box
-\usepackage{enumitem} % easy control of topsep and leftmargin for lists
+\usepackage[inline]{enumitem} % easy control of topsep and leftmargin for lists
 \usepackage{color}    % used for background color
 \usepackage{forloop}  % used for \Qrating and \Qlines
 \usepackage{ifthen}   % used for \Qitem and \QItem
@@ -139,6 +140,7 @@
 
 \newcommand{\rref}[1]{R\ref{#1}}
 \newcommand{\nfrref}[1]{NFR\ref{#1}}
+\newcommand{\mref}[1]{M\ref{#1}}
 
 \begin{document}
 
@@ -968,8 +970,9 @@ illustrate the performance difference between the two configurations.
 \section{Unit Test Description}
 \label{sec:unit-test-descr}
 
-This section should not be filled in until after the MIS (detailed design
-  document) has been completed.
+This section describes the scope of uniting testing for \progname{} and the
+testing strategy used in each tested modules from the list of modules specified
+in the MIS (\cite{MIS}).
 
 \wss{Reference your MIS (detailed design document) and explain your overall
 philosophy for test case selection.}
@@ -990,60 +993,95 @@ needs to be well-documented, with meaningful names for all of the tests.}
   have a lower priority for verification than others.  If this is the case,
   explain your rationale for the ranking of module importance.}
 
+Unit testing for Iterative Solver Module (\mref{M:solve}) is excluded as this
+module is the entry point of \progname{}. Related testing is covered under
+system tests as specified in Section~\ref{sec:system-tests}. The Factorization
+Module (\mref{M:factor}) is also excluded because it is implemented in prior
+research work (\cite{shahrooz_derakhshan_using_2023}). The correctness of
+\mref{M:factor} is assumed. Unit tests for Floating Point Concepts Module
+(\mref{M:concepts}) and Matrix Operations Module (\mref{M:ops}) will be
+covered below.
+
 \subsection{Tests for Functional Requirements}
+
+All unit tests below will be performed through automated unit testing.
 
 \wss{Most of the verification will be through automated unit testing.  If
   appropriate specific modules can be verified by a non-testing based
   technique.  That can also be documented in this section.}
 
-\subsubsection{Module 1}
+\subsubsection{Floating Point Concepts Module}
+
+A heuristic strategy will be used to test the exported routines in this module.
+Specifically, the two primitive floating-point types, \texttt{float} and
+\texttt{double}, will be permuted into all possible 3-element tuples to serve as
+test inputs. These tuples simulate different mixed-precision configurations. The
+expected results for each case will be precomputed manually to verify the
+correctness of the routine outputs. Refer to the source code
+\href{https://github.com/yex33/MPIR/blob/main/include/fp_concepts.hpp}{\texttt{fp\_concepts.hpp}}
+for details of each test cases.
+
+\subsubsection{Matrix Operations Module}
+
+Since the mathematical models and computations implemented in this module are
+fundamental to linear algebra, the testing strategy is intentionally minimal yet
+effective. It is designed to be:
+\begin{itemize}
+\item Focused on verifying correctness, edge cases, and numerical
+  precision with small sized input vectors and matrices;
+\item Utilizes analytically known results and approximate comparisons for
+  floating-point correctness.
+\end{itemize}
+Refer to the source code
+\href{https://github.com/yex33/MPIR/blob/main/include/ops.hpp}{\texttt{ops.hpp}}
+for details of each test cases.
+
 
 \wss{Include a blurb here to explain why the subsections below cover the module.
   References to the MIS would be good.  You will want tests from a black box
   perspective and from a white box perspective.  Explain to the reader how the
   tests were selected.}
 
-\begin{enumerate}
+% \begin{enumerate}
 
-\item{test-id1\\}
+% \item{test-id1\\}
 
-Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-  be automatic}
+% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+%   be automatic}
 
-Initial State:
+% Initial State:
 
-Input:
+% Input:
 
-Output: \wss{The expected result for the given inputs}
+% Output: \wss{The expected result for the given inputs}
 
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
+% Test Case Derivation: \wss{Justify the expected value given in the Output field}
 
-How test will be performed:
+% How test will be performed:
 
-\item{test-id2\\}
+% \item{test-id2\\}
 
-Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-  be automatic}
+% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+%   be automatic}
 
-Initial State:
+% Initial State:
 
-Input:
+% Input:
 
-Output: \wss{The expected result for the given inputs}
+% Output: \wss{The expected result for the given inputs}
 
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
+% Test Case Derivation: \wss{Justify the expected value given in the Output field}
 
-How test will be performed:
+% How test will be performed:
 
-\item{...\\}
+% \item{...\\}
 
-\end{enumerate}
-
-\subsubsection{Module 2}
-
-...
+% \end{enumerate}
 
 \subsection{Tests for Nonfunctional Requirements}
+
+Performance of the solver shall be evaluated as a whole. No module needs to be
+assessed independently.
 
 \wss{If there is a module that needs to be independently assessed for
   performance, those test cases can go here.  In some projects, planning for
@@ -1052,44 +1090,47 @@ How test will be performed:
 \wss{These tests may involve collecting performance data from previously
   mentioned functional tests.}
 
-\subsubsection{Module ?}
+% \subsubsection{Module ?}
 
-\begin{enumerate}
+% \begin{enumerate}
 
-\item{test-id1\\}
+% \item{test-id1\\}
 
-Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
-  be automatic}
+% Type: \wss{Functional, Dynamic, Manual, Automatic, Static etc. Most will
+%   be automatic}
 
-Initial State:
+% Initial State:
 
-Input/Condition:
+% Input/Condition:
 
-Output/Result:
+% Output/Result:
 
-How test will be performed:
+% How test will be performed:
 
-\item{test-id2\\}
+% \item{test-id2\\}
 
-Type: Functional, Dynamic, Manual, Static etc.
+% Type: Functional, Dynamic, Manual, Static etc.
 
-Initial State:
+% Initial State:
 
-Input:
+% Input:
 
-Output:
+% Output:
 
-How test will be performed:
+% How test will be performed:
 
-\end{enumerate}
+% \end{enumerate}
 
-\subsubsection{Module ?}
+% \subsubsection{Module ?}
 
-...
+% ...
 
 \subsection{Traceability Between Test Cases and Modules}
 
 \wss{Provide evidence that all of the modules have been considered.}
+
+No specific test case is given in this section, but the unit testing strategy
+has been covered for each tested module.
 
 \newpage
 
