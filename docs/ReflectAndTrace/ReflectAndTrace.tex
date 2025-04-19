@@ -30,8 +30,8 @@ on your reflections.}
 feedback from TAs, the instructor, teammates, other teams, the project
 supervisor (if present), and from user testers.}
 
-\plt{For those teams with an external supervisor, please highlight how the feedback 
-from the supervisor shaped your project.  In particular, you should highlight the 
+\plt{For those teams with an external supervisor, please highlight how the feedback
+from the supervisor shaped your project.  In particular, you should highlight the
 supervisor's response to your Rev 0 demonstration to them.}
 
 \plt{Version control can make the summary relatively easy, if you used issues
@@ -59,7 +59,13 @@ response separately for each deliverable in the sections that follow.}
 \plt{If the feedback is general or incomplete, the TA (or instructor) will not
 be able to grade your response to feedback.  In that case your grade on this
 document, and likely the Revision 1 versions of the other documents will be
-low.} 
+low.}
+
+All feedback Github issues were closed with a comment. It either provides a link
+to the commit addressing the issue or explains why the issue was rejected.
+Please refer to
+\href{https://github.com/yex33/MPIR/issues?q=is\%3Aissue\%20state\%3Aclosed}{Closed
+  Github issues} for tracability.
 
 \subsection{SRS and Hazard Analysis}
 
@@ -71,7 +77,30 @@ low.}
 
 \subsection{Challenge Level}
 
-\plt{State the challenge level (advanced, general, basic) for your project.  Your challenge level should exactly match what is included in your problem statement.  This should be the challenge level agreed on between you and the course instructor.}
+\plt{State the challenge level (advanced, general, basic) for your project. Your
+  challenge level should exactly match what is included in your problem
+  statement. This should be the challenge level agreed on between you and the
+  course instructor.}
+
+Copied from the problem statement:
+
+\begin{quote}
+  The challenge level of this project is expected to be general, leaning toward
+  the advanced level for the following reasons:
+  \begin{enumerate}
+  \item This is a continuation of a Master's level research project. The
+    associated thesis is still working in progress.
+  \item The choice of algorithm and mathematical technique is predefined as part
+    of the project. The mathematical knowledge required for understanding and
+    implementing these algorithms (e.g. GMRES) is graduate level.
+  \item Working with multiple floating point precisions requires knowledge on
+    computer architectures, low-level floating point representations in
+    computer, as well as advance implementation techniques to support
+    manipulations of precisions.
+  \item Testing, benchmarking, and evaluating the performance gain on applying
+    these advanced algorithms and techniques are also very involved.
+  \end{enumerate}
+\end{quote}
 
 \subsection{Extras}
 
@@ -80,15 +109,49 @@ can include usability testing, code walkthroughs, user documentation, formal
 proof, GenderMag personas, Design Thinking, etc.  Extras should have already
 been approved by the course instructor as included in your problem statement.}
 
+Usability testing. Please refer to the
+\href{https://github.com/yex33/MPIR/blob/main/docs/VnVReport/VnVReport.pdf}{VnVReport}
+for a detailed report.
+
 \section{Design Iteration (LO11 (PrototypeIterate))}
 
 \plt{Explain how you arrived at your final design and implementation.  How did
-the design evolve from the first version to the final version?} 
+the design evolve from the first version to the final version?}
 
 \plt{Don't just say what you changed, say why you changed it.  The needs of the
 client should be part of the explanation.  For example, if you made changes in
 response to usability testing, explain what the testing found and what changes
 it led to.}
+
+The final design and implementation of \progname{} evolved significantly from
+the initial prototype, guided by feedback, usability insights, and practical
+constraints encountered during development. The initial version focused on
+quickly prototyping the core numerical algorithm—preconditioned GMRES with
+iterative refinement—without strong emphasis on modularity, extensibility, or
+type safety.
+
+As development progressed, a key insight was the need to reduce the complexity
+of the interface. Early versions exposed many low-level numerical and type
+parameters, which were error-prone and hard to use correctly. In response, later
+iterations introduced the \texttt{Refinable} concept to encapsulate type constraints
+and reduce redundant template parameters. This abstraction simplified the solver
+API while maintaining flexibility across mixed-precision configurations.
+
+Usability testing with internal team members highlighted pain points in
+documentation clarity and error messages. Based on this, improvements were made
+to ensure better self-documentation of function names, improved error reporting,
+and clearer usage examples. The solver interface was also made more idiomatic by
+replacing raw pointer manipulation with standard containers such as
+\texttt{std::vector}, greatly improving readability and safety.
+
+Performance benchmarking also shaped the final implementation. Manual timing and
+profiling helped restructure certain steps (e.g., Gram-Schmidt and Givens
+rotations) into modular helpers, making them easier to optimize and validate
+independently.
+
+While the project did not undergo multiple full development cycles due to time
+constraints, targeted refinements were made throughout the process based on
+stakeholder feedback and empirical testing.
 
 \section{Design Decisions (LO12)}
 
@@ -96,14 +159,64 @@ it led to.}
  assumptions, and constraints influence your decisions?  Discuss each of these
  separately.}
 
+The design of \progname{} was shaped by a combination of research goals,
+technical constraints, and assumptions inherited from prior work.
+
+\begin{description}
+\item[Limitations] Time and manpower limitations constrained the scope of
+  the features implemented. For example, although support for multiple sparse
+  matrix formats was considered, only Compressed Sparse Column (CSC) was
+  supported in the final release. Similarly, maintainability testing and full
+  documentation coverage were deprioritized in favor of ensuring correctness and
+  performance.
+\item[Assumptions] The project assumed that the input matrices would be
+  symmetric and quasi-definite, a constraint imposed by the use of QDLDL as the
+  preconditioner. It also assumed that users of the library are domain experts,
+  which influenced decisions around error handling and user interface
+  simplicity.
+\item[Constraints] The software was designed to interface with a previously
+  developed research prototype, which constrained design flexibility. Adhering
+  to this compatibility requirement meant retaining certain data structures and
+  algorithmic sequences, even when alternatives might have offered better
+  abstraction or performance.
+\end{description}
+
+Overall, design decisions were made to balance innovation with alignment to the
+existing research direction, prioritizing numerical correctness, performance
+validation, and software quality within the defined constraints.
+
 \section{Economic Considerations (LO23)}
 
-\plt{Is there a market for your product? What would be involved in marketing your 
-product? What is your estimate of the cost to produce a version that you could 
-sell?  What would you charge for your product?  How many units would you have to 
-sell to make money? If your product isn't something that would be sold, like an 
-open source project, how would you go about attracting users?  How many potential 
+\plt{Is there a market for your product? What would be involved in marketing your
+product? What is your estimate of the cost to produce a version that you could
+sell?  What would you charge for your product?  How many units would you have to
+sell to make money? If your product isn't something that would be sold, like an
+open source project, how would you go about attracting users?  How many potential
 users currently exist?}
+
+\progname{} is intended as a research-grade open-source numerical library rather
+than a commercial software product. As such, its primary value lies in academic
+and scientific use, particularly for researchers working with sparse linear
+systems and mixed-precision methods.
+
+There is a niche but growing community in computational science, optimization,
+and numerical linear algebra that could benefit from such a solver—particularly
+in the context of accelerating computation with mixed-precision techniques.
+Potential users include graduate researchers, academic labs, and developers of
+scientific computing software.
+
+To attract users, the focus would be on clear documentation, published
+benchmarks, and integration examples that demonstrate its advantages over
+existing libraries. Publishing results in a peer-reviewed venue and promoting
+through academic mailing lists and GitHub repositories would be essential for
+adoption.
+
+If commercialized, the costs would include packaging, support, performance
+tuning, and robust cross-platform support. However, due to its specialized
+nature and open-source orientation, monetization is unlikely to be the focus.
+Instead, success would be measured by citations, usage in downstream research,
+and community contributions.
+
 
 \section{Reflection on Project Management (LO24)}
 
@@ -111,32 +224,64 @@ users currently exist?}
 
 \subsection{How Does Your Project Management Compare to Your Development Plan}
 
-\plt{Did you follow your Development plan, with respect to the team meeting plan, 
-team communication plan, team member roles and workflow plan.  Did you use the 
+\plt{Did you follow your Development plan, with respect to the team meeting plan,
+team communication plan, team member roles and workflow plan.  Did you use the
 technology you planned on using?}
+
+At the outset, there was no formal development plan. As a solo project,
+responsibilities such as implementation, documentation, and testing were all
+managed independently and informally. As the project matured, informal task
+lists and GitHub issues were introduced to organize priorities, which improved
+the workflow during later phases.
 
 \subsection{What Went Well?}
 
-\plt{What went well for your project management in terms of processes and 
+\plt{What went well for your project management in terms of processes and
 technology?}
+
+The use of GitHub for version control, issue tracking, and continuous
+integration was particularly effective. Lightweight tools such as CMake,
+clang-format, and clang-tidy helped enforce code quality without introducing too
+much overhead. Despite the absence of a team, consistent incremental development
+and documentation practices enabled steady progress and maintainability.
 
 \subsection{What Went Wrong?}
 
 \plt{What went wrong in terms of processes and technology?}
 
+Without a structured development plan from the beginning, certain
+tasks—especially verification planning, usability testing, and code cleanup—were
+deferred until late in the timeline. This led to some last-minute work and
+limited the opportunity for multiple design iterations. The solo nature of the
+project also meant that there was limited opportunity for collaborative feedback
+or delegation of tasks, which might have improved efficiency.
+
 \subsection{What Would you Do Differently Next Time?}
 
 \plt{What will you do differently for your next project?}
 
+For future projects, even solo ones, creating a lightweight but structured
+development plan early on would help manage scope and track progress more
+effectively. This plan would include estimated timelines, checkpoints, and
+clearer criteria for success. Introducing formal retrospectives or progress
+reviews at regular intervals would also provide opportunities to reflect and
+adjust the approach as needed.
+
 \section{Reflection on Capstone}
+
+Not applicable for CAS 741
 
 \plt{This question focuses on what you learned during the course of the capstone project.}
 
 \subsection{Which Courses Were Relevant}
 
+N/A
+
 \plt{Which of the courses you have taken were relevant for the capstone project?}
 
 \subsection{Knowledge/Skills Outside of Courses}
+
+N/A
 
 \plt{What skills/knowledge did you need to acquire for your capstone project
 that was outside of the courses you took?}
