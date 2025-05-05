@@ -130,7 +130,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), x.data());
   std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
   std::vector<UR> r  = VectorSubtract<UR>(b, b0);
-  std::cout << Dnrm2<UR>(r) << std::endl;
+  std::cout << static_cast<double>(Dnrm2<UR>(r)) << std::endl;
   for (std::size_t _ = 0; _ < ir_iter_ && Dnrm2<UR>(r) > tol_; _++) {
     UR r_infnorm       = InfNrm(r);
     r                  = VectorScale<UR>(r, static_cast<UR>(1) / r_infnorm);
@@ -141,7 +141,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
                    [](UR x) { return static_cast<UW>(x); });
     b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
     r  = VectorSubtract<UR>(b, b0);
-    std::cout << Dnrm2<UR>(r) << std::endl;
+    std::cout << static_cast<double>(Dnrm2<UR>(r)) << std::endl;
   }
   return x;
 }

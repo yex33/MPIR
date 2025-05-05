@@ -7,6 +7,7 @@
 #include <iostream>
 #include <iterator>
 #include <numeric>
+#include <stdfloat>
 #include <vector>
 
 #include "gmres_ir.hpp"
@@ -23,9 +24,9 @@ int main() {
     return EXIT_FAILURE;
   }
 
-  using UF = float;
-  using UW = double;
-  using UR = double;
+  using UF = std::float32_t;
+  using UW = std::float128_t;
+  using UR = std::float128_t;
 
   fmm::matrix_market_header header;
   std::vector<std::size_t>  rows, cols;
