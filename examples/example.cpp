@@ -9,6 +9,7 @@
 #include <numeric>
 #include <stdfloat>
 #include <vector>
+#include <mdspan/mdspan.hpp>
 
 #include "gmres_ir.hpp"
 
@@ -87,6 +88,14 @@ int main() {
 
   GmresLDLIR<UF, UW, UR> solver;
   solver.Compute(std::move(Ap), std::move(Ai), std::move(Ax));
-  std::vector<UW> b(n, 1);
-  solver.Solve(b);
+  // std::vector<UW> b(n, 1);
+  // solver.Solve(b);
+
+  std::vector<int> x_vec(42);
+  std::ranges::iota(x_vec, 0);
+
+  Kokkos::mdspan x(x_vec.data(), x_vec.size());
+
+  // x[i] *= 2.0, executed sequentially
+  // std::linalg::scale(2.0, x);
 }

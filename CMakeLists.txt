@@ -5,7 +5,7 @@ project(MPIR LANGUAGES CXX VERSION 1.0)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # Compiler options
 if(WIN32)
@@ -16,7 +16,7 @@ if(WIN32)
   )
 else()
   add_compile_options(
-    -Wall -Wextra -Wpedantic -Wconversion -Wno-sign-conversion -Wno-sign-compare
+    -Wall -Wextra -Wpedantic -Wconversion -Wno-sign-conversion -Wno-sign-compare -g -H
     $<$<CONFIG:DEBUG>:-O0>
     $<$<CONFIG:DEBUG>:-fno-omit-frame-pointer>
     $<$<CONFIG:RELEASE>:-O2>
@@ -25,7 +25,6 @@ endif()
 
 # Get Trilinos as one entity
 find_package(Trilinos REQUIRED)
-find_package(MPI REQUIRED)
 message(STATUS "Run: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS")
 
 # Echo trilinos build info just for fun
@@ -49,6 +48,27 @@ message("End of Trilinos details\n")
 #
 # End of setup and error checking
 
+#include(FetchContent)
+#FetchContent_Declare(
+#  mdspan
+#  GIT_REPOSITORY https://github.com/kokkos/mdspan
+#  GIT_TAG stable
+#  GIT_SHALLOW TRUE
+#)
+#FetchContent_MakeAvailable(mdspan)
+#set(LINALG_ENABLE_TBB FALSE)
+#set(LINALG_ENABLE_KOKKOS FALSE)
+#FetchContent_Declare(
+#  stdBLAS
+#  GIT_REPOSITORY https://github.com/kokkos/stdBLAS
+#  GIT_TAG main
+#  GIT_SHALLOW TRUE
+#)
+#FetchContent_MakeAvailable(stdBLAS)
+
+find_package(mdspan REQUIRED)
+find_package(LinAlg REQUIRED)
+
 # Define the source files and executables
 set(SOURCE_DIR "${PROJECT_SOURCE_DIR}/src")
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
@@ -57,8 +77,9 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 
 add_library(MPIR INTERFACE)
 target_include_directories(MPIR INTERFACE
-        "${INCLUDE_DIR}"
+  "${INCLUDE_DIR}"
 )
+target_link_libraries(MPIR INTERFACE std::linalg)
 
 enable_testing()
 add_subdirectory(test)
