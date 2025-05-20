@@ -9,7 +9,10 @@
 #include <numeric>
 #include <stdfloat>
 #include <vector>
-#include <mdspan/mdspan.hpp>
+#ifdef QD
+#include <qd/dd_real.h>
+#include <qd/qd_real.h>
+#endif
 
 #include "gmres_ir.hpp"
 
@@ -25,9 +28,9 @@ int main() {
     return EXIT_FAILURE;
   }
 
-  using UF = std::float32_t;
-  using UW = std::float128_t;
-  using UR = std::float128_t;
+  using UF = float;
+  using UW = dd_real;
+  using UR = qd_real;
 
   fmm::matrix_market_header header;
   std::vector<std::size_t>  rows, cols;
@@ -39,7 +42,7 @@ int main() {
     options.generalize_symmetry = false;
     std::ifstream            fin{mtx_path};
     std::vector<std::size_t> rs, cs;
-    std::vector<UW>          vs;
+    std::vector<double>          vs;
     // rs and cs are swapped here, matrix read is transposed
     fmm::read_matrix_market_triplet(fin, header, cs, rs, vs, options);
     std::cout << (header.symmetry == fmm::symmetry_type::symmetric
@@ -68,7 +71,7 @@ int main() {
     std::ranges::transform(perm, std::back_inserter(cols),
                            [&](const std::size_t i) { return cs[i]; });
     std::transform(perm.begin(), perm.end(), std::back_inserter(vals),
-                   [&](std::size_t i) { return vs[i]; });
+                   [&](std::size_t i) { return static_cast<UW>(vs[i]); });
   }
 
   auto                     n   = static_cast<std::size_t>(header.nrows);
@@ -90,12 +93,4 @@ int main() {
   solver.Compute(std::move(Ap), std::move(Ai), std::move(Ax));
   // std::vector<UW> b(n, 1);
   // solver.Solve(b);
-
-  std::vector<int> x_vec(42);
-  std::ranges::iota(x_vec, 0);
-
-  Kokkos::mdspan x(x_vec.data(), x_vec.size());
-
-  // x[i] *= 2.0, executed sequentially
-  // std::linalg::scale(2.0, x);
 }

@@ -6,12 +6,21 @@
 #include <concepts>
 #include <limits>
 
+#ifdef QD
+#include <qd/dd_real.h>
+#include <qd/qd_real.h>
+#endif
+
 template <typename T, typename... Ts>
 constexpr bool is_all_floating_point_v =
-    std::floating_point<T> && is_all_floating_point_v<Ts...>;
+    is_all_floating_point_v<T> && is_all_floating_point_v<Ts...>;
 
 template <typename T>
-constexpr bool is_all_floating_point_v<T> = std::floating_point<T>;
+constexpr bool is_all_floating_point_v<T> =
+#ifdef QD
+    std::same_as<T, dd_real> || std::same_as<T, qd_real> ||
+#endif
+    std::floating_point<T>;
 
 template <typename... Ts>
 concept FloatingPoint = is_all_floating_point_v<Ts...>;
@@ -20,6 +29,10 @@ static_assert(FloatingPoint<double>);
 static_assert(FloatingPoint<double, double>);
 static_assert(!FloatingPoint<int>);
 static_assert(!FloatingPoint<double, int>);
+#ifdef QD
+static_assert(FloatingPoint<qd_real>);
+static_assert(FloatingPoint<dd_real, double>);
+#endif
 
 template <typename T, typename... Ts>
 constexpr bool is_partial_ordered_v = ((std::numeric_limits<T>().epsilon() >=
