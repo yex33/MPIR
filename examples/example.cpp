@@ -19,18 +19,20 @@
 namespace fs  = std::filesystem;
 namespace fmm = fast_matrix_market;
 
-int main() {
-  // const fs::path mtx_path{"../matrices/symmetric/cbuckle.mtx"};
-  // const fs::path mtx_path{"../matrices/moderate/2cubes_sphere.mtx"};
-  const fs::path mtx_path{"../matrices/symmetric/1138_bus.mtx"};
+int main(int argc, char* argv[]) {
+  if (argc != 2) {
+    std::cout << "Usage: " << argv[0] << " <matrix_file_path>" << std::endl;
+    return EXIT_FAILURE;
+  }
+  const fs::path mtx_path{argv[1]};
   if (!fs::exists(mtx_path)) {
-    std::cout << "Matrix file does not exist" << std::endl;
+    std::cout << "Error: Matrix file does not exist at " << mtx_path << std::endl;
     return EXIT_FAILURE;
   }
 
-  using UF = float;
-  using UW = dd_real;
-  using UR = qd_real;
+  using UF = std::float32_t;
+  using UW = std::float64_t;
+  using UR = dd_real;
 
   fmm::matrix_market_header header;
   std::vector<std::size_t>  rows, cols;
@@ -70,7 +72,7 @@ int main() {
                            [&](const std::size_t i) { return rs[i]; });
     std::ranges::transform(perm, std::back_inserter(cols),
                            [&](const std::size_t i) { return cs[i]; });
-    std::transform(perm.begin(), perm.end(), std::back_inserter(vals),
+    std::ranges::transform(perm, std::back_inserter(vals),
                    [&](std::size_t i) { return static_cast<UW>(vs[i]); });
   }
 
@@ -90,7 +92,8 @@ int main() {
   }
 
   GmresLDLIR<UF, UW, UR> solver;
+  solver.SetTolerance(1e-40);
   solver.Compute(std::move(Ap), std::move(Ai), std::move(Ax));
-  // std::vector<UW> b(n, 1);
-  // solver.Solve(b);
+  std::vector<UW> b(n, 1);
+  solver.Solve(b);
 }
