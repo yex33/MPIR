@@ -13,14 +13,15 @@
 /**
  * @brief Multiplies a sparse matrix in CSC format by a vector.
  * @tparam T Precision of the matrix-vector product.
+ * @tparam Top Precision in which the calculations will perform
  * @param Ap Column pointers of the matrix in CSC format.
  * @param Ai Row indices of the matrix in CSC format.
  * @param Ax Non-zero values of the matrix in CSC format.
  * @param x Vector being multiplied.
  * @return The matrix-vector product.
  */
-template <typename T, typename Ta, typename Tx>
-  requires Refinable<Ta, Tx, T>
+template <typename T, typename Top, typename Ta, typename Tx>
+  requires Refinable<T, Top>
 std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
                               const std::vector<std::size_t> &Ai,
                               const std::vector<Ta>          &Ax,
@@ -30,9 +31,11 @@ std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
   for (std::size_t col = 0; col < n; col++) {
     for (std::size_t idx = Ap[col]; idx < Ap[col + 1]; idx++) {
       const size_t row = Ai[idx];
-      res[col] += static_cast<T>(Ax[idx]) * static_cast<T>(x[row]);
+      res[col] +=
+          static_cast<T>(static_cast<Top>(Ax[idx]) * static_cast<Top>(x[row]));
       if (row < col) {
-        res[row] += static_cast<T>(Ax[idx]) * static_cast<T>(x[col]);
+        res[row] += static_cast<T>(static_cast<Top>(Ax[idx]) *
+                                   static_cast<Top>(x[col]));
       }
     }
   }
@@ -47,7 +50,6 @@ std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
  * @return The element-wise sum of vectors a and b.
  */
 template <typename T, typename Ta, typename Tb>
-  requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorAdd(const std::vector<Ta> &a, const std::vector<Tb> &b) {
   std::vector<T> res(a.size());
   std::transform(
@@ -82,7 +84,6 @@ TEST_CASE("[MPIR] VectorAdd") {
  * @return The element-wise difference of vectors a and b.
  */
 template <typename T, typename Ta, typename Tb>
-  requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorSubtract(const std::vector<Ta> &a,
                               const std::vector<Tb> &b) {
   std::vector<T> res(a.size());
@@ -118,7 +119,6 @@ TEST_CASE("[MPIR] VectorSubtract") {
  * @return The element-wise product of vectors a and b.
  */
 template <typename T, typename Ta, typename Tb>
-  requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorMultiply(const std::vector<Ta> &a,
                               const std::vector<Tb> &b) {
   std::vector<T> res(a.size());
@@ -154,7 +154,6 @@ TEST_CASE("[MPIR] VectorMultiply") {
  * @return The vector a scaled by b.
  */
 template <typename T, typename Ta, typename Tb>
-  requires Refinable<Ta, T> && Refinable<Tb, T>
 std::vector<T> VectorScale(const std::vector<Ta> &a, Tb b) {
   std::vector<T> res(a.size());
   std::transform(a.cbegin(), a.cend(), res.begin(),
@@ -188,10 +187,10 @@ TEST_CASE("[MPIR] VectorScale") {
  * @return The dot product of vectors a and b.
  */
 template <typename T, typename Ta, typename Tb>
-  requires Refinable<Ta, T> && Refinable<Tb, T>
 T VectorDot(const std::vector<Ta> &a, const std::vector<Tb> &b) {
-  return std::transform_reduce(a.cbegin(), a.cend(), b.cbegin(),
-                               static_cast<T>(0));
+  return static_cast<T>(std::transform_reduce(a.cbegin(), a.cend(), b.cbegin(),
+                                              static_cast<T>(0), std::plus(),
+                                              std::multiplies()));
 }
 
 #ifdef DOCTEST_LIBRARY_INCLUDED
@@ -230,7 +229,8 @@ T Dnrm2(const std::vector<Tx> &x) {
   using std::sqrt;
   if (x.size() == 0) {
     return static_cast<T>(0);
-  } else if (x.size() == 1) {
+  }
+  if (x.size() == 1) {
     return abs(static_cast<T>(x[0]));
   }
   T scale = static_cast<T>(0);
@@ -287,9 +287,8 @@ TEST_CASE("[MPIR] Dnrm2") {
 template <typename T>
 T InfNrm(const std::vector<T> &x) {
   using std::abs;
-  return abs(*std::max_element(x.cbegin(), x.cend(), [](T a, T b) {
-    return abs(a) < abs(b);
-  }));
+  return abs(*std::max_element(x.cbegin(), x.cend(),
+                               [](T a, T b) { return abs(a) < abs(b); }));
 }
 
 #ifdef DOCTEST_LIBRARY_INCLUDED
