@@ -226,16 +226,18 @@ TEST_CASE("[MPIR] VectorDot") {
 template <typename T, typename Tx>
   requires Refinable<Tx, T>
 T Dnrm2(const std::vector<Tx> &x) {
+  using std::abs;
+  using std::sqrt;
   if (x.size() == 0) {
     return static_cast<T>(0);
   } else if (x.size() == 1) {
-    return std::abs(static_cast<T>(x[0]));
+    return abs(static_cast<T>(x[0]));
   }
   T scale = static_cast<T>(0);
   T ssq   = static_cast<T>(1);
   for (std::size_t i = x.size(); i-- > 0;) {
     if (static_cast<T>(x[i]) != static_cast<T>(0)) {
-      T x_abs = std::abs(static_cast<T>(x[i]));
+      T x_abs = abs(static_cast<T>(x[i]));
       if (scale < x_abs) {
         ssq   = static_cast<T>(1) + ssq * ((scale / x_abs) * (scale / x_abs));
         scale = x_abs;
@@ -244,7 +246,7 @@ T Dnrm2(const std::vector<Tx> &x) {
       }
     }
   }
-  return scale * std::sqrt(ssq);
+  return scale * sqrt(ssq);
 }
 
 #ifdef DOCTEST_LIBRARY_INCLUDED
@@ -284,8 +286,9 @@ TEST_CASE("[MPIR] Dnrm2") {
  */
 template <typename T>
 T InfNrm(const std::vector<T> &x) {
-  return std::abs(*std::max_element(x.cbegin(), x.cend(), [](T a, T b) {
-    return std::abs(a) < std::abs(b);
+  using std::abs;
+  return abs(*std::max_element(x.cbegin(), x.cend(), [](T a, T b) {
+    return abs(a) < abs(b);
   }));
 }
 

@@ -232,14 +232,15 @@ std::vector<UR> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
       s[k] = -h[k + 1][k] / nu;
 
       h[k][k]     = c[k] * h[k][k] - s[k] * h[k + 1][k];
-      h[k + 1][k] = 0;
+      h[k + 1][k] = 0.0;
 
       UW w1    = c[k] * g[k] - s[k] * g[k + 1];
       UW w2    = s[k] * g[k] + s[k] * g[k + 1];
       g[k]     = w1;
       g[k + 1] = w2;
     }
-    rho = std::abs(g[k + 1]);
+    using std::abs;
+    rho = abs(g[k + 1]);
   }
 
   // Solve upper Hessenberg matrix
