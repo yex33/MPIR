@@ -39,7 +39,7 @@ class GmresLDLIR {
   std::size_t gmres_iter_ = 10;
   UR          tol_        = 1e-10;
 
-  std::vector<UR> PrecondGmres(const std::vector<UW> &x0,
+  std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
                                const std::vector<UR> &b);
 
  public:
@@ -51,9 +51,10 @@ class GmresLDLIR {
    * @param Ai Row indices of A in CSC format.
    * @param Ax Non-zero values of A in CSC format.
    */
+  template <typename TAx>
   void Compute(std::vector<std::size_t> Ap,
                std::vector<std::size_t> Ai,
-               std::vector<UW>          Ax);
+               std::vector<TAx>         Ax);
   /**
    * @brief Solves the linear system Ax = b using GMRES with LDLT-based
    * refinement.
@@ -83,13 +84,20 @@ class GmresLDLIR {
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
+template <typename TAx>
 void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
                                      std::vector<std::size_t> Ai,
-                                     std::vector<UW>          Ax) {
+                                     std::vector<TAx>         Ax) {
   n_  = Ap.size() - 1;
   Ap_ = std::move(Ap);
   Ai_ = std::move(Ai);
-  Ax_ = std::move(Ax);
+  if constexpr (std::same_as<UW, TAx>) {
+    Ax_ = std::move(Ax);
+  } else {
+    Ax_.resize(Ax.size());
+    std::transform(Ax.cbegin(), Ax.cend(), Ax_.begin(),
+                   [](TAx xi) { return static_cast<UW>(xi); });
+  }
 
   std::vector<std::size_t> iwork(3 * n_);
   std::vector<std::size_t> Lcolnz(n_);
@@ -128,43 +136,43 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   }
   std::vector<UW> x(b);
   QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), x.data());
-  std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
-  std::vector<UR> r  = VectorSubtract<UR>(b, b0);
-  std::cout << static_cast<double>(Dnrm2<UR>(r)) << std::endl;
-  for (std::size_t _ = 0; _ < ir_iter_ && Dnrm2<UR>(r) > tol_; _++) {
-    UR r_infnorm       = InfNrm(r);
-    r                  = VectorScale<UR>(r, static_cast<UR>(1) / r_infnorm);
-    std::vector<UR> d  = PrecondGmres(std::vector<UW>(), r);
-    d                  = VectorScale<UR>(d, r_infnorm);
-    std::vector<UR> xd = VectorAdd<UR>(x, d);
-    std::transform(xd.cbegin(), xd.cend(), x.begin(),
-                   [](UR x) { return static_cast<UW>(x); });
-    b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
-    r  = VectorSubtract<UR>(b, b0);
-    std::cout << static_cast<double>(Dnrm2<UR>(r)) << std::endl;
+  std::vector<UR> b0    = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
+  std::vector<UR> r     = VectorSubtract<UR>(b, b0);
+  UR              rnorm = Dnrm2<UR>(r);
+  std::cout << static_cast<double>(rnorm) << std::endl;
+  for (std::size_t _ = 0; _ < ir_iter_ && rnorm > tol_; _++) {
+    UR r_infnorm      = InfNrm(r);
+    r                 = VectorScale<UR>(r, static_cast<UR>(1) / r_infnorm);
+    std::vector<UW> d = PrecondGmres({}, r);
+    d                 = VectorScale<UW>(d, r_infnorm);
+    x                 = VectorAdd<UW>(x, d);
+    b0                = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
+    r                 = VectorSubtract<UR>(b, b0);
+    rnorm             = Dnrm2<UR>(r);
+    std::cout << "residual " << static_cast<double>(rnorm) << std::endl;
+    std::cout << "correction " << static_cast<double>(InfNrm(d)) << std::endl;
   }
   return x;
 }
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
-std::vector<UR> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
+std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
                                                      const std::vector<UR> &b) {
   if (b.size() != n_) {
     // TODO set solver info
-    return std::vector<UR>();
+    return {};
   }
 
-  std::vector<UR> res(n_, 0);
+  std::vector<UW> res(n_, 0);
 
   std::vector<UR> r(n_);
   if (x0.empty()) {
     r = b;
   } else {
-    std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x0);
+    std::vector<UR> b0 = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x0);
     r                  = VectorSubtract<UR>(b, b0);
-    std::transform(x0.cbegin(), x0.cend(), res.begin(),
-                   [](UW x) { return static_cast<UR>(x); });
+    res                = x0;
   }
 
   QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), r.data());
@@ -189,10 +197,19 @@ std::vector<UR> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   std::size_t k;
   for (k = 0; k < gmres_iter_ && rho > tol_; k++) {
     v.emplace_back(n_, 0);
-    v[k + 1] = MatrixMultiply<UW>(Ap_, Ai_, Ax_, v[k]);
+    v[k + 1] = MatrixMultiply<UW, UR>(Ap_, Ai_, Ax_, v[k]);
+
+    // ********** evil tmp
+    std::vector<UR> tmp(v[k + 1].size());
+    std::transform(v[k + 1].cbegin(), v[k + 1].cend(), tmp.begin(),
+                   [](UW vi) { return static_cast<UR>(vi); });
     // Apply preconditioner
     QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(),
-                v[k + 1].data());
+                tmp.data());
+    std::transform(tmp.cbegin(), tmp.cend(), v[k + 1].begin(),
+                   [](UR tmpi) { return static_cast<UW>(tmpi); });
+    // ********** end of evil tmp
+
     UW normav = Dnrm2<UW>(v[k + 1]);
 
     // Modified Gram-Schmidt (MGS)
@@ -256,7 +273,7 @@ std::vector<UR> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   // Apply correction
   for (std::size_t i = 0; i < n_; i++) {
     for (std::size_t j = 0; j < k; j++) {
-      res[i] += static_cast<UR>(v[j][i]) * static_cast<UR>(y[j]);
+      res[i] += v[j][i] * y[j];
     }
   }
   return res;
