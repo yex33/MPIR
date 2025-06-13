@@ -23,31 +23,6 @@ else ()
     )
 endif ()
 
-# Get Trilinos as one entity
-find_package(Trilinos REQUIRED)
-message(STATUS "Run: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS")
-
-# Echo trilinos build info just for fun
-message("\nFound Trilinos!  Here are the details: ")
-message("   Trilinos_DIR = ${Trilinos_DIR}")
-message("   Trilinos_VERSION = ${Trilinos_VERSION}")
-message("   Trilinos_PACKAGE_LIST = ${Trilinos_PACKAGE_LIST}")
-message("   Trilinos_LIBRARIES = ${Trilinos_LIBRARIES}")
-message("   Trilinos_INCLUDE_DIRS = ${Trilinos_INCLUDE_DIRS}")
-message("   Trilinos_LIBRARY_DIRS = ${Trilinos_LIBRARY_DIRS}")
-message("   Trilinos_TPL_LIST = ${Trilinos_TPL_LIST}")
-message("   Trilinos_TPL_INCLUDE_DIRS = ${Trilinos_TPL_INCLUDE_DIRS}")
-message("   Trilinos_TPL_LIBRARIES = ${Trilinos_TPL_LIBRARIES}")
-message("   Trilinos_TPL_LIBRARY_DIRS = ${Trilinos_TPL_LIBRARY_DIRS}")
-message("   Trilinos_BUILD_SHARED_LIBS = ${Trilinos_BUILD_SHARED_LIBS}")
-message("   Trilinos_CXX_COMPILER_FLAGS = ${Trilinos_CXX_COMPILER_FLAGS}")
-message("   Trilinos_C_COMPILER_FLAGS = ${Trilinos_C_COMPILER_FLAGS}")
-message("   Trilinos_Fortran_COMPILER_FLAGS = ${Trilinos_Fortran_COMPILER_FLAGS}")
-message("End of Trilinos details\n")
-
-#
-# End of setup and error checking
-
 find_library(QD NAMES qd libqd)
 
 # Define the source files and executables

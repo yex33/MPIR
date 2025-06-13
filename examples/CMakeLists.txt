@@ -18,8 +18,3 @@ endif ()
 target_include_directories(example PRIVATE
         ${INCLUDE_DIR}
 )
-
-add_executable(playground ${EXAMPLES_DIR}/playground.cpp)
-target_link_libraries(playground PRIVATE
-        Trilinos::all_libs
-)
