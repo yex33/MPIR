@@ -14,7 +14,7 @@
 #include <qd/qd_real.h>
 #endif
 
-#include "gmres_ir.hpp"
+#include "MPIR/gmres_ir.hpp"
 
 namespace fs  = std::filesystem;
 namespace fmm = fast_matrix_market;
@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 
   using UF = std::float32_t;
   using UW = std::float64_t;
-  using UR = dd_real;
+  using UR = std::float64_t;
 
   fmm::matrix_market_header header;
   std::vector<std::size_t>  rows, cols;
@@ -96,22 +96,72 @@ int main(int argc, char* argv[]) {
   GmresLDLIR<UF, UW, UR> solver;
   solver.SetTolerance(1e-16);
   solver.SetMaxIRIterations(5);
+  solver.SetMaxGmresIterations(100);
   solver.Compute(Ap, Ai, Ax);
-  std::vector<UW> x = solver.Solve(std::vector<UW>(n, 1));
 
-  GmresLDLIR<std::float64_t, dd_real, qd_real> solver_ref;
-  solver_ref.SetTolerance(1e-40);
-  solver_ref.SetMaxIRIterations(3);
-  solver_ref.Compute(Ap, Ai, Ax);
-  std::vector<dd_real> xref = solver_ref.Solve(std::vector<dd_real>(n, 1));
+  std::vector<UW> b(n);
+  {
+    std::ifstream fin{mtx_path.parent_path() /
+                      fs::path(std::format("input{}.mtx", 0))};
+    double bi;
+    for (std::size_t i = 0; i < n; i++) {
+      fin >> bi;
+      b[i] = bi;
+    }
+  }
+  std::vector<qd_real> x_ref(n);
+  {
+    std::ifstream fin{mtx_path.parent_path() /
+                      fs::path(std::format("output{}.mtx", 0))};
+    for (std::size_t i = 0; i < n; i++) {
+      fin >> x_ref[i];
+    }
+  }
 
-  std::cout << "result: "
-            << InfNrm(VectorSubtract<dd_real>(x, xref)) / InfNrm(xref)
+  std::vector<UW> x = solver.Solve(b);
+  std::cout << "result dnrm2: "
+            << Dnrm2<qd_real>(VectorSubtract<qd_real>(x, x_ref)) /
+                   Dnrm2<qd_real>(x_ref)
             << std::endl;
+  std::cout << "result infnorm: "
+            << InfNrm(VectorSubtract<qd_real>(x, x_ref)) / InfNrm(x_ref)
+            << std::endl
+            << std::endl;
+
+  // for (std::size_t i = 0; i < 5; i++) {
+  //   std::vector<UW> b(n);
+  //   {
+  //     std::ifstream fin{mtx_path.parent_path() /
+  //                       fs::path(std::format("input{}.mtx", i))};
+  //     std::size_t   ncols, nrows;
+  //     fmm::read_matrix_market_array(fin, nrows, ncols, b);
+  //   }
+  //   std::vector<UW> x_ref(n);
+  //   {
+  //     std::ifstream fin{mtx_path.parent_path() /
+  //                       fs::path(std::format("output{}.mtx", i))};
+  //     std::size_t   ncols, nrows;
+  //     fmm::read_matrix_market_array(fin, nrows, ncols, x_ref);
+  //   }
+  //   std::vector<UW> x = solver.Solve(b);
+  //   std::cout << "result: " << InfNrm(VectorSubtract<double>(x, x_ref))
+  //             << std::endl << std::endl;
+  // }
+
+  // std::vector<UW> x = solver.Solve(std::vector<UW>(n, 1));
+  // GmresLDLIR<std::float64_t, dd_real, qd_real> solver_ref;
+  // solver_ref.SetTolerance(1e-40);
+  // solver_ref.SetMaxIRIterations(3);
+  // solver_ref.Compute(Ap, Ai, Ax);
+  // std::vector<dd_real> xref = solver_ref.Solve(std::vector<dd_real>(n, 1));
+  //
+  // std::cout << "result: "
+  //           << InfNrm(VectorSubtract<dd_real>(x, xref)) / InfNrm(xref)
+  //           << std::endl;
 
   // std::vector<UW> xref(n, 1);
   // std::vector<UW> b = MatrixMultiply<UW, UR>(Ap, Ai, Ax, xref);
   // std::vector<UW> x = solver.Solve(b);
-  // std::cout << "result: " << InfNrm(VectorSubtract<double>(x, xref)) <<
-  // std::endl;
+  // std::cout << "result: " << InfNrm(VectorSubtract<double>(x, xref))
+  //           << std::endl;
 }
