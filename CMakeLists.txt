@@ -62,6 +62,39 @@ install(
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/MPIR
 )
 
-enable_testing()
-add_subdirectory(test)
-add_subdirectory(examples)
+# Optional: Add tests and examples only if building the project, not installing
+option(BUILD_MPIR_EXAMPLES "Build examples" ON)
+option(BUILD_MPIR_TESTS "Build tests" ON)
+
+if(BUILD_MPIR_TESTS)
+    enable_testing()
+    add_subdirectory(test)
+endif()
+
+if(BUILD_MPIR_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
+include(CMakePackageConfigHelpers)
+
+# Create the config file that is installed
+configure_package_config_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/MPIRConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/MPIRConfig.cmake"
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/MPIR
+)
+
+# Optionally generate a version file
+write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/MPIRConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY AnyNewerVersion
+)
+
+# Install the config and version files
+install(
+        FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/MPIRConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/MPIRConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/MPIR
+)
