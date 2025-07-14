@@ -9,9 +9,9 @@
 #include <cstdlib>
 #include <vector>
 
+#include "qdldl.hpp"
 #include "fp_concepts.hpp"
 #include "ops.hpp"
-#include "qdldl.hpp"
 
 /**
  * @brief Class implementing GMRES with LDLT-based iterative refinement in
@@ -139,7 +139,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   std::vector<UR> b0    = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
   std::vector<UR> r     = VectorSubtract<UR>(b, b0);
   UR              rnorm = Dnrm2<UR>(r);
-  std::cout << static_cast<double>(rnorm) << std::endl;
+  // std::cout << static_cast<double>(rnorm) << std::endl;
   for (std::size_t _ = 0; _ < ir_iter_ && rnorm > tol_; _++) {
     UR r_infnorm      = InfNrm(r);
     r                 = VectorScale<UR>(r, static_cast<UR>(1) / r_infnorm);

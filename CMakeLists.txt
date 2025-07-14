@@ -27,18 +27,40 @@ find_library(QD NAMES qd libqd)
 
 # Define the source files and executables
 set(SOURCE_DIR "${PROJECT_SOURCE_DIR}/src")
-set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 set(EXAMPLES_DIR "${PROJECT_SOURCE_DIR}/examples")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 
 add_library(MPIR INTERFACE)
-target_include_directories(MPIR INTERFACE
-        "${INCLUDE_DIR}"
+target_include_directories(MPIR
+        INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_compile_features(MPIR
+        INTERFACE cxx_std_23
 )
 if (QD)
     add_compile_definitions(-DQD)
     target_link_libraries(MPIR INTERFACE ${QD})
 endif ()
+
+# Installation
+include(GNUInstallDirs)
+
+install(
+        TARGETS MPIR
+        EXPORT MPIRTargets
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(
+        DIRECTORY include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(
+        EXPORT MPIRTargets
+        NAMESPACE MPIR::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/MPIR
+)
 
 enable_testing()
 add_subdirectory(test)

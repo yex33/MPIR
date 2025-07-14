@@ -21,7 +21,7 @@ set(DOCTEST_INCLUDE_DIR ${source_dir}/doctest CACHE INTERNAL "Path to include fo
 add_executable(doctest_main ${TEST_DIR}/doctest_main.cpp)
 target_compile_definitions(doctest_main PRIVATE DOCTEST)
 target_include_directories(doctest_main PUBLIC ${DOCTEST_INCLUDE_DIR})
-target_link_libraries(doctest_main PUBLIC MPIR)
+target_link_libraries(doctest_main PRIVATE MPIR)
 
 enable_testing()
 add_test(NAME doctests COMMAND $<TARGET_FILE:doctest_main>)

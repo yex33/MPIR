@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(fast_matrix_market)
 add_executable(example ${EXAMPLES_DIR}/example.cpp)
 target_link_libraries(example PRIVATE
         fast_matrix_market::fast_matrix_market
+        MPIR
 )
 if (QD)
     target_link_libraries(example PRIVATE ${QD})

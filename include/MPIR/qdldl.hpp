@@ -2,6 +2,7 @@
 #define QDLDL_HPP
 #pragma once
 
+#include <cstdio>
 #include <limits>  //for the INT_TYPE_MAX
 
 #define QDLDL_UNKNOWN (-1)
