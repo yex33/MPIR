@@ -9,9 +9,9 @@
 #include <cstdlib>
 #include <vector>
 
-#include "qdldl.hpp"
 #include "fp_concepts.hpp"
 #include "ops.hpp"
+#include "qdldl.hpp"
 
 /**
  * @brief Class implementing GMRES with LDLT-based iterative refinement in
@@ -35,9 +35,10 @@ class GmresLDLIR {
   std::vector<UF>          D_;
   std::vector<UF>          Dinv_;
 
-  std::size_t ir_iter_    = 10;
-  std::size_t gmres_iter_ = 10;
-  UR          tol_        = 1e-10;
+  std::size_t ir_iter_           = 10;
+  std::size_t gmres_iter_        = 10;
+  UR          tol_               = 1e-10;
+  const UW    STAGNATE_THRESHOLD = 0.5;
 
   std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
                                const std::vector<UR> &b);
@@ -136,21 +137,23 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   }
   std::vector<UW> x(b);
   QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), x.data());
-  std::vector<UR> b0    = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
-  std::vector<UR> r     = VectorSubtract<UR>(b, b0);
-  UR              rnorm = Dnrm2<UR>(r);
-  // std::cout << static_cast<double>(rnorm) << std::endl;
-  for (std::size_t _ = 0; _ < ir_iter_ && rnorm > tol_; _++) {
-    UR r_infnorm      = InfNrm(r);
-    r                 = VectorScale<UR>(r, static_cast<UR>(1) / r_infnorm);
+  std::vector<UR> b0          = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
+  std::vector<UR> r           = VectorSubtract<UR>(b, b0);
+  UW              d_norm_prev = std::numeric_limits<UW>::max();
+  for (std::size_t _ = 0; _ < ir_iter_; _++) {
+    UR scale          = InfNrm(r);
+    r                 = VectorScale<UR>(r, static_cast<UR>(1) / scale);
     std::vector<UW> d = PrecondGmres({}, r);
-    d                 = VectorScale<UW>(d, r_infnorm);
-    x                 = VectorAdd<UW>(x, d);
-    b0                = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
-    r                 = VectorSubtract<UR>(b, b0);
-    rnorm             = Dnrm2<UR>(r);
-    std::cout << "residual " << static_cast<double>(rnorm) << std::endl;
-    std::cout << "correction " << static_cast<double>(InfNrm(d)) << std::endl;
+    d                 = VectorScale<UW>(d, scale);
+    UW d_norm         = InfNrm(d);
+    std::cout << "residual " << static_cast<double>(d_norm) << std::endl;
+    if (d_norm < tol_ || d_norm / d_norm_prev >= STAGNATE_THRESHOLD) {
+      break;
+    }
+    x           = VectorAdd<UW>(x, d);
+    b0          = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
+    r           = VectorSubtract<UR>(b, b0);
+    d_norm_prev = d_norm;
   }
   return x;
 }
