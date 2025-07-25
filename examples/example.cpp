@@ -15,6 +15,7 @@
 #endif
 
 #include "MPIR/gmres_ir.hpp"
+#include "qdldl-luir/luir.hpp"
 
 namespace fs  = std::filesystem;
 namespace fmm = fast_matrix_market;
@@ -31,9 +32,13 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  using UF = std::float32_t;
-  using UW = std::float64_t;
-  using UR = std::float64_t;
+  // using UF = float;
+  // using UW = double;
+  // using UR = dd_real;
+
+  using UF = float;
+  using UW = dd_real;
+  using UR = dd_real;
 
   fmm::matrix_market_header header;
   std::vector<std::size_t>  rows, cols;
@@ -96,57 +101,75 @@ int main(int argc, char* argv[]) {
   GmresLDLIR<UF, UW, UR> solver;
   solver.SetTolerance(1e-16);
   solver.SetMaxIRIterations(5);
-  solver.SetMaxGmresIterations(100);
+  solver.SetMaxGmresIterations(5);
   solver.Compute(Ap, Ai, Ax);
+  std::cout << "factorization complete" << std::endl;
 
   std::vector<UW> b(n);
-  {
-    std::ifstream fin{mtx_path.parent_path() /
-                      fs::path(std::format("input{}.mtx", 0))};
-    double bi;
-    for (std::size_t i = 0; i < n; i++) {
-      fin >> bi;
-      b[i] = bi;
-    }
-  }
-  std::vector<qd_real> x_ref(n);
-  {
-    std::ifstream fin{mtx_path.parent_path() /
-                      fs::path(std::format("output{}.mtx", 0))};
-    for (std::size_t i = 0; i < n; i++) {
-      fin >> x_ref[i];
-    }
+  for (std::size_t i = 0; i < n; i++) {
+    b[i] = i;
   }
 
+  std::vector<double> Ax_ref(nnz);
+  for (std::size_t i = 0; i < nnz; i++) {
+    Ax_ref[i] = static_cast<double>(Ax[i]);
+  }
+  std::vector<double> b_ref(n);
+  for (std::size_t i = 0; i < n; i++) {
+    b_ref[i] = static_cast<double>(b[i]);
+  }
+
+  std::vector<dd_real> x_ref(n);
+  Stats stats;
+  LUIR_QDLDL<dd_real, qd_real>(n, Ap.data(), Ai.data(), Ax_ref.data(), b_ref.data(), x_ref.data(), &stats);
+  stats.print(mtx_path.c_str());
+
+  auto start = std::chrono::high_resolution_clock::now();
   std::vector<UW> x = solver.Solve(b);
+  auto end = std::chrono::high_resolution_clock::now();
+
+  // Calculate and print duration in milliseconds
+  std::chrono::duration<double, std::milli> duration = end - start;
+  std::cout << "Execution time: " << duration.count() << " ms" << std::endl;
+
   std::cout << "result dnrm2: "
-            << Dnrm2<qd_real>(VectorSubtract<qd_real>(x, x_ref)) /
-                   Dnrm2<qd_real>(x_ref)
+            << Dnrm2<dd_real>(VectorSubtract<dd_real>(x, x_ref)) /
+                   Dnrm2<dd_real>(x_ref)
             << std::endl;
   std::cout << "result infnorm: "
-            << InfNrm(VectorSubtract<qd_real>(x, x_ref)) / InfNrm(x_ref)
+            << InfNrm(VectorSubtract<dd_real>(x, x_ref)) / InfNrm(x_ref)
             << std::endl
             << std::endl;
+  std::cout << InfNrm(VectorSubtract<dd_real>(b, MatrixMultiply<dd_real, dd_real>(Ap, Ai, Ax, x))) / InfNrm(b);
 
-  // for (std::size_t i = 0; i < 5; i++) {
-  //   std::vector<UW> b(n);
-  //   {
-  //     std::ifstream fin{mtx_path.parent_path() /
-  //                       fs::path(std::format("input{}.mtx", i))};
-  //     std::size_t   ncols, nrows;
-  //     fmm::read_matrix_market_array(fin, nrows, ncols, b);
+  // std::vector<UW> b(n);
+  // {
+  //   std::ifstream fin{mtx_path.parent_path() /
+  //                     fs::path(std::format("input{}.mtx", 0))};
+  //   double bi;
+  //   for (std::size_t i = 0; i < n; i++) {
+  //     fin >> bi;
+  //     b[i] = bi;
   //   }
-  //   std::vector<UW> x_ref(n);
-  //   {
-  //     std::ifstream fin{mtx_path.parent_path() /
-  //                       fs::path(std::format("output{}.mtx", i))};
-  //     std::size_t   ncols, nrows;
-  //     fmm::read_matrix_market_array(fin, nrows, ncols, x_ref);
-  //   }
-  //   std::vector<UW> x = solver.Solve(b);
-  //   std::cout << "result: " << InfNrm(VectorSubtract<double>(x, x_ref))
-  //             << std::endl << std::endl;
   // }
+  // std::vector<qd_real> x_ref(n);
+  // {
+  //   std::ifstream fin{mtx_path.parent_path() /
+  //                     fs::path(std::format("output{}.mtx", 0))};
+  //   for (std::size_t i = 0; i < n; i++) {
+  //     fin >> x_ref[i];
+  //   }
+  // }
+  //
+  // std::vector<UW> x = solver.Solve(b);
+  // std::cout << "result dnrm2: "
+  //           << Dnrm2<qd_real>(VectorSubtract<qd_real>(x, x_ref)) /
+  //                  Dnrm2<qd_real>(x_ref)
+  //           << std::endl;
+  // std::cout << "result infnorm: "
+  //           << InfNrm(VectorSubtract<qd_real>(x, x_ref)) / InfNrm(x_ref)
+  //           << std::endl
+  //           << std::endl;
 
   // std::vector<UW> x = solver.Solve(std::vector<UW>(n, 1));
   // GmresLDLIR<std::float64_t, dd_real, qd_real> solver_ref;
