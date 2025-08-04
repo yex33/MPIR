@@ -99,51 +99,52 @@ int main(int argc, char* argv[]) {
   GmresLDLIR<UF, UW, UR> solver;
   solver.SetTolerance(1e-16);
   solver.SetMaxIRIterations(5);
-  solver.SetMaxGmresIterations(5);
+  solver.SetMaxGmresIterations(100);
+  solver.Compute(Ap, Ai, Ax, 1);
+
+  // auto start = std::chrono::high_resolution_clock::now();
+  // solver.Compute(Ap, Ai, Ax, 1);
+  // auto end = std::chrono::high_resolution_clock::now();
+  // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  // std::cout << "factorization complete" << std::endl;
+  // std::cout << "Time taken: " << duration.count() << " ms\n";
+
+  std::vector<UW> b(n);
+  for (std::size_t i = 0; i < n; i++) {
+    b[i] = i;
+  }
+
+  std::vector<double> Ax_ref(nnz);
+  for (std::size_t i = 0; i < nnz; i++) {
+    Ax_ref[i] = static_cast<double>(Ax[i]);
+  }
+  std::vector<double> b_ref(n);
+  for (std::size_t i = 0; i < n; i++) {
+    b_ref[i] = static_cast<double>(b[i]);
+  }
+
+  std::vector<dd_real> x_ref(n);
+  Stats stats;
+  LUIR_QDLDL<dd_real, qd_real>(n, Ap.data(), Ai.data(), Ax_ref.data(), b_ref.data(), x_ref.data(), &stats);
+  stats.print(mtx_path.c_str());
 
   auto start = std::chrono::high_resolution_clock::now();
-  solver.Compute(Ap, Ai, Ax, 1);
+  std::vector<UW> x = solver.Solve(b);
   auto end = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  std::cout << "factorization complete" << std::endl;
-  std::cout << "Time taken: " << duration.count() << " ms\n";
 
-  // std::vector<UW> b(n);
-  // for (std::size_t i = 0; i < n; i++) {
-  //   b[i] = i;
-  // }
-  //
-  // std::vector<double> Ax_ref(nnz);
-  // for (std::size_t i = 0; i < nnz; i++) {
-  //   Ax_ref[i] = static_cast<double>(Ax[i]);
-  // }
-  // std::vector<double> b_ref(n);
-  // for (std::size_t i = 0; i < n; i++) {
-  //   b_ref[i] = static_cast<double>(b[i]);
-  // }
-  //
-  // std::vector<dd_real> x_ref(n);
-  // Stats stats;
-  // LUIR_QDLDL<dd_real, qd_real>(n, Ap.data(), Ai.data(), Ax_ref.data(), b_ref.data(), x_ref.data(), &stats);
-  // stats.print(mtx_path.c_str());
-  //
-  // auto start = std::chrono::high_resolution_clock::now();
-  // std::vector<UW> x = solver.Solve(b);
-  // auto end = std::chrono::high_resolution_clock::now();
-  //
-  // // Calculate and print duration in milliseconds
-  // std::chrono::duration<double, std::milli> duration = end - start;
-  // std::cout << "Execution time: " << duration.count() << " ms" << std::endl;
-  //
-  // std::cout << "result dnrm2: "
-  //           << Dnrm2<dd_real>(VectorSubtract<dd_real>(x, x_ref)) /
-  //                  Dnrm2<dd_real>(x_ref)
-  //           << std::endl;
-  // std::cout << "result infnorm: "
-  //           << InfNrm(VectorSubtract<dd_real>(x, x_ref)) / InfNrm(x_ref)
-  //           << std::endl
-  //           << std::endl;
-  // std::cout << InfNrm(VectorSubtract<dd_real>(b, MatrixMultiply<dd_real, dd_real>(Ap, Ai, Ax, x))) / InfNrm(b);
+  // Calculate and print duration in milliseconds
+  std::chrono::duration<double, std::milli> duration = end - start;
+  std::cout << "Execution time: " << duration.count() << " ms" << std::endl;
+
+  std::cout << "result dnrm2: "
+            << Dnrm2<dd_real>(VectorSubtract<dd_real>(x, x_ref)) /
+                   Dnrm2<dd_real>(x_ref)
+            << std::endl;
+  std::cout << "result infnorm: "
+            << InfNrm(VectorSubtract<dd_real>(x, x_ref)) / InfNrm(x_ref)
+            << std::endl
+            << std::endl;
+  std::cout << InfNrm(VectorSubtract<dd_real>(b, MatrixMultiply<dd_real, dd_real>(Ap, Ai, Ax, x))) / InfNrm(b);
 
   // std::vector<UW> b(n);
   // {

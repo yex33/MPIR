@@ -3,8 +3,6 @@
 #ifndef GMRES_IR_HPP
 #define GMRES_IR_HPP
 
-#include <omp.h>
-
 #include <algorithm>
 #include <bitset>
 #include <cmath>
@@ -14,7 +12,6 @@
 
 #include "fp_concepts.hpp"
 #include "ops.hpp"
-#include "qdldl.hpp"
 
 /**
  * @brief Class implementing GMRES with LDLT-based iterative refinement in
@@ -50,6 +47,7 @@ class GmresLDLIR {
 
   std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
                                const std::vector<UR> &b);
+  std::vector<UW> TriangularSolve(const std::vector<UW> &b);
 
  public:
   GmresLDLIR() = default;
@@ -249,7 +247,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         if (row != col) {
           Ux_[idx] = s / Ux_[Up_[col + 1] - 1];
         } else {
-          Ux_[idx] = sqrt(s);
+          Ux_[idx] = sqrt(abs(s)) * (s < 0 ? -1 : 1);
         }
       }
     }
@@ -262,7 +260,6 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   if (ir_iter_ == 0) {
   }
   std::vector<UW> x(b);
-  QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), x.data());
   std::vector<UR> b0          = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
   std::vector<UR> r           = VectorSubtract<UR>(b, b0);
   UW              d_norm_prev = std::numeric_limits<UW>::max();
@@ -304,7 +301,6 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     res                = x0;
   }
 
-  QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(), r.data());
   UR rho = Dnrm2<UR>(r);
   if (rho < tol_) {
     return res;
@@ -314,7 +310,9 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   v.reserve(gmres_iter_ + 1);
   v.emplace_back(n_, 0);
   std::transform(r.cbegin(), r.cend(), v[0].begin(),
-                 [rho](UR ri) { return static_cast<UW>(ri / rho); });
+                 [](UR ri) { return static_cast<UW>(ri); });
+  v[0] = TriangularSolve(v[0]);
+  v[0] = VectorScale<UW>(v[0], 1/rho);
 
   std::vector<std::vector<UW>> h(gmres_iter_ + 1,
                                  std::vector<UW>(gmres_iter_, 0));
@@ -327,17 +325,8 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   for (k = 0; k < gmres_iter_ && rho > tol_; k++) {
     v.emplace_back(n_, 0);
     v[k + 1] = MatrixMultiply<UW, UR>(Ap_, Ai_, Ax_, v[k]);
-
-    // ********** evil tmp
-    std::vector<UR> tmp(v[k + 1].size());
-    std::transform(v[k + 1].cbegin(), v[k + 1].cend(), tmp.begin(),
-                   [](UW vi) { return static_cast<UR>(vi); });
     // Apply preconditioner
-    QDLDL_solve(n_, Lp_.data(), Li_.data(), Lx_.data(), Dinv_.data(),
-                tmp.data());
-    std::transform(tmp.cbegin(), tmp.cend(), v[k + 1].begin(),
-                   [](UR tmpi) { return static_cast<UW>(tmpi); });
-    // ********** end of evil tmp
+    v[k + 1] = TriangularSolve(v[k + 1]);
 
     UW normav = Dnrm2<UW>(v[k + 1]);
 
@@ -406,6 +395,30 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     }
   }
   return res;
+}
+
+template <typename UF, typename UW, typename UR>
+  requires Refinable<UF, UW, UR>
+std::vector<UW> GmresLDLIR<UF, UW, UR>::TriangularSolve(
+    const std::vector<UW> &b) {
+  std::vector<UW> b_scaled = VectorMultiply<UW>(b, D_);
+  std::vector<UW> x        = b_scaled;
+  for (std::size_t _ = 0; _ < 10; _++) {
+    std::vector<UW> prod(x.size(), 0.0);
+#pragma omp parallel for
+    for (std::size_t col = 0; col < n_; col++) {
+      for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
+        const std::size_t row = Ui_[idx];
+        if (row < col) {
+          const UW d = Ux_[idx] * x[col];
+#pragma omp atomic
+          prod[row] += d;
+        }
+      }
+    }
+    x = VectorSubtract<UW>(b_scaled, prod);
+  }
+  return VectorMultiply<UW>(x, D_);
 }
 
 // End of GMRES_IR_HPP
