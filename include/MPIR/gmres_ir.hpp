@@ -3,7 +3,10 @@
 #ifndef GMRES_IR_HPP
 #define GMRES_IR_HPP
 
+#include <omp.h>
+
 #include <algorithm>
+#include <bitset>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -29,10 +32,15 @@ class GmresLDLIR {
   std::vector<std::size_t> Ai_;
   std::vector<UW>          Ax_;
 
+  std::vector<UW> D_;
+
+  std::vector<std::size_t> Up_;
+  std::vector<std::size_t> Ui_;
+  std::vector<UF>          Ux_;
+
   std::vector<std::size_t> Lp_;
   std::vector<std::size_t> Li_;
   std::vector<UF>          Lx_;
-  std::vector<UF>          D_;
   std::vector<UF>          Dinv_;
 
   std::size_t ir_iter_           = 10;
@@ -55,7 +63,8 @@ class GmresLDLIR {
   template <typename TAx>
   void Compute(std::vector<std::size_t> Ap,
                std::vector<std::size_t> Ai,
-               std::vector<TAx>         Ax);
+               std::vector<TAx>         Ax,
+               std::size_t              IC_k);
   /**
    * @brief Solves the linear system Ax = b using GMRES with LDLT-based
    * refinement.
@@ -88,7 +97,8 @@ template <typename UF, typename UW, typename UR>
 template <typename TAx>
 void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
                                      std::vector<std::size_t> Ai,
-                                     std::vector<TAx>         Ax) {
+                                     std::vector<TAx>         Ax,
+                                     const std::size_t        IC_k) {
   n_  = Ap.size() - 1;
   Ap_ = std::move(Ap);
   Ai_ = std::move(Ai);
@@ -100,34 +110,147 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
                    [](TAx xi) { return static_cast<UW>(xi); });
   }
 
-  std::vector<std::size_t> iwork(3 * n_);
-  std::vector<std::size_t> Lcolnz(n_);
-  std::vector<std::size_t> etree(n_);
+  // #########################################################################//
+  // ##################### Diagonal Scaling of A #############################//
+  // #########################################################################//
 
-  std::size_t Lnz = QDLDL_etree(n_, Ap_.data(), Ai_.data(), iwork.data(),
-                                Lcolnz.data(), etree.data());
-
-  Lp_.resize(n_ + 1);
-  Li_.resize(Lnz);
-  Lx_.resize(Lnz);
+  // Compute scaling factor
   D_.resize(n_);
-  Dinv_.resize(n_);
-
-  bool           *bwork = new bool[n_];
-  std::vector<UF> fwork(n_);
-  if constexpr (std::same_as<UF, UW>) {
-    QDLDL_factor(n_, Ap_.data(), Ai_.data(), Ax_.data(), Lp_.data(), Li_.data(),
-                 Lx_.data(), D_.data(), Dinv_.data(), Lcolnz.data(),
-                 etree.data(), bwork, iwork.data(), fwork.data());
-  } else {
-    std::vector<UF> Ax_UF(Ax_.size());
-    std::transform(Ax_.cbegin(), Ax_.cend(), Ax_UF.begin(),
-                   [](UW x) { return static_cast<UF>(x); });
-    QDLDL_factor(n_, Ap_.data(), Ai_.data(), Ax_UF.data(), Lp_.data(),
-                 Li_.data(), Lx_.data(), D_.data(), Dinv_.data(), Lcolnz.data(),
-                 etree.data(), bwork, iwork.data(), fwork.data());
+  using std::abs;
+  using std::sqrt;
+  for (std::size_t col = 0; col < n_; col++) {
+    for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
+      const std::size_t row = Ai_[idx];
+      if (row == col && abs(Ax_[idx]) > std::numeric_limits<UF>::epsilon()) {
+        D_[row] = 1.0 / sqrt(abs(Ax_[idx]));
+      }
+    }
   }
-  delete[] bwork;
+  // Apply scaling
+  for (std::size_t col = 0; col < n_; ++col) {
+    for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
+      const std::size_t row = Ai_[idx];
+      Ax_[idx] *= D_[row] * D_[col];
+    }
+  }
+
+  // #########################################################################//
+  // ##################### Compute Sparsity Pattern ##########################//
+  // #########################################################################//
+
+  constexpr std::size_t MAX_N = 1 << 21;
+
+  std::vector Up(Ap_.begin(), Ap_.end());
+  std::vector Ui(Ai_.begin(), Ai_.end());
+
+  for (std::size_t _ = 0; _ < IC_k; _++) {
+    std::vector<std::size_t> Up_segments(n_ + 1);
+    Up_segments[0] = 0;
+    std::vector<std::vector<std::size_t>> Ui_segments(n_);
+#pragma omp parallel
+    {
+      std::bitset<MAX_N> marker;
+#pragma omp for schedule(dynamic)
+      for (std::size_t col = 0; col < n_; col++) {
+        marker.reset();
+        std::vector<std::size_t> row_indices;
+        row_indices.reserve(Up[col + 1] - Up[col]);
+        for (std::size_t idx1 = Up[col]; idx1 < Up[col + 1]; idx1++) {
+          const std::size_t row1 = Ui[idx1];
+          if (row1 > col) continue;
+          for (std::size_t idx2 = Ap_[row1]; idx2 < Ap_[row1 + 1]; idx2++) {
+            const std::size_t row2 = Ai_[idx2];
+            if (row2 > col) continue;
+            if (!marker.test(row2)) {
+              marker.set(row2);
+              row_indices.push_back(row2);
+            }
+          }
+        }
+        std::ranges::sort(row_indices);
+        Up_segments[col + 1] = row_indices.size();
+        Ui_segments[col]     = std::move(row_indices);
+      }
+    }
+
+    // Exclusive prefix sum of indices
+    for (std::size_t col = 1; col <= n_; col++) {
+      Up[col] = Up[col - 1] + Up_segments[col];
+    }
+
+    // Flatten segments
+    Ui.resize(Up[n_]);
+#pragma omp parallel for
+    for (std::size_t col = 0; col < n_; col++) {
+      std::ranges::copy(Ui_segments[col], std::next(Ui.begin(), Up[col]));
+    }
+  }
+
+  // #########################################################################//
+  // ##################### Initial Guesses for U #############################//
+  // #########################################################################//
+
+  std::vector<UF> Ux(Ui.size(), 0.0);
+#pragma omp parallel for
+  for (std::size_t col = 0; col < n_; col++) {
+    std::size_t idx1 = Up[col], idx2 = Ap_[col];
+    while (idx1 < Up[col + 1] && idx2 < Ap_[col + 1]) {
+      if (Ui[idx1] == Ai_[idx2]) {
+        Ux[idx1] = static_cast<UF>(Ax_[idx2]);
+        idx1++;
+        idx2++;
+      } else if (Ui[idx1] < Ai_[idx2]) {
+        idx1++;
+      } else {
+        idx2++;
+      }
+    }
+  }
+
+  // #########################################################################//
+  // ##################### FGPILU Main Algorithm #############################//
+  // #########################################################################//
+
+  constexpr std::size_t NUM_SWEEPS = 3;
+  for (std::size_t _ = 0; _ < NUM_SWEEPS; _++) {
+#pragma omp parallel for schedule(dynamic, 8)
+    for (std::size_t col = 0; col < n_; col++) {
+      for (std::size_t idx = Up[col]; idx < Up[col + 1]; idx++) {
+        const std::size_t row = Ui[idx];
+        // Find A(row, col)
+        const UF ax = [this, &col, &row] {
+          for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
+            if (Ai_[idx] == row) {
+              return static_cast<UF>(Ax_[idx]);
+            }
+          }
+          return static_cast<UF>(0.0);
+        }();
+        // Inner product
+        UF          sum  = 0.0;
+        std::size_t idx1 = Up[row], idx2 = Up[col];
+        while (idx1 < Up[row + 1] && idx2 < Up[col + 1]) {
+          if (Ui[idx1] >= row || Ui[idx2] >= row) break;
+          if (Ui[idx1] == Ui[idx2]) {
+            sum += Ux[idx1] * Ux[idx2];
+            idx1++;
+            idx2++;
+          } else if (Ui[idx1] < Ui[idx2]) {
+            idx1++;
+          } else {
+            idx2++;
+          }
+        }
+        // Fill non-linear solution
+        const UF s = ax - sum;
+        if (row != col) {
+          Ux[idx] = s / Ux[Up[col + 1] - 1];
+        } else {
+          Ux[idx] = sqrt(s);
+        }
+      }
+    }
+  }  // End of sweep
 }
 
 template <typename UF, typename UW, typename UR>
