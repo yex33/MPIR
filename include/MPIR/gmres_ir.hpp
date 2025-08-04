@@ -59,8 +59,12 @@ class GmresLDLIR {
    * @param Ap Column pointers of A in CSC format.
    * @param Ai Row indices of A in CSC format.
    * @param Ax Non-zero values of A in CSC format.
+   * @tparam MAX_MATRIX_SIZE Maximum expected number of rows/columns in the
+   * input matrix A. Defaults to 1 << 21. Used to size the bitset for tracking
+   * visited row indices efficiently. Ensure this value is greater than the
+   * dimension of your largest expected matrix.
    */
-  template <typename TAx>
+  template <typename TAx, std::size_t MAX_MATRIX_SIZE = 1 << 21>
   void Compute(std::vector<std::size_t> Ap,
                std::vector<std::size_t> Ai,
                std::vector<TAx>         Ax,
@@ -94,11 +98,12 @@ class GmresLDLIR {
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
-template <typename TAx>
+template <typename TAx, std::size_t MAX_MATRIX_SIZE>
 void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
                                      std::vector<std::size_t> Ai,
                                      std::vector<TAx>         Ax,
                                      const std::size_t        IC_k) {
+  // TODO assert Ax.size() <= MAX_MATRIX_SIZE, possible case for solver error
   n_  = Ap.size() - 1;
   Ap_ = std::move(Ap);
   Ai_ = std::move(Ai);
@@ -138,10 +143,8 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // ##################### Compute Sparsity Pattern ##########################//
   // #########################################################################//
 
-  constexpr std::size_t MAX_N = 1 << 21;
-
-  std::vector Up(Ap_.begin(), Ap_.end());
-  std::vector Ui(Ai_.begin(), Ai_.end());
+  Up_ = Ap_;
+  Ui_ = Ai_;
 
   for (std::size_t _ = 0; _ < IC_k; _++) {
     std::vector<std::size_t> Up_segments(n_ + 1);
@@ -149,14 +152,14 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
     std::vector<std::vector<std::size_t>> Ui_segments(n_);
 #pragma omp parallel
     {
-      std::bitset<MAX_N> marker;
+      std::bitset<MAX_MATRIX_SIZE> marker;
 #pragma omp for schedule(dynamic)
       for (std::size_t col = 0; col < n_; col++) {
         marker.reset();
         std::vector<std::size_t> row_indices;
-        row_indices.reserve(Up[col + 1] - Up[col]);
-        for (std::size_t idx1 = Up[col]; idx1 < Up[col + 1]; idx1++) {
-          const std::size_t row1 = Ui[idx1];
+        row_indices.reserve(Up_[col + 1] - Up_[col]);
+        for (std::size_t idx1 = Up_[col]; idx1 < Up_[col + 1]; idx1++) {
+          const std::size_t row1 = Ui_[idx1];
           if (row1 > col) continue;
           for (std::size_t idx2 = Ap_[row1]; idx2 < Ap_[row1 + 1]; idx2++) {
             const std::size_t row2 = Ai_[idx2];
@@ -175,14 +178,14 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 
     // Exclusive prefix sum of indices
     for (std::size_t col = 1; col <= n_; col++) {
-      Up[col] = Up[col - 1] + Up_segments[col];
+      Up_[col] = Up_[col - 1] + Up_segments[col];
     }
 
     // Flatten segments
-    Ui.resize(Up[n_]);
+    Ui_.resize(Up_[n_]);
 #pragma omp parallel for
     for (std::size_t col = 0; col < n_; col++) {
-      std::ranges::copy(Ui_segments[col], std::next(Ui.begin(), Up[col]));
+      std::ranges::copy(Ui_segments[col], std::next(Ui_.begin(), Up_[col]));
     }
   }
 
@@ -190,16 +193,16 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // ##################### Initial Guesses for U #############################//
   // #########################################################################//
 
-  std::vector<UF> Ux(Ui.size(), 0.0);
+  Ux_.resize(Ui_.size());
 #pragma omp parallel for
   for (std::size_t col = 0; col < n_; col++) {
-    std::size_t idx1 = Up[col], idx2 = Ap_[col];
-    while (idx1 < Up[col + 1] && idx2 < Ap_[col + 1]) {
-      if (Ui[idx1] == Ai_[idx2]) {
-        Ux[idx1] = static_cast<UF>(Ax_[idx2]);
+    std::size_t idx1 = Up_[col], idx2 = Ap_[col];
+    while (idx1 < Up_[col + 1] && idx2 < Ap_[col + 1]) {
+      if (Ui_[idx1] == Ai_[idx2]) {
+        Ux_[idx1] = static_cast<UF>(Ax_[idx2]);
         idx1++;
         idx2++;
-      } else if (Ui[idx1] < Ai_[idx2]) {
+      } else if (Ui_[idx1] < Ai_[idx2]) {
         idx1++;
       } else {
         idx2++;
@@ -215,8 +218,8 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   for (std::size_t _ = 0; _ < NUM_SWEEPS; _++) {
 #pragma omp parallel for schedule(dynamic, 8)
     for (std::size_t col = 0; col < n_; col++) {
-      for (std::size_t idx = Up[col]; idx < Up[col + 1]; idx++) {
-        const std::size_t row = Ui[idx];
+      for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
+        const std::size_t row = Ui_[idx];
         // Find A(row, col)
         const UF ax = [this, &col, &row] {
           for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
@@ -226,16 +229,16 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
           }
           return static_cast<UF>(0.0);
         }();
-        // Inner product
+        // Inner product of A(:, row) and A(:, col) upto row
         UF          sum  = 0.0;
-        std::size_t idx1 = Up[row], idx2 = Up[col];
-        while (idx1 < Up[row + 1] && idx2 < Up[col + 1]) {
-          if (Ui[idx1] >= row || Ui[idx2] >= row) break;
-          if (Ui[idx1] == Ui[idx2]) {
-            sum += Ux[idx1] * Ux[idx2];
+        std::size_t idx1 = Up_[row], idx2 = Up_[col];
+        while (idx1 < Up_[row + 1] && idx2 < Up_[col + 1]) {
+          if (Ui_[idx1] >= row || Ui_[idx2] >= row) break;
+          if (Ui_[idx1] == Ui_[idx2]) {
+            sum += Ux_[idx1] * Ux_[idx2];
             idx1++;
             idx2++;
-          } else if (Ui[idx1] < Ui[idx2]) {
+          } else if (Ui_[idx1] < Ui_[idx2]) {
             idx1++;
           } else {
             idx2++;
@@ -244,9 +247,9 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         // Fill non-linear solution
         const UF s = ax - sum;
         if (row != col) {
-          Ux[idx] = s / Ux[Up[col + 1] - 1];
+          Ux_[idx] = s / Ux_[Up_[col + 1] - 1];
         } else {
-          Ux[idx] = sqrt(s);
+          Ux_[idx] = sqrt(s);
         }
       }
     }
