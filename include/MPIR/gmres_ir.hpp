@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
+#include <print>
 #include <vector>
 
 #include "fp_concepts.hpp"
@@ -28,17 +29,12 @@ class GmresLDLIR {
   std::vector<std::size_t> Ap_;
   std::vector<std::size_t> Ai_;
   std::vector<UW>          Ax_;
-
-  std::vector<UW> D_;
+  std::vector<UW>          AD_;
 
   std::vector<std::size_t> Up_;
   std::vector<std::size_t> Ui_;
   std::vector<UF>          Ux_;
-
-  std::vector<std::size_t> Lp_;
-  std::vector<std::size_t> Li_;
-  std::vector<UF>          Lx_;
-  std::vector<UF>          Dinv_;
+  std::vector<UF>          UDinv_;
 
   std::size_t ir_iter_           = 10;
   std::size_t gmres_iter_        = 10;
@@ -113,27 +109,30 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
                    [](TAx xi) { return static_cast<UW>(xi); });
   }
 
+  using std::abs;
+  using std::max;
+  using std::sqrt;
   // #########################################################################//
   // ##################### Diagonal Scaling of A #############################//
   // #########################################################################//
 
   // Compute scaling factor
-  D_.resize(n_);
-  using std::abs;
-  using std::sqrt;
+  AD_.resize(n_);
+#pragma omp parallel for schedule(static, 256)
   for (std::size_t col = 0; col < n_; col++) {
     for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
       const std::size_t row = Ai_[idx];
       if (row == col && abs(Ax_[idx]) > std::numeric_limits<UF>::epsilon()) {
-        D_[row] = 1.0 / sqrt(abs(Ax_[idx]));
+        AD_[row] = 1.0 / sqrt(abs(Ax_[idx]));
       }
     }
   }
   // Apply scaling
+#pragma omp parallel for schedule(static, 256)
   for (std::size_t col = 0; col < n_; ++col) {
     for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
       const std::size_t row = Ai_[idx];
-      Ax_[idx] *= D_[row] * D_[col];
+      Ax_[idx] *= AD_[row] * AD_[col];
     }
   }
 
@@ -192,12 +191,16 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // #########################################################################//
 
   Ux_.resize(Ui_.size());
+  UDinv_.resize(n_);
 #pragma omp parallel for
   for (std::size_t col = 0; col < n_; col++) {
     std::size_t idx1 = Up_[col], idx2 = Ap_[col];
     while (idx1 < Up_[col + 1] && idx2 < Ap_[col + 1]) {
       if (Ui_[idx1] == Ai_[idx2]) {
         Ux_[idx1] = static_cast<UF>(Ax_[idx2]);
+        if (Ui_[idx1] == col) {  // Memorize the inverse diagonal
+          UDinv_[col] = 1.0 / Ux_[idx1];
+        }
         idx1++;
         idx2++;
       } else if (Ui_[idx1] < Ai_[idx2]) {
@@ -211,10 +214,88 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // #########################################################################//
   // ##################### FGPILU Main Algorithm #############################//
   // #########################################################################//
+  UW nonlinear_residual_norm = 0.0;
+#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
+    schedule(dynamic, 8)
+  for (std::size_t col = 0; col < n_; col++) {
+    for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
+      const std::size_t row = Ui_[idx];
+      // Find A(row, col)
+      const UF ax = [this, &col, &row] {
+        for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
+          if (Ai_[idx] == row) {
+            return static_cast<UF>(Ax_[idx]);
+          }
+        }
+        return static_cast<UF>(0.0);
+      }();
+      // Inner product of A(:, row) and A(:, col) upto row (inclusive)
+      UF          sum  = 0.0;
+      std::size_t idx1 = Up_[row], idx2 = Up_[col];
+      while (idx1 < Up_[row + 1]) {
+        if (Ui_[idx1] == Ui_[idx2]) {
+          sum += Ux_[idx1] * Ux_[idx2];
+          idx1++;
+          idx2++;
+        } else if (Ui_[idx1] < Ui_[idx2]) {
+          idx1++;
+        } else {
+          idx2++;
+        }
+      }
+      nonlinear_residual_norm += abs(ax - sum);
+    }
+  }
+  std::println("Nonlinear residual norm @ 0 sweep is {:.8f}",
+               nonlinear_residual_norm);
 
-  constexpr std::size_t NUM_SWEEPS = 3;
-  for (std::size_t _ = 0; _ < NUM_SWEEPS; _++) {
+  constexpr std::size_t NUM_SWEEPS = 5;
+  for (std::size_t sweep = 0; sweep < NUM_SWEEPS; sweep++) {
+    std::vector<UF> Ux_new(Ux_.size()), UDinv_new(n_);
+
 #pragma omp parallel for schedule(dynamic, 8)
+    for (std::size_t col = 0; col < n_; col++) {
+      for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
+        const std::size_t row = Ui_[idx];
+        // Find A(row, col)
+        const UF ax = [this, &col, &row] {
+          for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
+            if (Ai_[idx] == row) {
+              return static_cast<UF>(Ax_[idx]);
+            }
+          }
+          return static_cast<UF>(0.0);
+        }();
+        // Inner product of A(:, row) and A(:, col) upto row (exclusive)
+        UF          sum  = 0.0;
+        std::size_t idx1 = Up_[row], idx2 = Up_[col];
+        while (idx1 < Up_[row + 1] - 1) {
+          if (Ui_[idx1] == Ui_[idx2]) {
+            sum += Ux_[idx1] * Ux_[idx2];
+            idx1++;
+            idx2++;
+          } else if (Ui_[idx1] < Ui_[idx2]) {
+            idx1++;
+          } else {
+            idx2++;
+          }
+        }
+        // Fill non-linear solution
+        UF s = ax - sum;
+        if (row != col) {
+          Ux_new[idx] = s / Ux_[Up_[row + 1] - 1];
+        } else {
+          Ux_new[idx]    = sqrt(max(s, tol_));
+          UDinv_new[row] = 1 / Ux_new[idx];
+        }
+      }
+    }
+    Ux_    = Ux_new;
+    UDinv_ = UDinv_new;
+
+    nonlinear_residual_norm = 0.0;
+#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
+    schedule(dynamic, 8)
     for (std::size_t col = 0; col < n_; col++) {
       for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
         const std::size_t row = Ui_[idx];
@@ -230,8 +311,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         // Inner product of A(:, row) and A(:, col) upto row
         UF          sum  = 0.0;
         std::size_t idx1 = Up_[row], idx2 = Up_[col];
-        while (idx1 < Up_[row + 1] && idx2 < Up_[col + 1]) {
-          if (Ui_[idx1] >= row || Ui_[idx2] >= row) break;
+        while (idx1 < Up_[row + 1]) {
           if (Ui_[idx1] == Ui_[idx2]) {
             sum += Ux_[idx1] * Ux_[idx2];
             idx1++;
@@ -242,15 +322,11 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
             idx2++;
           }
         }
-        // Fill non-linear solution
-        const UF s = ax - sum;
-        if (row != col) {
-          Ux_[idx] = s / Ux_[Up_[col + 1] - 1];
-        } else {
-          Ux_[idx] = sqrt(abs(s)) * (s < 0 ? -1 : 1);
-        }
+        nonlinear_residual_norm += abs(ax - sum);
       }
     }
+    std::println("Nonlinear residual norm @ {} sweep is {:.8f}", sweep + 1,
+                 nonlinear_residual_norm);
   }  // End of sweep
 }
 
@@ -312,7 +388,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   std::transform(r.cbegin(), r.cend(), v[0].begin(),
                  [](UR ri) { return static_cast<UW>(ri); });
   v[0] = TriangularSolve(v[0]);
-  v[0] = VectorScale<UW>(v[0], 1/rho);
+  v[0] = VectorScale<UW>(v[0], 1 / rho);
 
   std::vector<std::vector<UW>> h(gmres_iter_ + 1,
                                  std::vector<UW>(gmres_iter_, 0));
@@ -401,24 +477,30 @@ template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 std::vector<UW> GmresLDLIR<UF, UW, UR>::TriangularSolve(
     const std::vector<UW> &b) {
-  std::vector<UW> b_scaled = VectorMultiply<UW>(b, D_);
+  std::vector<UW> b_scaled = VectorMultiply<UW>(b, AD_);
   std::vector<UW> x        = b_scaled;
-  for (std::size_t _ = 0; _ < 10; _++) {
+  std::cout << Dnrm2<UW>(VectorSubtract<UF>(
+                   b_scaled, MatrixMultiply<UF, UW>(Up_, Ui_, Ux_, x)))
+            << std::endl;
+  for (std::size_t _ = 0; _ < 100; _++) {
     std::vector<UW> prod(x.size(), 0.0);
 #pragma omp parallel for
     for (std::size_t col = 0; col < n_; col++) {
       for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
         const std::size_t row = Ui_[idx];
         if (row < col) {
-          const UW d = Ux_[idx] * x[col];
+          const UW d = (1 - UDinv_[row] * Ux_[idx]) * x[col];
 #pragma omp atomic
           prod[row] += d;
         }
       }
     }
-    x = VectorSubtract<UW>(b_scaled, prod);
+    x = VectorAdd<UW>(prod, VectorMultiply<UW>(UDinv_, b_scaled));
   }
-  return VectorMultiply<UW>(x, D_);
+  std::cout << Dnrm2<UW>(VectorSubtract<UF>(
+                   b_scaled, MatrixMultiply<UF, UW>(Up_, Ui_, Ux_, x)))
+            << std::endl;
+  return VectorMultiply<UW>(x, AD_);
 }
 
 // End of GMRES_IR_HPP
