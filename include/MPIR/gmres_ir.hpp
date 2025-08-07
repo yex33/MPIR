@@ -39,7 +39,7 @@ class GmresLDLIR {
   std::size_t ir_iter_           = 10;
   std::size_t gmres_iter_        = 10;
   UR          tol_               = 1e-10;
-  const UW    STAGNATE_THRESHOLD = 0.5;
+  const UW    STAGNATE_THRESHOLD = 1;
 
   std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
                                const std::vector<UR> &b);
@@ -285,7 +285,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         if (row != col) {
           Ux_new[idx] = s / Ux_[Up_[row + 1] - 1];
         } else {
-          Ux_new[idx]    = sqrt(max(s, tol_));
+          Ux_new[idx]    = sqrt(max(s, static_cast<UF>(tol_)));
           UDinv_new[row] = 1 / Ux_new[idx];
         }
       }
@@ -335,9 +335,11 @@ template <typename UF, typename UW, typename UR>
 std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   if (ir_iter_ == 0) {
   }
-  std::vector<UW> x(b);
+  std::vector<UW> b_scaled = VectorMultiply<UW>(b, AD_);
+
+  std::vector<UW> x(b_scaled);
   std::vector<UR> b0          = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
-  std::vector<UR> r           = VectorSubtract<UR>(b, b0);
+  std::vector<UR> r           = VectorSubtract<UR>(b_scaled, b0);
   UW              d_norm_prev = std::numeric_limits<UW>::max();
   for (std::size_t _ = 0; _ < ir_iter_; _++) {
     UR scale          = InfNrm(r);
@@ -351,10 +353,10 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
     }
     x           = VectorAdd<UW>(x, d);
     b0          = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
-    r           = VectorSubtract<UR>(b, b0);
+    r           = VectorSubtract<UR>(b_scaled, b0);
     d_norm_prev = d_norm;
   }
-  return x;
+  return VectorMultiply<UW>(x, AD_);
 }
 
 template <typename UF, typename UW, typename UR>
@@ -415,6 +417,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
 
     // Brown/Hindmarsh condition for reorthogonalization
     if (normav + static_cast<UW>(0.001) * normav2 == normav) {
+      std::println("reorth triggered at iteration {}", k + 1);
       for (std::size_t j = 0; j <= k; j++) {
         UW hr = VectorDot<UW>(v[k + 1], v[j]);
         h[j][k] += hr;
@@ -446,7 +449,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
       h[k + 1][k] = 0.0;
 
       UW w1    = c[k] * g[k] - s[k] * g[k + 1];
-      UW w2    = s[k] * g[k] + s[k] * g[k + 1];
+      UW w2    = s[k] * g[k] + c[k] * g[k + 1];
       g[k]     = w1;
       g[k + 1] = w2;
     }
@@ -477,30 +480,27 @@ template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 std::vector<UW> GmresLDLIR<UF, UW, UR>::TriangularSolve(
     const std::vector<UW> &b) {
-  std::vector<UW> b_scaled = VectorMultiply<UW>(b, AD_);
-  std::vector<UW> x        = b_scaled;
-  std::cout << Dnrm2<UW>(VectorSubtract<UF>(
-                   b_scaled, MatrixMultiply<UF, UW>(Up_, Ui_, Ux_, x)))
-            << std::endl;
-  for (std::size_t _ = 0; _ < 100; _++) {
-    std::vector<UW> prod(x.size(), 0.0);
-#pragma omp parallel for
-    for (std::size_t col = 0; col < n_; col++) {
-      for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
-        const std::size_t row = Ui_[idx];
-        if (row < col) {
-          const UW d = (1 - UDinv_[row] * Ux_[idx]) * x[col];
-#pragma omp atomic
-          prod[row] += d;
-        }
+  std::vector<UW> x_ref(n_, 0.0);
+
+  // Solve Ux = b (U in CSC, upper triangular)
+  for (std::size_t col = n_; col-- >0;) {
+    UW sum = 0.0;
+    UW diag = 0.0;
+
+    for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; ++idx) {
+      std::size_t row = Ui_[idx];
+
+      if (row == col) {
+        diag = Ux_[idx];  // Diagonal entry
+      } else if (row < col) {
+        sum += Ux_[idx] * x_ref[row];
       }
     }
-    x = VectorAdd<UW>(prod, VectorMultiply<UW>(UDinv_, b_scaled));
+
+    x_ref[col] = (b[col] - sum) / diag;
   }
-  std::cout << Dnrm2<UW>(VectorSubtract<UF>(
-                   b_scaled, MatrixMultiply<UF, UW>(Up_, Ui_, Ux_, x)))
-            << std::endl;
-  return VectorMultiply<UW>(x, AD_);
+
+  return x_ref;
 }
 
 // End of GMRES_IR_HPP
