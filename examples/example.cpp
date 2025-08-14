@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
   using UF = double;
   using UW = double;
-  using UR = dd_real;
+  using UR = double;
 
   fmm::matrix_market_header header;
   std::vector<std::size_t>  rows, cols;
@@ -98,26 +98,25 @@ int main(int argc, char* argv[]) {
 
   GmresLDLIR<UF, UW, UR> solver;
   solver.SetTolerance(1e-16);
-  solver.SetMaxIRIterations(20);
-  solver.SetMaxGmresIterations(20);
+  solver.SetMaxIRIterations(200);
+  solver.SetMaxGmresIterations(10);
   // solver.Compute(Ap, Ai, Ax, 0);
   // std::cout << "factorization complete" << std::endl;
 
   auto start = std::chrono::high_resolution_clock::now();
-  solver.Compute(Ap, Ai, Ax, 1);
+  solver.Compute(Ap, Ai, Ax, 2);
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   std::cout << "factorization complete" << std::endl;
   std::cout << "Time taken: " << duration.count() << " ms\n";
 
-  std::vector<UW> x_ref(n, 1.0);
-  std::vector<UW> b = MatrixMultiply<UW, UR>(Ap, Ai, Ax, x_ref);
+  std::vector<UW> x_ref(n);
+  for (std::size_t i = 0; i < n; i++) {
+    x_ref[i] = static_cast<UW>(i + 1);
+  }
 
-  // std::vector<UW> b(n);
-  // for (std::size_t i = 0; i < n; i++) {
-  //   b[i] = i;
-  // }
-  //
+  std::vector<UW> b = MatrixMultiply<UW, UW>(Ap, Ai, Ax, x_ref);
+
   // std::vector<double> Ax_ref(nnz);
   // for (std::size_t i = 0; i < nnz; i++) {
   //   Ax_ref[i] = static_cast<double>(Ax[i]);
@@ -141,14 +140,20 @@ int main(int argc, char* argv[]) {
   std::cout << "Execution time: " << duration.count() << " ms" << std::endl;
 
   std::cout << "result dnrm2: "
-            << Dnrm2<dd_real>(VectorSubtract<dd_real>(x, x_ref)) /
-                   Dnrm2<dd_real>(x_ref)
+            << Dnrm2<dd_real, UW>(VectorSubtract<UW>(x, x_ref)) /
+                   Dnrm2<dd_real, UW>(x_ref)
             << std::endl;
   std::cout << "result infnorm: "
             << InfNrm(VectorSubtract<dd_real>(x, x_ref)) / InfNrm(x_ref)
             << std::endl
             << std::endl;
-  std::cout << InfNrm(VectorSubtract<dd_real>(b, MatrixMultiply<dd_real, dd_real>(Ap, Ai, Ax, x))) / InfNrm(b);
+  std::cout << InfNrm(VectorSubtract<dd_real>(b, MatrixMultiply<dd_real, dd_real>(Ap, Ai, Ax, x))) / InfNrm(b) << std::endl;
+
+  // std::print("x = ");
+  // for (std::size_t i = 0; i < n; i++) {
+  //   std::cout << x[i] << ", ";
+  // }
+  // std::cout << std::endl;
 
   // std::vector<UW> b(n);
   // {

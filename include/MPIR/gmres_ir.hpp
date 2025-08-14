@@ -39,7 +39,7 @@ class GmresLDLIR {
   std::size_t ir_iter_           = 10;
   std::size_t gmres_iter_        = 10;
   UR          tol_               = 1e-10;
-  const UW    STAGNATE_THRESHOLD = 1;
+  const UW    STAGNATE_THRESHOLD = 1000;
 
   std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
                                const std::vector<UR> &b);
@@ -190,6 +190,15 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // ##################### Initial Guesses for U #############################//
   // #########################################################################//
 
+  std::vector<UW> ADnorm(n_);
+  ADnorm[0] = 1;
+#pragma omp parallel for
+  for (std::size_t col = 1; col < n_; col++) {
+    auto column =
+        std::span<const UW>(Ax_).subspan(Ap_[col], Ap_[col + 1] - Ap_[col] - 1);
+    ADnorm[col] = Dnrm2<UW>(column);
+  }
+
   Ux_.resize(Ui_.size());
   UDinv_.resize(n_);
 #pragma omp parallel for
@@ -197,9 +206,13 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
     std::size_t idx1 = Up_[col], idx2 = Ap_[col];
     while (idx1 < Up_[col + 1] && idx2 < Ap_[col + 1]) {
       if (Ui_[idx1] == Ai_[idx2]) {
-        Ux_[idx1] = static_cast<UF>(Ax_[idx2]);
-        if (Ui_[idx1] == col) {  // Memorize the inverse diagonal
-          UDinv_[col] = 1.0 / Ux_[idx1];
+        if (Ui_[idx1] == col) {
+          // On diagonal
+          Ux_[idx1]   = static_cast<UF>(Ax_[idx2]);
+          UDinv_[col] = 1.0 / Ux_[idx1];  // Memorize the inverse
+        } else {
+          // Off diagonal
+          Ux_[idx1] = static_cast<UF>(Ax_[idx2] / ADnorm[col]);
         }
         idx1++;
         idx2++;
@@ -246,14 +259,14 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
       nonlinear_residual_norm += abs(ax - sum);
     }
   }
-  std::println("Nonlinear residual norm @ 0 sweep is {:.8f}",
+  std::println("Nonlinear residual norm @ 0 sweep is {:g}",
                nonlinear_residual_norm);
 
-  constexpr std::size_t NUM_SWEEPS = 5;
+  constexpr std::size_t NUM_SWEEPS = 10;
   for (std::size_t sweep = 0; sweep < NUM_SWEEPS; sweep++) {
     std::vector<UF> Ux_new(Ux_.size()), UDinv_new(n_);
 
-#pragma omp parallel for schedule(dynamic, 8)
+#pragma omp parallel for schedule(dynamic, 4096)
     for (std::size_t col = 0; col < n_; col++) {
       for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
         const std::size_t row = Ui_[idx];
@@ -269,7 +282,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         // Inner product of A(:, row) and A(:, col) upto row (exclusive)
         UF          sum  = 0.0;
         std::size_t idx1 = Up_[row], idx2 = Up_[col];
-        while (idx1 < Up_[row + 1] - 1) {
+        while (idx1 < Up_[row + 1] - 1 && idx2 < Up_[col + 1] - 1) {
           if (Ui_[idx1] == Ui_[idx2]) {
             sum += Ux_[idx1] * Ux_[idx2];
             idx1++;
@@ -283,10 +296,23 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         // Fill non-linear solution
         UF s = ax - sum;
         if (row != col) {
-          Ux_new[idx] = s / Ux_[Up_[row + 1] - 1];
+          const UF ux = Ux_[Up_[row + 1] - 1];
+          if (abs(ux) > tol_) {
+            Ux_new[idx] = s / ux;
+          } else {
+            Ux_new[idx] = s;
+          }
         } else {
-          Ux_new[idx]    = sqrt(max(s, static_cast<UF>(tol_)));
+          if (s > 0 && abs(s) > tol_) {
+            Ux_new[idx] = sqrt(s);
+          } else {
+            // std::println("breakdown");
+            Ux_new[idx] = Ux_[idx];
+          }
           UDinv_new[row] = 1 / Ux_new[idx];
+          if (std::isnan(Ux_new[idx]) || std::isnan(UDinv_new[row])) {
+            std::println("nan found at {}", idx);
+          }
         }
       }
     }
@@ -325,8 +351,9 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         nonlinear_residual_norm += abs(ax - sum);
       }
     }
-    std::println("Nonlinear residual norm @ {} sweep is {:.8f}", sweep + 1,
+    std::println("Nonlinear residual norm @ {} sweep is {:g}", sweep + 1,
                  nonlinear_residual_norm);
+    std::println("norm(UDinv) = {:g}", InfNrm(UDinv_));
   }  // End of sweep
 }
 
@@ -480,27 +507,34 @@ template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 std::vector<UW> GmresLDLIR<UF, UW, UR>::TriangularSolve(
     const std::vector<UW> &b) {
-  std::vector<UW> x_ref(n_, 0.0);
+  std::vector<UW> y(n_);
 
-  // Solve Ux = b (U in CSC, upper triangular)
-  for (std::size_t col = n_; col-- >0;) {
-    UW sum = 0.0;
-    UW diag = 0.0;
-
-    for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; ++idx) {
-      std::size_t row = Ui_[idx];
-
-      if (row == col) {
-        diag = Ux_[idx];  // Diagonal entry
-      } else if (row < col) {
-        sum += Ux_[idx] * x_ref[row];
+  // Forward solve: U^T y = b (lower-triangular system)
+  for (std::size_t col = 0; col < n_; col++) {
+    UW sum = static_cast<UW>(0);
+    for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
+      if (const std::size_t row = Ui_[idx]; row < col) {
+        sum += Ux_[idx] * y[row];
       }
     }
-
-    x_ref[col] = (b[col] - sum) / diag;
+    y[col] = (b[col] - sum) * UDinv_[col];
   }
 
-  return x_ref;
+  std::vector<UW> x = y;
+  // Backward solve: U x = y (upper-triangular system)
+  for (std::size_t col = n_; col-- > 0;) {
+    x[col] *= UDinv_[col];
+    if (std::isnan(x[col])) {
+      std::println("{}", col);
+      exit(1);
+    }
+    for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
+      if (const size_t row = Ui_[idx]; row < col) {
+        x[row] -= Ux_[idx] * x[col];
+      }
+    }
+  }
+  return x;
 }
 
 // End of GMRES_IR_HPP

@@ -7,6 +7,7 @@
 #include <cmath>
 #include <numeric>
 #include <vector>
+#include <span>
 
 #include "fp_concepts.hpp"
 
@@ -225,6 +226,39 @@ TEST_CASE("[MPIR] VectorDot") {
 template <typename T, typename Tx>
   requires Refinable<Tx, T>
 T Dnrm2(const std::vector<Tx> &x) {
+  using std::abs;
+  using std::sqrt;
+  if (x.size() == 0) {
+    return static_cast<T>(0);
+  }
+  if (x.size() == 1) {
+    return abs(static_cast<T>(x[0]));
+  }
+  T scale = static_cast<T>(0);
+  T ssq   = static_cast<T>(1);
+  for (std::size_t i = x.size(); i-- > 0;) {
+    if (static_cast<T>(x[i]) != static_cast<T>(0)) {
+      T x_abs = abs(static_cast<T>(x[i]));
+      if (scale < x_abs) {
+        ssq   = static_cast<T>(1) + ssq * ((scale / x_abs) * (scale / x_abs));
+        scale = x_abs;
+      } else {
+        ssq = ssq + ((x_abs / scale) * (x_abs / scale));
+      }
+    }
+  }
+  return scale * sqrt(ssq);
+}
+
+/**
+ * @brief Computes the Euclidean norm (2-norm) of a vector.
+ * @tparam T Precision of the 2-norm.
+ * @param x Input vector.
+ * @return The 2-norm of vector x.
+ */
+template <typename T, typename Tx>
+  requires Refinable<Tx, T>
+T Dnrm2(std::span<const Tx> x) {
   using std::abs;
   using std::sqrt;
   if (x.size() == 0) {
