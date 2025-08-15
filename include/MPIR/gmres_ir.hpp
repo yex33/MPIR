@@ -51,7 +51,7 @@ class GmresLDLIR {
                                const std::vector<UR> &b);
   template <typename T>
   std::vector<T> TriangularSolve(const std::vector<T> &b);
-  UF SparseLDotU(std::size_t row, std::size_t col, std::size_t cut);
+  UF             SparseLDotU(std::size_t row, std::size_t col, std::size_t cut);
 
  public:
   GmresLDLIR() = default;
@@ -267,7 +267,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
       const std::size_t col = Li_[idx];
       if (col >= row) continue;
       // Find A(row, col)
-      const UF ax = [this, row=col, col=row] {
+      const UF ax = [this, row = col, col = row] {
         for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
           if (Ai_[idx] == row) {
             return static_cast<UF>(Ax_[idx]);
@@ -313,7 +313,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
     for (std::size_t row = 0; row < n_; row++) {
       for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
         const std::size_t col = Li_[idx];
-        const UF          ax  = [this, row=col, col=row] {
+        const UF          ax  = [this, row = col, col = row] {
           for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
             if (Ai_[idx] == row) {
               return static_cast<UF>(Ax_[idx]);
@@ -357,7 +357,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         const std::size_t col = Li_[idx];
         if (col >= row) continue;
         // Find A(row, col)
-        const UF ax = [this, row=col, col=row] {
+        const UF ax = [this, row = col, col = row] {
           for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
             if (Ai_[idx] == row) {
               return static_cast<UF>(Ax_[idx]);
@@ -405,10 +405,12 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   }
   std::vector<UW> b_scaled = VectorMultiply<UW>(b, AD_);
 
-  std::vector<UW> x(b_scaled);
-  std::vector<UR> b0          = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
-  std::vector<UR> r           = VectorSubtract<UR>(b_scaled, b0);
-  UW              d_norm_prev = std::numeric_limits<UW>::max();
+  std::vector<UW> x = PrecondGmres(
+      {}, VectorSubtract<UR>(b_scaled, std::vector<UR>(b_scaled.size(), 0.0)));
+  std::vector<UR> b0 = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
+  std::vector<UR> r  = VectorSubtract<UR>(b_scaled, b0);
+  std::cout << "first residual " << static_cast<double>(InfNrm(r)) << std::endl;
+  UW d_norm_prev = std::numeric_limits<UW>::max();
   for (std::size_t _ = 0; _ < ir_iter_; _++) {
     UR scale          = InfNrm(r);
     r                 = VectorScale<UR>(r, static_cast<UR>(1) / scale);

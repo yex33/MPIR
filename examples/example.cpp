@@ -97,9 +97,9 @@ int main(int argc, char* argv[]) {
   }
 
   GmresLDLIR<UF, UW, UR> solver;
-  solver.SetTolerance(1e-16);
+  solver.SetTolerance(1e-15);
   solver.SetMaxIRIterations(1000);
-  solver.SetMaxGmresIterations(4);
+  solver.SetMaxGmresIterations(5);
   // solver.Compute(Ap, Ai, Ax, 0);
   // std::cout << "factorization complete" << std::endl;
 
