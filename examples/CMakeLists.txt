@@ -12,7 +12,7 @@ find_package(OpenMP REQUIRED)
 add_executable(example ${EXAMPLES_DIR}/example.cpp)
 target_link_libraries(example PRIVATE
         fast_matrix_market::fast_matrix_market
-        OpenMP::OpenMP_CXX
+        $<$<CONFIG:Release>:OpenMP::OpenMP_CXX>
         MPIR
 )
 if (QD)
