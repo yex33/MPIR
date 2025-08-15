@@ -49,7 +49,8 @@ class GmresLDLIR {
 
   std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
                                const std::vector<UR> &b);
-  std::vector<UW> TriangularSolve(const std::vector<UW> &b);
+  template <typename T>
+  std::vector<T> TriangularSolve(const std::vector<T> &b);
   UF SparseLDotU(std::size_t row, std::size_t col, std::size_t cut);
 
  public:
@@ -545,22 +546,23 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
-std::vector<UW> GmresLDLIR<UF, UW, UR>::TriangularSolve(
-    const std::vector<UW> &b) {
-  std::vector<UW> y(n_);
+template <typename T>
+std::vector<T> GmresLDLIR<UF, UW, UR>::TriangularSolve(
+    const std::vector<T> &b) {
+  std::vector<T> y(n_);
 
   // Forward solve: L y = b (lower-triangular system)
   for (std::size_t row = 0; row < n_; row++) {
-    UW sum = static_cast<UW>(0);
+    T sum = static_cast<T>(0);
     for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
-      if (const std::size_t col = Li_[idx]; row != col) {
+      if (const std::size_t col = Li_[idx]; col < row) {
         sum += Lx_[idx] * y[col];
       }
     }
     y[row] = b[row] - sum;
   }
 
-  std::vector<UW> x = y;
+  std::vector<T> x = y;
   // Backward solve: U x = y (upper-triangular system)
   for (std::size_t col = n_; col-- > 0;) {
     x[col] *= UDinv_[col];
@@ -569,7 +571,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::TriangularSolve(
       exit(1);
     }
     for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
-      if (const size_t row = Ui_[idx]; row != col) {
+      if (const size_t row = Ui_[idx]; row < col) {
         x[row] -= Ux_[idx] * x[col];
       }
     }
