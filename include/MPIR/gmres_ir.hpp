@@ -409,7 +409,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
       {}, VectorSubtract<UR>(b_scaled, std::vector<UR>(b_scaled.size(), 0.0)));
   std::vector<UR> b0 = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
   std::vector<UR> r  = VectorSubtract<UR>(b_scaled, b0);
-  std::cout << "first residual " << static_cast<double>(InfNrm(r)) << std::endl;
+  std::cout << "first residual " << Dnrm2<double>(r) / Dnrm2<double>(b_scaled) << std::endl;
   UW d_norm_prev = std::numeric_limits<UW>::max();
   for (std::size_t _ = 0; _ < ir_iter_; _++) {
     UR scale          = InfNrm(r);
@@ -460,6 +460,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
   std::transform(r.cbegin(), r.cend(), v[0].begin(),
                  [](UR ri) { return static_cast<UW>(ri); });
   v[0] = TriangularSolve(v[0]);
+  rho = Dnrm2<UW>(v[0]);
   v[0] = VectorScale<UW>(v[0], 1 / rho);
 
   std::vector<std::vector<UW>> h(gmres_iter_ + 1,
@@ -486,15 +487,15 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
     UW normav2 = h[k + 1][k] = Dnrm2<UW>(v[k + 1]);
 
     // Brown/Hindmarsh condition for reorthogonalization
-    // if (normav + static_cast<UW>(0.001) * normav2 == normav) {
-    //   std::println("reorth triggered at iteration {}", k + 1);
-    //   for (std::size_t j = 0; j <= k; j++) {
-    //     UW hr = VectorDot<UW>(v[k + 1], v[j]);
-    //     h[j][k] += hr;
-    //     v[k + 1] = VectorSubtract<UW>(v[k + 1], VectorScale<UW>(v[j], hr));
-    //   }
-    //   h[k + 1][k] = Dnrm2<UW>(v[k + 1]);
-    // }
+    if (normav + static_cast<UW>(0.001) * normav2 == normav) {
+      std::println("reorth triggered at iteration {}", k + 1);
+      for (std::size_t j = 0; j <= k; j++) {
+        UW hr = VectorDot<UW>(v[k + 1], v[j]);
+        h[j][k] += hr;
+        v[k + 1] = VectorSubtract<UW>(v[k + 1], VectorScale<UW>(v[j], hr));
+      }
+      h[k + 1][k] = Dnrm2<UW>(v[k + 1]);
+    }
 
     // Watch for happy breakdown
     if (h[k + 1][k] != 0) {

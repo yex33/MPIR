@@ -97,9 +97,9 @@ int main(int argc, char* argv[]) {
   }
 
   GmresLDLIR<UF, UW, UR> solver;
-  solver.SetTolerance(1e-15);
-  solver.SetMaxIRIterations(1000);
-  solver.SetMaxGmresIterations(5);
+  solver.SetTolerance(1e-5);
+  solver.SetMaxIRIterations(100);
+  solver.SetMaxGmresIterations(50);
   // solver.Compute(Ap, Ai, Ax, 0);
   // std::cout << "factorization complete" << std::endl;
 
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
 
   std::vector<UW> x_ref(n);
   for (std::size_t i = 0; i < n; i++) {
-    x_ref[i] = static_cast<UW>(i + 1);
+    x_ref[i] = static_cast<UW>(1);
   }
 
   std::vector<UW> b = MatrixMultiply<UW, UW>(Ap, Ai, Ax, x_ref);
