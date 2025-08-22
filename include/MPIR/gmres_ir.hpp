@@ -56,11 +56,13 @@ class GmresLDLIR {
   UR          tol_               = 1e-10;
   const UW    STAGNATE_THRESHOLD = 1000;
 
-  std::vector<UW> PrecondGmres(const std::vector<UW> &x0,
-                               const std::vector<UR> &b);
+  std::vector<UW> PrecondGmres(const std::vector<UW> &b);
   template <typename T>
   std::vector<T> TriangularSolve(const std::vector<T> &b);
   UF             SparseLDotU(std::size_t row, std::size_t col, std::size_t cut);
+  UW             NLResNorm();
+  template <typename T = UW>
+  T ValueAt(std::size_t row, std::size_t col);
 
  public:
   GmresLDLIR() = default;
@@ -129,6 +131,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   using std::abs;
   using std::max;
   using std::sqrt;
+
   // #########################################################################//
   // ##################### Diagonal Scaling of A #############################//
   // #########################################################################//
@@ -227,7 +230,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         if (Ui_[idx1] == col) {
           // On diagonal
           Ux_[idx1]   = static_cast<UF>(Ax_[idx2]);
-          UDinv_[col] = 1.0 / Ux_[idx1];  // Memorize the inverse
+          UDinv_[col] = static_cast<UF>(1) / Ux_[idx1];  // Memorize the inverse
         } else {
           // Off diagonal
           Ux_[idx1] = static_cast<UF>(Ax_[idx2] / ADnorm[col]);
@@ -250,46 +253,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // ##################### FGPILU Main Algorithm #############################//
   // #########################################################################//
 
-  UW nonlinear_residual_norm = 0.0;
-#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
-    schedule(dynamic, 8)
-  for (std::size_t col = 0; col < n_; col++) {
-    for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
-      const std::size_t row = Ui_[idx];
-      // Find A(row, col)
-      const UF ax = [this, col, row] {
-        for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
-          if (Ai_[idx] == row) {
-            return static_cast<UF>(Ax_[idx]);
-          }
-        }
-        return static_cast<UF>(0.0);
-      }();
-      UF sum = SparseLDotU(row, col, row + 1);
-      nonlinear_residual_norm += abs(ax - sum);
-    }
-  }
-#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
-    schedule(dynamic, 8)
-  for (std::size_t row = 0; row < n_; row++) {
-    for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
-      const std::size_t col = Li_[idx];
-      if (col >= row) continue;
-      // Find A(row, col)
-      const UF ax = [this, row = col, col = row] {
-        for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
-          if (Ai_[idx] == row) {
-            return static_cast<UF>(Ax_[idx]);
-          }
-        }
-        return static_cast<UF>(0.0);
-      }();
-      UF sum = SparseLDotU(row, col, col + 1);
-      nonlinear_residual_norm += abs(ax - sum);
-    }
-  }
-  std::println("Nonlinear residual norm @ 0 sweep is {:g}",
-               nonlinear_residual_norm);
+  std::println("Nonlinear residual norm @ 0 sweep is {:g}", NLResNorm());
 
   constexpr std::size_t NUM_SWEEPS = 10;
   for (std::size_t sweep = 0; sweep < NUM_SWEEPS; sweep++) {
@@ -301,19 +265,12 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
       for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
         const std::size_t row = Ui_[idx];
         // Find A(row, col)
-        const UF ax = [this, col, row] {
-          for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
-            if (Ai_[idx] == row) {
-              return static_cast<UF>(Ax_[idx]);
-            }
-          }
-          return static_cast<UF>(0.0);
-        }();
-        UF sum = SparseLDotU(row, col, row);
+        const UF ax = ValueAt<UF>(row, col);
+        const UF sum = SparseLDotU(row, col, row);
         // Fill non-linear solution
         Ux_new[idx] = ax - sum;
         if (row == col) {
-          UDinv_new[row] = 1.0 / Ux_new[idx];
+          UDinv_new[row] = static_cast<UF>(1) / Ux_new[idx];
         }
       }
     }
@@ -322,15 +279,9 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
     for (std::size_t row = 0; row < n_; row++) {
       for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
         const std::size_t col = Li_[idx];
-        const UF          ax  = [this, row = col, col = row] {
-          for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
-            if (Ai_[idx] == row) {
-              return static_cast<UF>(Ax_[idx]);
-            }
-          }
-          return static_cast<UF>(0.0);
-        }();
-        UF sum = SparseLDotU(row, col, col);
+        // Find A(col, row) because the matrix is symmetric
+        const UF ax = ValueAt<UF>(col, row);
+        const UF sum = SparseLDotU(row, col, col);
         // Fill non-linear solution
         Lx_new[idx] = (ax - sum) * UDinv_[col];
       }
@@ -340,71 +291,10 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
     Lx_    = Lx_new;
     UDinv_ = UDinv_new;
 
-    nonlinear_residual_norm = 0.0;
-#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
-    schedule(dynamic, 8)
-    for (std::size_t col = 0; col < n_; col++) {
-      for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
-        const std::size_t row = Ui_[idx];
-        // Find A(row, col)
-        const UF ax = [this, col, row] {
-          for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
-            if (Ai_[idx] == row) {
-              return static_cast<UF>(Ax_[idx]);
-            }
-          }
-          return static_cast<UF>(0.0);
-        }();
-        UF sum = SparseLDotU(row, col, row + 1);
-        nonlinear_residual_norm += abs(ax - sum);
-      }
-    }
-#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
-    schedule(dynamic, 8)
-    for (std::size_t row = 0; row < n_; row++) {
-      for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
-        const std::size_t col = Li_[idx];
-        if (col >= row) continue;
-        // Find A(row, col)
-        const UF ax = [this, row = col, col = row] {
-          for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
-            if (Ai_[idx] == row) {
-              return static_cast<UF>(Ax_[idx]);
-            }
-          }
-          return static_cast<UF>(0.0);
-        }();
-        UF sum = SparseLDotU(row, col, col + 1);
-        nonlinear_residual_norm += abs(ax - sum);
-      }
-    }
     std::println("Nonlinear residual norm @ {} sweep is {:g}", sweep + 1,
-                 nonlinear_residual_norm);
+                 NLResNorm());
     std::println("norm(UDinv) = {:g}", InfNrm(UDinv_));
   }  // End of sweep
-}
-
-template <typename UF, typename UW, typename UR>
-  requires Refinable<UF, UW, UR>
-UF GmresLDLIR<UF, UW, UR>::SparseLDotU(std::size_t row,
-                                       std::size_t col,
-                                       std::size_t cut) {
-  std::size_t idx1 = Lp_[row], idx2 = Up_[col];
-  auto        sum = static_cast<UF>(0);
-  while (idx1 < Lp_[row + 1] && idx2 < Up_[col + 1]) {
-    const std::size_t kL = Li_[idx1], kU = Ui_[idx2];
-    if (kL >= cut || kU >= cut) break;
-    if (kL == kU) {
-      sum += Lx_[idx1] * Ux_[idx2];
-      idx1++;
-      idx2++;
-    } else if (kL < kU) {
-      idx1++;
-    } else {
-      idx2++;
-    }
-  }
-  return sum;
 }
 
 template <typename UF, typename UW, typename UR>
@@ -414,24 +304,24 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   }
   std::vector<UW> b_scaled = VectorMultiply<UW>(b, AD_);
 
-  std::vector<UW> x = PrecondGmres(
-      {}, VectorSubtract<UR>(b_scaled, std::vector<UR>(b_scaled.size(), 0.0)));
-  std::vector<UR> b0 = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
+  std::vector<UW> x  = PrecondGmres(b_scaled);
+  std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
   std::vector<UR> r  = VectorSubtract<UR>(b_scaled, b0);
-  std::cout << "first residual " << Dnrm2<double>(r) / Dnrm2<double>(b_scaled) << std::endl;
+  std::cout << "first residual " << Dnrm2<double>(r) / Dnrm2<double>(b_scaled)
+            << std::endl;
   UW d_norm_prev = std::numeric_limits<UW>::max();
   for (std::size_t _ = 0; _ < ir_iter_; _++) {
-    UR scale          = InfNrm(r);
-    r                 = VectorScale<UR>(r, static_cast<UR>(1) / scale);
-    std::vector<UW> d = PrecondGmres({}, r);
-    d                 = VectorScale<UW>(d, scale);
-    UW d_norm         = InfNrm(d);
+    UR              scale = InfNrm(r);
+    std::vector<UW> b     = VectorScale<UW, UR>(r, static_cast<UR>(1) / scale);
+    std::vector<UW> d     = PrecondGmres(b);
+    d                     = VectorScale<UW>(d, scale);
+    UW d_norm             = InfNrm(d);
     std::cout << "residual " << static_cast<double>(d_norm) << std::endl;
     if (d_norm < tol_ || d_norm / d_norm_prev >= STAGNATE_THRESHOLD) {
       break;
     }
     x           = VectorAdd<UW>(x, d);
-    b0          = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x);
+    b0          = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
     r           = VectorSubtract<UR>(b_scaled, b0);
     d_norm_prev = d_norm;
   }
@@ -440,8 +330,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
-std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
-                                                     const std::vector<UR> &b) {
+std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &b) {
   if (b.size() != n_) {
     // TODO set solver info
     return {};
@@ -449,27 +338,16 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &x0,
 
   std::vector<UW> res(n_, 0);
 
-  std::vector<UR> r(n_);
-  if (x0.empty()) {
-    r = b;
-  } else {
-    std::vector<UR> b0 = MatrixMultiply<UR, UR>(Ap_, Ai_, Ax_, x0);
-    r                  = VectorSubtract<UR>(b, b0);
-    res                = x0;
-  }
-
-  UR rho = Dnrm2<UR>(r);
+  UW rho = Dnrm2<UW>(b);
   if (rho < tol_) {
     return res;
   }
 
   std::vector<std::vector<UW>> v;
   v.reserve(gmres_iter_ + 1);
-  v.emplace_back(n_, 0);
-  std::transform(r.cbegin(), r.cend(), v[0].begin(),
-                 [](UR ri) { return static_cast<UW>(ri); });
+  v.push_back(b);
   v[0] = TriangularSolve(v[0]);
-  rho = Dnrm2<UW>(v[0]);
+  rho  = Dnrm2<UW>(v[0]);
   v[0] = VectorScale<UW>(v[0], 1 / rho);
 
   std::vector<std::vector<UW>> h(gmres_iter_ + 1,
@@ -592,6 +470,73 @@ std::vector<T> GmresLDLIR<UF, UW, UR>::TriangularSolve(
   }
   return x;
 }
+
+template <typename UF, typename UW, typename UR>
+  requires Refinable<UF, UW, UR>
+UF GmresLDLIR<UF, UW, UR>::SparseLDotU(std::size_t row,
+                                       std::size_t col,
+                                       std::size_t cut) {
+  std::size_t idx1 = Lp_[row], idx2 = Up_[col];
+  auto        sum = static_cast<UF>(0);
+  while (idx1 < Lp_[row + 1] && idx2 < Up_[col + 1]) {
+    const std::size_t kL = Li_[idx1], kU = Ui_[idx2];
+    if (kL >= cut || kU >= cut) break;
+    if (kL == kU) {
+      sum += Lx_[idx1] * Ux_[idx2];
+      idx1++;
+      idx2++;
+    } else if (kL < kU) {
+      idx1++;
+    } else {
+      idx2++;
+    }
+  }
+  return sum;
+}
+
+template <typename UF, typename UW, typename UR>
+  requires Refinable<UF, UW, UR>
+UW GmresLDLIR<UF, UW, UR>::NLResNorm() {
+  UW nonlinear_residual_norm = 0.0;
+#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
+    schedule(dynamic, 8)
+  for (std::size_t col = 0; col < n_; col++) {
+    for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
+      const std::size_t row = Ui_[idx];
+      // Find A(row, col)
+      const UF ax = ValueAt<UF>(row, col);
+      const UF sum = SparseLDotU(row, col, row + 1);
+      nonlinear_residual_norm += abs(ax - sum);
+    }
+  }
+#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
+    schedule(dynamic, 8)
+  for (std::size_t row = 0; row < n_; row++) {
+    for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
+      const std::size_t col = Li_[idx];
+      if (col >= row) continue;
+      // Find A(col, row)
+      const UF ax = ValueAt<UF>(col, row);
+      const UF sum = SparseLDotU(row, col, col + 1);
+      nonlinear_residual_norm += abs(ax - sum);
+    }
+  }
+  return nonlinear_residual_norm;
+}
+
+template <typename UF, typename UW, typename UR>
+  requires Refinable<UF, UW, UR>
+template <typename T>
+T GmresLDLIR<UF, UW, UR>::ValueAt(const std::size_t row,
+                                  const std::size_t col) {
+  for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
+    if (Ai_[idx] == row) {
+      return static_cast<T>(Ax_[idx]);
+    }
+  }
+  return static_cast<T>(0.0);
+}
+
 
 // End of GMRES_IR_HPP
 #endif
