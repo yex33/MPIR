@@ -6,22 +6,23 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
-#include <vector>
 #include <span>
+#include <vector>
 
 #include "fp_concepts.hpp"
 
 /**
  * @brief Multiplies a sparse matrix in CSC format by a vector.
  * @tparam T Precision of the matrix-vector product.
- * @tparam Top Precision in which the calculations will perform
+ * @tparam Top Optional. Precision in which the calculations will perform. Set
+ * to T by default.
  * @param Ap Column pointers of the matrix in CSC format.
  * @param Ai Row indices of the matrix in CSC format.
  * @param Ax Non-zero values of the matrix in CSC format.
  * @param x Vector being multiplied.
  * @return The matrix-vector product.
  */
-template <typename T, typename Top, typename Ta, typename Tx>
+template <typename T, typename Top = T, typename Ta, typename Tx>
   requires Refinable<T, Top>
 std::vector<T> MatrixMultiply(const std::vector<std::size_t> &Ap,
                               const std::vector<std::size_t> &Ai,
@@ -150,15 +151,19 @@ TEST_CASE("[MPIR] VectorMultiply") {
 /**
  * @brief Scales a vector by a scalar value.
  * @tparam T Precision of the vector after scaling.
+ * @tparam Top Optional. Precision in which the calculations will perform. Set
+ * to T by default.
  * @param a Input vector.
  * @param b Scalar multiplier.
  * @return The vector a scaled by b.
  */
-template <typename T, typename Ta, typename Tb>
+template <typename T, typename Ta, typename Tb, typename Top = T>
+  requires Refinable<T, Top>
 std::vector<T> VectorScale(const std::vector<Ta> &a, Tb b) {
   std::vector<T> res(a.size());
-  std::transform(a.cbegin(), a.cend(), res.begin(),
-                 [b](Ta ai) { return static_cast<T>(ai) * static_cast<T>(b); });
+  std::transform(a.cbegin(), a.cend(), res.begin(), [b](Ta ai) {
+    return static_cast<T>(static_cast<Top>(ai) * static_cast<Top>(b));
+  });
   return res;
 }
 
@@ -224,7 +229,6 @@ TEST_CASE("[MPIR] VectorDot") {
  * @return The 2-norm of vector x.
  */
 template <typename T, typename Tx>
-  requires Refinable<Tx, T>
 T Dnrm2(const std::vector<Tx> &x) {
   using std::abs;
   using std::sqrt;
@@ -257,7 +261,6 @@ T Dnrm2(const std::vector<Tx> &x) {
  * @return The 2-norm of vector x.
  */
 template <typename T, typename Tx>
-  requires Refinable<Tx, T>
 T Dnrm2(std::span<const Tx> x) {
   using std::abs;
   using std::sqrt;
