@@ -92,6 +92,47 @@ class GmresLDLIR {
 
   const UW STAGNATE_THRESHOLD = 1000;
 
+  /**
+   * @brief Solves the linear system A x = b using left-preconditioned GMRES.
+   *
+   * This function implements **one iteration** of the restarted GMRES
+   * (Generalized Minimal Residual) algorithm with an LU/IC preconditioner
+   * applied at each iteration.
+   *
+   * The algorithm:
+   *  - Initializes the Krylov subspace with the preconditioned right-hand side
+   * b.
+   *  - Iteratively builds an orthonormal Krylov basis using Modified
+   * Gram-Schmidt.
+   *  - Applies Givens rotations to maintain an upper Hessenberg least-squares
+   * problem.
+   *  - Uses the preconditioner (TriangularSolve) on every matrix-vector
+   * product.
+   *  - Stops when the residual norm drops below the tolerance @c tol_ or when
+   *    @c gmres_iter_ iterations are reached.
+   *
+   * @param b Right-hand side vector of length n_.
+   * @return Approximate solution vector x of length n_.
+   *
+   * @note
+   * - The Krylov subspace size is controlled by @c gmres_iter_.
+   * - Uses Modified Gram-Schmidt with optional reorthogonalization
+   *   (Brown/Hindmarsh criterion).
+   * - The residual norm can fluctuate between iterations due to finite
+   * precision, but overall convergence is expected if the preconditioner is
+   * effective.
+   *
+   * @complexity
+   * - Each GMRES iteration costs:
+   *   - One sparse matrix-vector product (O(nnz(A))),
+   *   - One preconditioner application via triangular solves (O(nnz(L) +
+   * nnz(U))),
+   *   - Orthogonalization against k previous vectors (O(n·k)).
+   * - The total per restart is approximately O(k·nnz(A) + n·k²),
+   *   where k = @c gmres_iter_ and n = matrix size.
+   *
+   * @see TriangularSolve, MatrixMultiply
+   */
   std::vector<UW> PrecondGmres(const std::vector<UW> &b);
 
   /**
