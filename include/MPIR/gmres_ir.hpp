@@ -210,16 +210,6 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // ##################### Initial Guesses for U #############################//
   // #########################################################################//
 
-  std::vector<UW> ADnorm(n_);
-  ADnorm[0] = 1;
-#pragma omp parallel for
-  for (std::size_t col = 1; col < n_; col++) {
-    auto column =
-        std::span<const UW>(Ax_).subspan(Ap_[col], Ap_[col + 1] - Ap_[col] - 1);
-    ADnorm[col] = Dnrm2<UW>(column);
-    ADnorm[col] = 1;
-  }
-
   Ux_.assign(Ui_.size(), 0);
   UDinv_.resize(n_);
 #pragma omp parallel for
@@ -233,7 +223,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
           UDinv_[col] = static_cast<UF>(1) / Ux_[idx1];  // Memorize the inverse
         } else {
           // Off diagonal
-          Ux_[idx1] = static_cast<UF>(Ax_[idx2] / ADnorm[col]);
+          Ux_[idx1] = static_cast<UF>(Ax_[idx2]);
         }
         idx1++;
         idx2++;
