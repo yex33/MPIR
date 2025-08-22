@@ -90,7 +90,7 @@ class GmresLDLIR {
       10;           ///< Max inner GMRES iterations per refinement step.
   UR tol_ = 1e-10;  ///< Convergence tolerance on residual norm.
 
-  const UW STAGNATE_THRESHOLD = 1000;
+  const UW STAGNATE_THRESHOLD = 1;
 
   /**
    * @brief Solves the linear system A x = b using left-preconditioned GMRES.
@@ -441,6 +441,8 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
+  using std::abs;
+
   if (ir_iter_ == 0) {
   }
   std::vector<UW> b_scaled = VectorMultiply<UW>(b, AD_);
@@ -448,22 +450,28 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   std::vector<UW> x  = PrecondGmres(b_scaled);
   std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
   std::vector<UR> r  = VectorSubtract<UR>(b_scaled, b0);
-  std::cout << "first residual " << Dnrm2<double>(r) / Dnrm2<double>(b_scaled)
-            << std::endl;
+  std::println("first residual {:g}", InfNrm(r));
   UW d_norm_prev = std::numeric_limits<UW>::max();
+  UR r_norm_prev = std::numeric_limits<UR>::max();
   for (std::size_t _ = 0; _ < ir_iter_; _++) {
     UR              scale = InfNrm(r);
     std::vector<UW> b     = VectorScale<UW, UR>(r, static_cast<UR>(1) / scale);
     std::vector<UW> d     = PrecondGmres(b);
     d                     = VectorScale<UW>(d, scale);
     UW d_norm             = InfNrm(d);
-    std::cout << "residual " << static_cast<double>(d_norm) << std::endl;
-    if (d_norm < tol_ || d_norm / d_norm_prev >= STAGNATE_THRESHOLD) {
+    UW x_norm             = InfNrm(x);
+    // std::cout << "residual " << static_cast<double>(d_norm) << std::endl;
+    // || d_norm >= 0.5 * d_norm_prev
+    x         = VectorAdd<UW>(x, d);
+    b0        = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
+    r         = VectorSubtract<UR>(b_scaled, b0);
+    UR r_norm = InfNrm(r);
+    std::println("residual {:g}", InfNrm(r));
+    if (d_norm <= x_norm * (10 * std::numeric_limits<UW>::epsilon()) ||
+        abs(r_norm - r_norm_prev) < tol_) {
       break;
     }
-    x           = VectorAdd<UW>(x, d);
-    b0          = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
-    r           = VectorSubtract<UR>(b_scaled, b0);
+    r_norm_prev = r_norm;
     d_norm_prev = d_norm;
   }
   return VectorMultiply<UW>(x, AD_);
