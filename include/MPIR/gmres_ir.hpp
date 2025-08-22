@@ -24,51 +24,160 @@
 #endif
 
 /**
- * @brief Class implementing GMRES with LDLT-based iterative refinement in
+ * @brief GMRES with Iterative Refinement and ILU/IC Preconditioning in
  * mixed-precisions.
- * @tparam UF Factorization precision.
- * @tparam UW Working precision.
- * @tparam UR Residual precision.
+ *
+ * This class implements a GMRES solver with iterative refinement (IR),
+ * using an incomplete LU/LDL factorization as a preconditioner.
+ *
+ * Matrix A is assumed square (n × n) and symmetric. Only its upper triangular
+ * part is stored in **CSC format**. Preconditioner factors L and U are stored
+ * in mixed CSR/CSC formats for efficient triangular solves:
+ *
+ *   A ≈ L * U
+ *
+ * Storage layout:
+ *
+ *   - Input matrix A: CSC (Ap_, Ai_, Ax_)
+ *   - Factor U      : CSC (Up_, Ui_, Ux_)
+ *   - Factor L      : CSR (Lp_, Li_, Lx_)
+ *
+ * CSC format (Compressed Sparse Column):
+ *
+ *   Ap[j]..Ap[j+1]-1 → nonzeros of column j
+ *   Ai[k]            → row index of Ax[k]
+ *   Ax[k]            → value
+ *
+ * CSR format (Compressed Sparse Row):
+ *
+ *   Lp[i]..Lp[i+1]-1 → nonzeros of row i
+ *   Li[k]            → column index of Lx[k]
+ *   Lx[k]            → value
+ *
+ * Diagonal entries of U are stored separately in UDinv_ as their inverses
+ * for fast backward substitution.
+ *
+ * @tparam UF Factorization precision type (low precision, e.g. float, double)
+ * @tparam UW Working precision type (e.g. double, quad)
+ * @tparam UR Residual precision type (e.g. quad)
  */
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 class GmresLDLIR {
- private:
-  std::size_t              n_ = 0;
-  std::vector<std::size_t> Ap_;
-  std::vector<std::size_t> Ai_;
-  std::vector<UW>          Ax_;
-  std::vector<UW>          AD_;
+  std::size_t n_ = 0;  ///< Dimension of the system matrix A (n × n).
 
-  // U in CSC
-  std::vector<std::size_t> Up_;
-  std::vector<std::size_t> Ui_;
-  std::vector<UF>          Ux_;
-  std::vector<UF>          UDinv_;
+  // ----------------- Input matrix A (CSC format) -----------------
+  std::vector<std::size_t> Ap_;  ///< Column pointers of A (CSC), size n_+1.
+  std::vector<std::size_t> Ai_;  ///< Row indices of A’s nonzeros (CSC).
+  std::vector<UW>          Ax_;  ///< Nonzero values of A (CSC).
+  std::vector<UW>          AD_;  ///< Cached diagonal entries of A.
 
-  // L in CSR
-  std::vector<std::size_t> Lp_;
-  std::vector<std::size_t> Li_;
-  std::vector<UF>          Lx_;
+  // ----------------- Factor U (upper-triangular, CSC) -------------
+  std::vector<std::size_t> Up_;     ///< Column pointers of U (CSC), size n_+1.
+  std::vector<std::size_t> Ui_;     ///< Row indices of U’s nonzeros (CSC).
+  std::vector<UF>          Ux_;     ///< Nonzero values of U (CSC).
+  std::vector<UF>          UDinv_;  ///< Inverses of diagonal entries of U.
 
-  std::size_t ir_iter_           = 10;
-  std::size_t gmres_iter_        = 10;
-  UR          tol_               = 1e-10;
-  const UW    STAGNATE_THRESHOLD = 1000;
+  // ----------------- Factor L (lower-triangular, CSR) -------------
+  std::vector<std::size_t> Lp_;  ///< Row pointers of L (CSR), size n_+1.
+  std::vector<std::size_t> Li_;  ///< Column indices of L’s nonzeros (CSR).
+  std::vector<UF>          Lx_;  ///< Nonzero values of L (CSR).
+
+  // ----------------- Solver configuration ------------------------
+  std::size_t ir_iter_ =
+      10;  ///< Max outer iterations for iterative refinement.
+  std::size_t gmres_iter_ =
+      10;           ///< Max inner GMRES iterations per refinement step.
+  UR tol_ = 1e-10;  ///< Convergence tolerance on residual norm.
+
+  const UW STAGNATE_THRESHOLD = 1000;
 
   std::vector<UW> PrecondGmres(const std::vector<UW> &b);
+
+  /**
+   * @brief Solves a linear system using the ILU/IC preconditioner.
+   *
+   * Performs a two-step triangular solve:
+   *   1. Forward substitution: solve L * y = b, where L is lower-triangular
+   * (CSR).
+   *   2. Backward substitution: solve U * x = y, where U is upper-triangular
+   * (CSC).
+   *
+   * Diagonal entries of U are pre-inverted and stored in UDinv_ for efficiency.
+   *
+   * @tparam T Numeric type of the solve. Deduced from the value type of b.
+   * @param b Right-hand side vector of size n_.
+   * @return Solution vector x of size n_.
+   *
+   * @note Assumes that L has implicit unit diagonal and that U’s diagonal
+   *       entries are nonzero (UDinv_ is valid).
+   */
   template <typename T>
   std::vector<T> TriangularSolve(const std::vector<T> &b);
-  UF             SparseLDotU(std::size_t row, std::size_t col, std::size_t cut);
-  UW             NLResNorm();
-  template <typename T = UW>
-  T ValueAt(std::size_t row, std::size_t col);
+
+  /**
+   * @brief Computes a truncated dot product between row of L and column of U.
+   *
+   * Given row index @p row (from L, CSR) and column index @p col (from U, CSC),
+   * computes the inner product:
+   *
+   *    sum_{k < cut} L(row, k) * U(k, col)
+   *
+   * where @p cut is an index limit that restricts accumulation to the
+   * first part of the factorization.
+   *
+   * @param row Row index into L.
+   * @param col Column index into U.
+   * @param cut Upper limit on the summation index (exclusive).
+   * @return Dot product value in precision type UF.
+   *
+   * @note This is a sparse variant of a Schur complement update, used in
+   *       nonlinear ILU/IC sweeps to update entries.
+   */
+  UF SparseLDotU(std::size_t row, std::size_t col, std::size_t cut);
+
+  /**
+   * @brief Computes the nonlinear residual norm of the current factorization.
+   *
+   * Evaluates the Frobenius-like residual of A ≈ L * U by measuring
+   * entrywise differences:
+   *
+   *    || A - L * U ||₁ (restricted to observed entries)
+   *
+   * The residual is accumulated for both upper and lower parts of A:
+   *   - For U (CSC): compares each A(row, col) with dot products of L and U.
+   *   - For L (CSR): compares each A(col, row) with dot products of L and U.
+   *
+   * @return Scalar residual norm in precision type UW.
+   *
+   * @note Parallelized with OpenMP reduction.
+   */
+  UW NLResNorm();
+
+  /**
+   * @brief Retrieves the value of the original sparse matrix A at (row, col).
+   *
+   * Performs a lookup in the CSC representation of A:
+   *   - Scans the range Ap_[col] .. Ap_[col+1] for an entry with row index @p
+   * row.
+   *   - Returns the stored value Ax_[idx] if found, otherwise returns 0.
+   *
+   * @param row Row index in A.
+   * @param col Column index in A.
+   * @return Value of A(row, col) as stored in Ax_, or 0 if structurally zero.
+   *
+   * @note
+   * - Complexity is O(nnz_in_column), since it performs a linear search
+   *   over all nonzeros in column @p col.
+   * - Return type matches the scalar type stored in Ax_ (i.e.,
+   * decltype(Ax_)::value_type).
+   */
   auto ValueAt(std::size_t row, std::size_t col) -> decltype(Ax_)::value_type;
 
  public:
   GmresLDLIR() = default;
   /**
-   * @brief Computes and stores the LDLT factorization of the given sparse
+   * @brief Computes and stores the ILU/IC factorization of the given sparse
    * matrix A.
    * @param Ap Column pointers of A in CSC format.
    * @param Ai Row indices of A in CSC format.
