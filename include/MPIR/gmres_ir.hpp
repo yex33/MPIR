@@ -14,6 +14,15 @@
 #include "fp_concepts.hpp"
 #include "ops.hpp"
 
+#ifdef QD
+#include <qd/dd_real.h>
+#include <qd/qd_real.h>
+#pragma omp declare reduction(+ : dd_real : omp_out += omp_in) \
+    initializer(omp_priv = dd_real(0.0))
+#pragma omp declare reduction(+ : qd_real : omp_out += omp_in) \
+    initializer(omp_priv = qd_real(0.0))
+#endif
+
 /**
  * @brief Class implementing GMRES with LDLT-based iterative refinement in
  * mixed-precisions.
@@ -552,6 +561,8 @@ template <typename UF, typename UW, typename UR>
 template <typename T>
 std::vector<T> GmresLDLIR<UF, UW, UR>::TriangularSolve(
     const std::vector<T> &b) {
+  using std::isnan;
+
   std::vector<T> y(n_);
 
   // Forward solve: L y = b (lower-triangular system)
@@ -569,7 +580,7 @@ std::vector<T> GmresLDLIR<UF, UW, UR>::TriangularSolve(
   // Backward solve: U x = y (upper-triangular system)
   for (std::size_t col = n_; col-- > 0;) {
     x[col] *= UDinv_[col];
-    if (std::isnan(x[col])) {
+    if (isnan(x[col])) {
       std::println("{}", col);
       exit(1);
     }
