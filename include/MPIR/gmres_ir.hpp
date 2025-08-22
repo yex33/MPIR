@@ -63,6 +63,7 @@ class GmresLDLIR {
   UW             NLResNorm();
   template <typename T = UW>
   T ValueAt(std::size_t row, std::size_t col);
+  auto ValueAt(std::size_t row, std::size_t col) -> decltype(Ax_)::value_type;
 
  public:
   GmresLDLIR() = default;
@@ -255,7 +256,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
       for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
         const std::size_t row = Ui_[idx];
         // Find A(row, col)
-        const UF ax = ValueAt<UF>(row, col);
+        const UF ax  = static_cast<UF>(ValueAt(row, col));
         const UF sum = SparseLDotU(row, col, row);
         // Fill non-linear solution
         Ux_new[idx] = ax - sum;
@@ -270,7 +271,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
       for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
         const std::size_t col = Li_[idx];
         // Find A(col, row) because the matrix is symmetric
-        const UF ax = ValueAt<UF>(col, row);
+        const UF ax  = static_cast<UF>(ValueAt(col, row));
         const UF sum = SparseLDotU(row, col, col);
         // Fill non-linear solution
         Lx_new[idx] = (ax - sum) * UDinv_[col];
@@ -494,7 +495,7 @@ UW GmresLDLIR<UF, UW, UR>::NLResNorm() {
     for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
       const std::size_t row = Ui_[idx];
       // Find A(row, col)
-      const UF ax = ValueAt<UF>(row, col);
+      const UF ax  = static_cast<UF>(ValueAt(row, col));
       const UF sum = SparseLDotU(row, col, row + 1);
       nonlinear_residual_norm += abs(ax - sum);
     }
@@ -506,7 +507,7 @@ UW GmresLDLIR<UF, UW, UR>::NLResNorm() {
       const std::size_t col = Li_[idx];
       if (col >= row) continue;
       // Find A(col, row)
-      const UF ax = ValueAt<UF>(col, row);
+      const UF ax  = static_cast<UF>(ValueAt(col, row));
       const UF sum = SparseLDotU(row, col, col + 1);
       nonlinear_residual_norm += abs(ax - sum);
     }
@@ -516,17 +517,16 @@ UW GmresLDLIR<UF, UW, UR>::NLResNorm() {
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
-template <typename T>
-T GmresLDLIR<UF, UW, UR>::ValueAt(const std::size_t row,
-                                  const std::size_t col) {
+auto GmresLDLIR<UF, UW, UR>::ValueAt(const std::size_t row,
+                                     const std::size_t col)
+    -> decltype(Ax_)::value_type {
   for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
     if (Ai_[idx] == row) {
-      return static_cast<T>(Ax_[idx]);
+      return Ax_[idx];
     }
   }
-  return static_cast<T>(0.0);
+  return static_cast<decltype(Ax_)::value_type>(0.0);
 }
-
 
 // End of GMRES_IR_HPP
 #endif
