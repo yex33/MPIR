@@ -402,29 +402,29 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
     std::vector<UF> UDinv_new(n_);
 
 #pragma omp parallel for schedule(dynamic, 4096)
-    for (std::size_t col = 0; col < n_; col++) {
-      for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
-        const std::size_t row = Ui_[idx];
+    for (std::size_t U_col = 0; U_col < n_; U_col++) {
+      for (std::size_t idx = Up_[U_col]; idx < Up_[U_col + 1]; idx++) {
+        const std::size_t U_row = Ui_[idx];
+        const UF ax = static_cast<UF>(ValueAt(U_row, U_col));
         // Find A(row, col)
-        const UF ax  = static_cast<UF>(ValueAt(row, col));
-        const UF sum = SparseLDotU(row, col, row);
-        // Fill non-linear solution
-        Ux_new[idx] = ax - sum;
-        if (row == col) {
-          UDinv_new[row] = static_cast<UF>(1) / Ux_new[idx];
+        {
+          const UF sum = SparseLDotU(U_row, U_col, U_row);
+          // Fill non-linear solution
+          Ux_new[idx] = ax - sum;
+          if (U_row == U_col) {
+            UDinv_new[U_row] = static_cast<UF>(1) / Ux_new[idx];
+            Lx_new[idx] = 1;
+          }
         }
-      }
-    }
 
-#pragma omp parallel for schedule(dynamic, 4096)
-    for (std::size_t row = 0; row < n_; row++) {
-      for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
-        const std::size_t col = Li_[idx];
-        // Find A(col, row) because the matrix is symmetric
-        const UF ax  = static_cast<UF>(ValueAt(col, row));
-        const UF sum = SparseLDotU(row, col, col);
-        // Fill non-linear solution
-        Lx_new[idx] = (ax - sum) * UDinv_[col];
+        if (U_row != U_col) {
+          // Translate indices from U to L
+          const std::size_t L_row = U_col, L_col = U_row;
+
+          const UF sum = SparseLDotU(L_row, L_col, L_col);
+          // Fill non-linear solution
+          Lx_new[idx] = (ax - sum) * UDinv_[L_col];
+        }
       }
     }
 
