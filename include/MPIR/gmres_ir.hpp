@@ -530,8 +530,6 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   log_ir["iterations"] = nlohmann::json::array();
 #endif
 
-  if (ir_iter_ == 0) {
-  }
   std::vector<UW> b_scaled = VectorMultiply<UW>(b, AD_);
 
   std::vector<UW> x  = PrecondGmres(b_scaled);
@@ -627,6 +625,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::PrecondGmres(const std::vector<UW> &b) {
     // TODO set solver info
     return {};
   }
+  gmres_iter_ = std::min(gmres_iter_, n_);
 
   std::vector<UW> res(n_, 0);
 
