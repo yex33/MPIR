@@ -289,7 +289,6 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 
   // Compute scaling factor
   AD_.resize(n_);
-#pragma omp parallel for schedule(static, 256)
   for (std::size_t col = 0; col < n_; col++) {
     for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
       const std::size_t row = Ai_[idx];
@@ -299,7 +298,6 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
     }
   }
   // Apply scaling
-#pragma omp parallel for schedule(static, 256)
   for (std::size_t col = 0; col < n_; ++col) {
     for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
       const std::size_t row = Ai_[idx];
@@ -351,7 +349,6 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 
     // Flatten segments
     Ui_.resize(Up_[n_]);
-#pragma omp parallel for
     for (std::size_t col = 0; col < n_; col++) {
       std::ranges::copy(Ui_segments[col], std::next(Ui_.begin(), Up_[col]));
     }
@@ -363,7 +360,6 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 
   Ux_.assign(Ui_.size(), 0);
   UDinv_.resize(n_);
-#pragma omp parallel for
   for (std::size_t col = 0; col < n_; col++) {
     std::size_t idx1 = Up_[col], idx2 = Ap_[col];
     while (idx1 < Up_[col + 1] && idx2 < Ap_[col + 1]) {
@@ -398,9 +394,6 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 
   constexpr std::size_t NUM_SWEEPS = 10;
   for (std::size_t sweep = 0; sweep < NUM_SWEEPS; sweep++) {
-    std::vector<UF> Ux_new(Ux_.size()), Lx_new(Lx_.size());
-    std::vector<UF> UDinv_new(n_);
-
 #pragma omp parallel for schedule(dynamic, 4096)
     for (std::size_t U_col = 0; U_col < n_; U_col++) {
       for (std::size_t idx = Up_[U_col]; idx < Up_[U_col + 1]; idx++) {
@@ -410,10 +403,10 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         {
           const UF sum = SparseLDotU(U_row, U_col, U_row);
           // Fill non-linear solution
-          Ux_new[idx] = ax - sum;
+          Ux_[idx] = ax - sum;
           if (U_row == U_col) {
-            UDinv_new[U_row] = static_cast<UF>(1) / Ux_new[idx];
-            Lx_new[idx] = 1;
+            UDinv_[U_row] = static_cast<UF>(1) / Ux_[idx];
+            Lx_[idx] = 1;
           }
         }
 
@@ -423,14 +416,10 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
 
           const UF sum = SparseLDotU(L_row, L_col, L_col);
           // Fill non-linear solution
-          Lx_new[idx] = (ax - sum) * UDinv_[L_col];
+          Lx_[idx] = (ax - sum) * UDinv_[L_col];
         }
       }
     }
-
-    Ux_    = Ux_new;
-    Lx_    = Lx_new;
-    UDinv_ = UDinv_new;
 
     std::println("Nonlinear residual norm @ {} sweep is {:g}", sweep + 1,
                  NLResNorm());
@@ -607,10 +596,6 @@ std::vector<T> GmresLDLIR<UF, UW, UR>::TriangularSolve(
   // Backward solve: U x = y (upper-triangular system)
   for (std::size_t col = n_; col-- > 0;) {
     x[col] *= UDinv_[col];
-    if (isnan(x[col])) {
-      std::println("{}", col);
-      exit(1);
-    }
     for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
       if (const size_t row = Ui_[idx]; row < col) {
         x[row] -= Ux_[idx] * x[col];
@@ -647,8 +632,6 @@ template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 UW GmresLDLIR<UF, UW, UR>::NLResNorm() {
   UW nonlinear_residual_norm = 0.0;
-#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
-    schedule(dynamic, 8)
   for (std::size_t col = 0; col < n_; col++) {
     for (std::size_t idx = Up_[col]; idx < Up_[col + 1]; idx++) {
       const std::size_t row = Ui_[idx];
@@ -658,8 +641,6 @@ UW GmresLDLIR<UF, UW, UR>::NLResNorm() {
       nonlinear_residual_norm += abs(ax - sum);
     }
   }
-#pragma omp parallel for reduction(+ : nonlinear_residual_norm) \
-    schedule(dynamic, 8)
   for (std::size_t row = 0; row < n_; row++) {
     for (std::size_t idx = Lp_[row]; idx < Lp_[row + 1]; idx++) {
       const std::size_t col = Li_[idx];
