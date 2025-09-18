@@ -23,6 +23,32 @@
     initializer(omp_priv = qd_real(0.0))
 #endif
 
+#ifdef VERBOSE
+#include <chrono>
+#include <nlohmann/json.hpp>
+
+#ifdef QD
+template <>
+struct nlohmann::adl_serializer<dd_real> {
+  static void to_json(json &j, const dd_real &d) { j = d.to_string(); }
+
+  static void from_json(const json &j, dd_real &d) {
+    d = dd_real(j.get<std::string>().c_str());
+  }
+};
+
+template <>
+struct nlohmann::adl_serializer<qd_real> {
+  static void to_json(json &j, const qd_real &d) { j = d.to_string(); }
+
+  static void from_json(const json &j, qd_real &d) {
+    d = qd_real(j.get<std::string>().c_str());
+  }
+};
+#endif
+
+#endif
+
 /**
  * @brief GMRES with Iterative Refinement and ILU/IC Preconditioning in
  * mixed-precisions.
@@ -91,6 +117,12 @@ class GmresLDLIR {
   UR tol_ = 1e-10;  ///< Convergence tolerance on residual norm.
 
   const UW STAGNATE_THRESHOLD = 1;
+
+#ifdef VERBOSE
+  nlohmann::json log_solver_ = {
+      {"events", nlohmann::json::array()}
+  };
+#endif
 
   /**
    * @brief Solves the linear system A x = b using left-preconditioned GMRES.
@@ -258,6 +290,16 @@ class GmresLDLIR {
    * @param tol Convergence tolerance value.
    */
   void SetTolerance(UR tol) { tol_ = tol; }
+
+#ifdef VERBOSE
+  void DumpLog() {
+    log_solver_["max_outer_iterations"] = ir_iter_;
+    log_solver_["max_inner_iterations"] = gmres_iter_;
+    log_solver_["tolerance"]            = tol_;
+    std::cout << log_solver_.dump(2) << std::endl;
+    log_solver_.clear();
+  }
+#endif
 };
 
 template <typename UF, typename UW, typename UR>
@@ -390,15 +432,27 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // ##################### FGPILU Main Algorithm #############################//
   // #########################################################################//
 
-  std::println("Nonlinear residual norm @ 0 sweep is {:g}", NLResNorm());
+  UW nl_res_norm_prev = NLResNorm();
+#ifdef VERBOSE
+  auto t_start = std::chrono::high_resolution_clock::now();
 
+  // JSON container for full run
+  nlohmann::json log_ilu;
+  log_ilu["name"]             = "fgpilu";
+  log_ilu["initial_residual"] = nl_res_norm_prev;
+  log_ilu["iterations"]       = nlohmann::json::array();
+
+  std::string stop_reason = "max_iterations_reached";
+#endif
+
+  std::size_t           sweep;
   constexpr std::size_t NUM_SWEEPS = 10;
-  for (std::size_t sweep = 0; sweep < NUM_SWEEPS; sweep++) {
+  for (sweep = 0; sweep < NUM_SWEEPS; sweep++) {
 #pragma omp parallel for schedule(dynamic, 4096)
     for (std::size_t U_col = 0; U_col < n_; U_col++) {
       for (std::size_t idx = Up_[U_col]; idx < Up_[U_col + 1]; idx++) {
         const std::size_t U_row = Ui_[idx];
-        const UF ax = static_cast<UF>(ValueAt(U_row, U_col));
+        const UF          ax    = static_cast<UF>(ValueAt(U_row, U_col));
         // Find A(row, col)
         {
           const UF sum = SparseLDotU(U_row, U_col, U_row);
@@ -406,7 +460,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
           Ux_[idx] = ax - sum;
           if (U_row == U_col) {
             UDinv_[U_row] = static_cast<UF>(1) / Ux_[idx];
-            Lx_[idx] = 1;
+            Lx_[idx]      = 1;
           }
         }
 
@@ -421,16 +475,60 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
       }
     }
 
-    std::println("Nonlinear residual norm @ {} sweep is {:g}", sweep + 1,
-                 NLResNorm());
-    std::println("norm(UDinv) = {:g}", InfNrm(UDinv_));
+    const UW nl_res_norm = NLResNorm();
+
+#ifdef VERBOSE
+    auto   t_now = std::chrono::high_resolution_clock::now();
+    double elapsed_ms =
+        std::chrono::duration<double, std::milli>(t_now - t_start).count();
+
+    nlohmann::json log_iter;
+    log_iter["iteration"]    = sweep + 1;
+    log_iter["nl_residual"]  = nl_res_norm;
+    log_iter["timestamp_ms"] = elapsed_ms;
+
+    log_ilu["iterations"].push_back(log_iter);
+#endif
+
+    if (abs(nl_res_norm - nl_res_norm_prev) < tol_) {
+#ifdef VERBOSE
+      stop_reason = "converged_residual_stagnation";
+#endif
+      break;
+    }
+    nl_res_norm_prev = nl_res_norm;
   }  // End of sweep
+
+#ifdef VERBOSE
+  auto   t_end = std::chrono::high_resolution_clock::now();
+  double total_ms =
+      std::chrono::duration<double, std::milli>(t_end - t_start).count();
+
+  log_ilu["stop_reason"]      = stop_reason;
+  log_ilu["total_iterations"] = sweep;
+  log_ilu["total_time_ms"]    = total_ms;
+
+  // append to the global solver log structure (if present), otherwise print
+  if (log_solver_.is_null()) {
+    std::cout << log_ilu.dump(2) << std::endl;
+  } else {
+    log_solver_["events"].push_back(log_ilu);
+  }
+#endif
 }
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
 std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   using std::abs;
+
+#ifdef VERBOSE
+  auto outer_t_start = std::chrono::high_resolution_clock::now();
+
+  nlohmann::json log_ir;
+  log_ir["name"]       = "gmres_ir";
+  log_ir["iterations"] = nlohmann::json::array();
+#endif
 
   if (ir_iter_ == 0) {
   }
@@ -439,30 +537,86 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   std::vector<UW> x  = PrecondGmres(b_scaled);
   std::vector<UR> b0 = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
   std::vector<UR> r  = VectorSubtract<UR>(b_scaled, b0);
-  std::println("first residual {:g}", InfNrm(r));
-  UW d_norm_prev = std::numeric_limits<UW>::max();
+
   UR r_norm_prev = std::numeric_limits<UR>::max();
-  for (std::size_t _ = 0; _ < ir_iter_; _++) {
+
+#ifdef VERBOSE
+  log_ir["initial_residual"]    = InfNrm(r);
+  std::string stop_reason = "max_iterations_reached";
+#endif
+
+  std::size_t iter;
+  for (iter = 0; iter < ir_iter_; iter++) {
     UR              scale = InfNrm(r);
     std::vector<UW> b     = VectorScale<UW, UR>(r, static_cast<UR>(1) / scale);
-    std::vector<UW> d     = PrecondGmres(b);
-    d                     = VectorScale<UW>(d, scale);
-    UW d_norm             = InfNrm(d);
-    UW x_norm             = InfNrm(x);
-    // std::cout << "residual " << static_cast<double>(d_norm) << std::endl;
-    // || d_norm >= 0.5 * d_norm_prev
+#ifdef VERBOSE
+    auto inner_t_start = std::chrono::high_resolution_clock::now();
+#endif
+    std::vector<UW> d = PrecondGmres(b);
+#ifdef VERBOSE
+    auto   inner_t_end = std::chrono::high_resolution_clock::now();
+    double inner_ms =
+        std::chrono::duration<double, std::milli>(inner_t_end - inner_t_start)
+            .count();
+#endif
+    d         = VectorScale<UW>(d, scale);
+    UW d_norm = InfNrm(d);
+    UW x_norm = InfNrm(x);
     x         = VectorAdd<UW>(x, d);
     b0        = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
     r         = VectorSubtract<UR>(b_scaled, b0);
     UR r_norm = InfNrm(r);
-    std::println("residual {:g}", InfNrm(r));
-    if (d_norm <= x_norm * (10 * std::numeric_limits<UW>::epsilon()) ||
-        abs(r_norm - r_norm_prev) < tol_) {
+
+#ifdef VERBOSE
+    auto   now  = std::chrono::high_resolution_clock::now();
+    double elapsed_ms =
+        std::chrono::duration<double, std::milli>(now - outer_t_start).count();
+
+    nlohmann::json log_iter;
+    log_iter["iteration"]    = iter + 1;
+    log_iter["residual"]     = r_norm;
+    log_iter["d_norm"]       = d_norm;
+    log_iter["timestamp_ms"] = elapsed_ms;
+    log_iter["inner_time_ms"] =
+        inner_ms;  // time taken by this inner PrecondGmres call
+
+    log_ir["iterations"].push_back(log_iter);
+#endif
+
+    if (d_norm <= x_norm * (10 * std::numeric_limits<UW>::epsilon())) {
+#ifdef VERBOSE
+      stop_reason            = "converged_small_update";
+      log_ir["stop_reason_detail"] = "d_norm <= x_norm * (10*eps)";
+#endif
+      break;
+    }
+    if (abs(r_norm - r_norm_prev) < tol_) {
+#ifdef VERBOSE
+      stop_reason            = "converged_residual_stagnation";
+      log_ir["stop_reason_detail"] = "abs(r_norm - r_norm_prev) < tol";
+#endif
       break;
     }
     r_norm_prev = r_norm;
-    d_norm_prev = d_norm;
   }
+
+#ifdef VERBOSE
+  auto   outer_t_end = std::chrono::high_resolution_clock::now();
+  double total_ms =
+      std::chrono::duration<double, std::milli>(outer_t_end - outer_t_start)
+          .count();
+
+  log_ir["stop_reason"]      = stop_reason;
+  log_ir["total_iterations"] = iter;
+  log_ir["total_time_ms"]    = total_ms;
+
+  // append to the global solver log structure (if present), otherwise print
+  if (log_solver_.is_null()) {
+    std::cout << log_ir.dump(2) << std::endl;
+  } else {
+    log_solver_["events"].push_back(log_ir);
+  }
+#endif
   return VectorMultiply<UW>(x, AD_);
 }
 

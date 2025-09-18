@@ -30,6 +30,8 @@ set(SOURCE_DIR "${PROJECT_SOURCE_DIR}/src")
 set(EXAMPLES_DIR "${PROJECT_SOURCE_DIR}/examples")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 
+option(VERBOSE "Enable detailed output of intermediate results (e.g., iterations, residuals, timing)." ON)
+
 add_library(MPIR INTERFACE)
 target_include_directories(MPIR
         INTERFACE
@@ -42,6 +44,13 @@ target_compile_features(MPIR
 if (QD)
     add_compile_definitions(-DQD)
     target_link_libraries(MPIR INTERFACE ${QD})
+endif ()
+
+if (VERBOSE)
+    target_compile_definitions(MPIR INTERFACE VERBOSE)
+
+    find_package(nlohmann_json 3.12.0 REQUIRED)
+    target_link_libraries(MPIR INTERFACE nlohmann_json::nlohmann_json)
 endif ()
 
 # Installation
