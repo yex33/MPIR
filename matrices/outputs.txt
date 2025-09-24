@@ -1,0 +1,294 @@
+IC(2) @ 4 sweeps
+
+Nonlinear residual norm @ 4 sweep is 5135.63
+norm(UDinv) = 1.30609
+factorization complete
+Time taken: 1516 ms
+residual 12059.1
+residual 11815.7
+residual 11577.2
+residual 11343.5
+residual 11114.6
+residual 10890.4
+
+IC(2) @ 10 sweeps
+factorization complete
+Time taken: 2093 ms
+residual 10635.1
+residual 10446
+residual 10260.1
+residual 10077.6
+residual 9898.4
+residual 9722.36
+
+IC(3) @ 10 sweeps
+norm(UDinv) = 1.33752
+factorization complete
+Time taken: 3068 ms
+residual 10635.1
+residual 10446
+residual 10260.1
+residual 10077.6
+residual 9898.4
+
+IC(0) @ 10 sweeps
+norm(UDinv) = 1.33752
+factorization complete
+Time taken: 264 ms
+residual 10635.1
+residual 10446
+residual 10260.1
+residual 10077.6
+residual 9898.4
+
+IC(2) @ 20 sweeps
+norm(UDinv) = 1.33793
+factorization complete
+Time taken: 2496 ms
+residual 10626.8
+residual 10437.9
+residual 10252.3
+residual 10070.1
+residual 9891.16
+
+no ilu
+norm(UDinv) = 1.22474
+Nonlinear residual norm @ 3 sweep is 17895.2
+norm(UDinv) = 1.22474
+Nonlinear residual norm @ 4 sweep is 5135.63
+norm(UDinv) = 1.30609
+factorization complete
+Time taken: 1547 ms
+residual 589869
+residual 109354
+residual 59328.4
+residual 57156.9
+residual 44656.2
+residual 42842.9
+residual 37014.1
+residual 35571.5
+residual 32222.6
+residual 31012.5
+residual 28937.3
+
+
+symmetric
+Nonlinear residual norm @ 0 sweep is 6.75
+Nonlinear residual norm @ 1 sweep is 12.9396
+norm(UDinv) = 2
+Nonlinear residual norm @ 2 sweep is 9.15198
+norm(UDinv) = 2
+Nonlinear residual norm @ 3 sweep is 9.15198
+norm(UDinv) = 2
+Nonlinear residual norm @ 4 sweep is 9.15198
+norm(UDinv) = 2
+Nonlinear residual norm @ 5 sweep is 9.15198
+norm(UDinv) = 2
+Nonlinear residual norm @ 6 sweep is 9.15198
+norm(UDinv) = 2
+Nonlinear residual norm @ 7 sweep is 9.15198
+norm(UDinv) = 2
+Nonlinear residual norm @ 8 sweep is 9.15198
+
+symmetric
+Nonlinear residual norm @ 0 sweep is 250235
+Nonlinear residual norm @ 1 sweep is 439238
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 2 sweep is 390307
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 3 sweep is 390307
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 4 sweep is 390285
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 5 sweep is 390271
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 6 sweep is 390307
+
+symmetric
+Nonlinear residual norm @ 0 sweep is 2.24
+Nonlinear residual norm @ 1 sweep is 2.88523
+norm(UDinv) = 1.47059
+Nonlinear residual norm @ 2 sweep is 1.84162
+norm(UDinv) = 1.8997
+Nonlinear residual norm @ 3 sweep is 1.84162
+norm(UDinv) = 1.8997
+Nonlinear residual norm @ 4 sweep is 1.84162
+norm(UDinv) = 1.8997
+Nonlinear residual norm @ 5 sweep is 1.84162
+norm(UDinv) = 1.8997
+Nonlinear residual norm @ 6 sweep is 1.84162
+norm(UDinv) = 1.8997
+
+symmetric
+Nonlinear residual norm @ 0 sweep is 39278.8
+Nonlinear residual norm @ 1 sweep is 56325.3
+norm(UDinv) = 1035.73
+Nonlinear residual norm @ 2 sweep is 250520
+norm(UDinv) = 1.05648
+Nonlinear residual norm @ 3 sweep is 50384.7
+norm(UDinv) = 111.46
+Nonlinear residual norm @ 4 sweep is 51441.6
+norm(UDinv) = 4.98688
+Nonlinear residual norm @ 5 sweep is 28189
+norm(UDinv) = 35.2336
+Nonlinear residual norm @ 6 sweep is 24381.2
+norm(UDinv) = 3.0688
+Nonlinear residual norm @ 7 sweep is 22367.8
+norm(UDinv) = 1.38089
+Nonlinear residual norm @ 8 sweep is 21962.2
+norm(UDinv) = 1.12357
+Nonlinear residual norm @ 9 sweep is 21863.2
+norm(UDinv) = 1.03975
+Nonlinear residual norm @ 10 sweep is 21850.2
+
+
+
+G3_circuit ILU(2) @ 10 sweeps
+IR_iter 1000
+GMRES_iter 10
+
+symmetric
+Nonlinear residual norm @ 0 sweep is 265572
+Nonlinear residual norm @ 1 sweep is 406546
+norm(UDinv) = 11.5528
+Nonlinear residual norm @ 2 sweep is 42653.1
+norm(UDinv) = 11.5528
+Nonlinear residual norm @ 3 sweep is 87327.5
+norm(UDinv) = 14.8435
+Nonlinear residual norm @ 4 sweep is 9437.56
+norm(UDinv) = 14.8435
+Nonlinear residual norm @ 5 sweep is 20134.9
+norm(UDinv) = 16.4553
+Nonlinear residual norm @ 6 sweep is 2238
+norm(UDinv) = 16.4553
+Nonlinear residual norm @ 7 sweep is 4824.74
+norm(UDinv) = 17.484
+Nonlinear residual norm @ 8 sweep is 551.341
+norm(UDinv) = 17.484
+Nonlinear residual norm @ 9 sweep is 1171.79
+norm(UDinv) = 18.1206
+Nonlinear residual norm @ 10 sweep is 133.787
+norm(UDinv) = 18.1206
+factorization complete
+Time taken: 4717 ms
+
+
+residual 13595.9
+residual 13561.1
+residual 13526.3
+residual 13491.6
+residual 13457.1
+residual 13422.6
+residual 13388.2
+residual 13353.8
+Execution time: 1066965 ms
+result dnrm2: 8.686947e-02
+result infnorm: 8.959833e-02
+
+2.363961e-06
+
+
+ecology2 ILU(2) @ 10 sweeps
+IR_iter 10
+GMRES_iter 50
+
+symmetric
+Nonlinear residual norm @ 0 sweep is 125118
+Nonlinear residual norm @ 1 sweep is 234486
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 2 sweep is 17895.2
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 3 sweep is 37963.9
+norm(UDinv) = 1.70588
+Nonlinear residual norm @ 4 sweep is 2987.63
+norm(UDinv) = 1.70588
+Nonlinear residual norm @ 5 sweep is 6458.8
+norm(UDinv) = 1.76894
+Nonlinear residual norm @ 6 sweep is 511.118
+norm(UDinv) = 1.76894
+Nonlinear residual norm @ 7 sweep is 1108.21
+norm(UDinv) = 1.78515
+Nonlinear residual norm @ 8 sweep is 87.8183
+norm(UDinv) = 1.78515
+Nonlinear residual norm @ 9 sweep is 190.447
+norm(UDinv) = 1.78896
+Nonlinear residual norm @ 10 sweep is 15.1025
+norm(UDinv) = 1.78896
+factorization complete
+Time taken: 2844 ms
+first residual 287.446
+residual 367067
+residual 190006
+residual 180637
+residual 157701
+residual 140810
+residual 135981
+residual 119873
+residual 116593
+residual 103664
+residual 101087
+Execution time: 59337 ms
+result dnrm2: 8.911803e-01
+result infnorm: 6.989904e-01
+
+4.027090e-04
+
+symmetric
+Nonlinear residual norm @ 0 sweep is 125118
+Nonlinear residual norm @ 1 sweep is 234486
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 2 sweep is 17895.2
+norm(UDinv) = 1.5
+factorization complete
+Time taken: 1617 ms
+first residual 0.00587842
+residual 0.0853432
+residual 0.0554049
+residual 0.0224202
+residual 0.021027
+residual 0.0140049
+residual 0.0136215
+residual 0.00987942
+residual 0.0102388
+
+
+symmetric
+Nonlinear residual norm @ 0 sweep is 125118
+Nonlinear residual norm @ 1 sweep is 234486
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 2 sweep is 17895.2
+norm(UDinv) = 1.5
+Nonlinear residual norm @ 3 sweep is 37963.9
+norm(UDinv) = 1.70588
+Nonlinear residual norm @ 4 sweep is 2987.63
+norm(UDinv) = 1.70588
+Nonlinear residual norm @ 5 sweep is 6458.8
+norm(UDinv) = 1.76894
+Nonlinear residual norm @ 6 sweep is 511.118
+norm(UDinv) = 1.76894
+Nonlinear residual norm @ 7 sweep is 1108.21
+norm(UDinv) = 1.78515
+Nonlinear residual norm @ 8 sweep is 87.8183
+norm(UDinv) = 1.78515
+Nonlinear residual norm @ 9 sweep is 190.447
+norm(UDinv) = 1.78896
+Nonlinear residual norm @ 10 sweep is 15.1025
+norm(UDinv) = 1.78896
+factorization complete
+Time taken: 2825 ms
+first residual 0.00114518
+residual 0.0843328
+residual 0.0711065
+residual 0.0409312
+residual 0.0420819
+residual 0.0275424
+residual 0.0299754
+residual 0.0203803
+residual 0.0229105
+residual 0.0162422
+residual 0.0184876
+residual 0.0136369
+residual 0.0155513
+residual 0.011879
+residual 0.0135125
+residual 0.0106276

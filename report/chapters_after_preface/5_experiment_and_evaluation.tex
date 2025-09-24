@@ -1,0 +1,368 @@
+\chapter{Experiment and Evaluation}
+\label{cha:exper-eval}
+
+\section{Experimental Setup}
+\label{sec:experimental-setup}
+
+All experiments were conducted on a Intel\textsuperscript{\textregistered}
+Core\textsuperscript{\texttrademark} i7-10700K CPU, with 8 physical cores (16
+threads), base frequency 3.8 GHz and turbo frequency up to 4.7 GHz. The system
+was equipped with 32 GB DDR4 RAM.
+
+\section{Test Matrices}
+\label{sec:test-matrices}
+
+All test problems were drawn from the Florida Sparse Matrix Collection
+\cite{davis_university_2011}, restricted to symmetric positive definite
+matrices. Table~\ref{tab:test-matrices} summarizes the benchmark set, ordered by
+increasing condition number.
+
+Each matrix \(\matr{A}\) was read from a \texttt{.mtx} file using the
+\texttt{fast\_matrix\_market}\footnote{\href{https://github.com/alugowski/fast_matrix_market}{\texttt{fast\_matrix\_market}:
+    fast and full-featured Matrix Market I/O library for C++, Python, and R}}
+library. The right-hand side \(\vec{b}\) was constructed consistently across all
+experiments from a reference solution \[\vec{x}_{\text{ref}} = (1, 1, \dots,
+  1)\transpose \in \mathbb{R}^{n}, \quad \vec{b} =
+  \matr{A}\vec{x}_{\text{ref}}.\] This guarantees that the exact solution is
+known, enabling direct computation of both forward and backward errors.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{
+    l                                              % Matrix
+    S[table-format=1.1e2]                          % condest(A)
+    S[table-format=1.1e1]                          % size
+    S[table-format=1.1e1]                          % NNZ
+    S[table-format=1.4, print-zero-exponent=false] % % NZZ
+    S[table-format=1.1e3]                          % min
+    S[table-format=1.1e3]                          % max
+    }
+    \toprule
+    Matrix                            & {\texttt{condest(A)}} & {Size}  & {\texttt{nnz(A)}} & {\% NNZ} & {\texttt{min(A)}} & {\texttt{max(A)}} \\
+    \midrule
+    {\footnotesize \texttt{crystm01}}       & 4.2e+02         & 4.9e+03 & 1.1e+05     & 0.4      & 7.5e-15     & 1.8e-12     \\
+    {\footnotesize \texttt{Dubcova3}}       & 1.1e+04         & 1.5e+05 & 3.6e+06     & 0.02     & 8.5e-22     & 2.7e+00     \\
+    {\footnotesize \texttt{bcsstk09}}       & 3.1e+04         & 1.1e+03 & 1.8e+04     & 2        & 1.1e-08     & 3.9e+07     \\
+    {\footnotesize \texttt{parabolic\_fem}} & 2.1e+05         & 5.3e+05 & 3.7e+06     & 0.001    & 3.2e-07     & 4.0e-01     \\
+    {\footnotesize \texttt{494\_bus}}       & 3.9e+06         & 4.9e+02 & 1.7e+03     & 0.7      & 1.7e-01     & 2.0e+04     \\
+    {\footnotesize \texttt{cfd2}}           & 4.2e+06         & 1.2e+05 & 3.1e+06     & 0.02     & 6.7e-09     & 1.0e+00     \\
+    {\footnotesize \texttt{lund\_a}}        & 5.4e+06         & 1.5e+02 & 2.4e+03     & 1e+01    & 1.2e-04     & 1.5e+08     \\
+    {\footnotesize \texttt{1138\_bus}}      & 1.2e+07         & 1.1e+03 & 4.1e+03     & 0.3      & 4.8e-01     & 2.0e+04     \\
+    {\footnotesize \texttt{G3\_circuit}}    & 2.2e+07         & 1.6e+06 & 7.7e+06     & 0.0003   & 3.3e-01     & 2.3e+04     \\
+    {\footnotesize \texttt{bcsstk08}}       & 4.7e+07         & 1.1e+03 & 1.3e+04     & 1        & 1.8e-12     & 7.6e+10     \\
+    {\footnotesize \texttt{ecology2}}       & 6.7e+07         & 1.0e+06 & 5.0e+06     & 0.0005   & 1.0e+00     & 4.0e+01     \\
+    {\footnotesize \texttt{cbuckle}}        & 8.0e+07         & 1.4e+04 & 6.8e+05     & 0.4      & 3.9e-31     & 3.7e+04     \\
+    {\footnotesize \texttt{2cubes\_sphere}} & 2.9e+09         & 1.0e+05 & 1.6e+06     & 0.02     & 6.7e-15     & 2.5e+10     \\
+    {\footnotesize \texttt{bcsstk14}}       & 1.3e+10         & 1.8e+03 & 6.3e+04     & 2        & 1.6e-27     & 8.9e+09     \\
+    {\footnotesize \texttt{bcsstk18}}       & 6.5e+11         & 1.2e+04 & 1.5e+05     & 0.1      & 2.1e-25     & 3.1e+10     \\
+    {\footnotesize \texttt{plat362}}        & 7.1e+11         & 3.6e+02 & 5.8e+03     & 4        & 3.5e-21     & 4.6e-01     \\
+    {\footnotesize \texttt{offshore}}       & 2.3e+13         & 2.6e+05 & 4.2e+06     & 0.006    & 7.2e-21     & 7.5e+14     \\
+    {\footnotesize \texttt{ct20stif}}       & 2.2e+14         & 5.2e+04 & 2.6e+06     & 0.09     & 3.0e-34     & 8.9e+11     \\
+    {\footnotesize \texttt{bloweybq}}       & 4.2e+18         & 1.0e+04 & 5.0e+04     & 0.05     & 2.5e-01     & 5.0e+03     \\
+    \bottomrule
+  \end{tabular}
+  \caption[SPD matrices used for experiments]{SPD matrices used for experiments.
+    \texttt{condest(A)} is the lower bound of the 1-norm condition number of
+    matrix \(\matr{A}\) computed by MATLAB\textsuperscript{\textregistered}.}
+  \label{tab:test-matrices}
+\end{table}
+
+\section{Mixed-Precision Notation and Configurations}
+\label{sec:mixed-prec-notat}
+
+Throughout our experiments we adopt three mixed-precision configurations,
+denoted as SDD, DDD, and DDQ. These notations indicate the arithmetic precision
+chosen for the three computational components: factorization \((u_f)\), working
+\((u_w)\), and residual evaluation \((u_r)\). Table~\ref{tab:notation}
+summarizes the mapping.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lccc}
+    \toprule
+    Configuration & \(u_f\)    & \(u_w\) ​   & \(u_r\)       \\
+    \midrule
+    SDD           & \texttt{single} & \texttt{double} & \texttt{double}    \\
+    DDD           & \texttt{double} & \texttt{double} & \texttt{double}    \\
+    DDQ           & \texttt{double} & \texttt{double} & \texttt{quadruple} \\
+    \bottomrule
+  \end{tabular}
+  \caption[Precision configurations for mixed-precision IR]{Notation for the three
+    precision configurations tested in this work. \(u_f\) corresponds to the
+    factorization precision, \(u_w\) to the GMRES working precision, and \(u_r\)
+    to the residual evaluation precision.}
+  \label{tab:notation}
+\end{table}
+
+
+\section{Residual and Error Metrics}
+\label{sec:resid-error-metr}
+
+For iterative refinement and GMRES, two measures are reported:
+\begin{enumerate}
+\item relative residual (backward error), given by \[\epsilon_{\text{res}} =
+    \frac{\norm{\vec{b} - \matr{A} \vec{x}_k}_{\infty}}{\norm{\vec{b}}_{\infty}},\] where \(\vec{x}_k\) is the approximate solution
+  after \(k\) iterations;
+\item relative error (forward error), given by \[\epsilon_{\text{err}} = \frac{\norm{\vec{x}_k -
+        \vec{x}_{\text{ref}}}_{\infty}}{\norm{\vec{x}_{\text{ref}}}_{\infty}}.\]
+\end{enumerate}
+
+To assess the quality of the preconditioner, the same non-linear residual norm
+used in \cite{chow_fine-grained_2015} is also monitored: \[ \sum_{(i,j) \in S}
+  \left| a_{i,j} - \sum_{k=1}^{\min(i,j)} l_{i,k}u_{k,j} \right| \]
+
+\section{Convergence of ILU}
+\label{sec:convergence-ilu}
+
+For the experiments in this section, a chunk size of 64 was used, meaning each
+thread processed 64 columns per batch. This choice follows the column-to-matrix
+size ratio used in \cite{chow_fine-grained_2015}.
+
+The mixed-precision configuration employed was DDQ, i.e., factorization in
+\texttt{double} precision, GMRES iterations in \texttt{double} precision, and
+residual computation in \texttt{octuple} precision. The target tolerance was set
+to \num{1e-18}, which is close to the machine epsilon of \texttt{double}
+precision, in order to stress the iterative refinement procedure and push the
+working precision toward its limits.
+
+The outer iteration count for IR was capped at 200, while the maximum Krylov
+subspace dimension for GMRES (inner iteration) was capped at 50. These bounds
+were chosen to maintain consistency with the other experiments reported in this
+chapter.
+
+Table~\ref{tab:sweeps} reports the nonlinear residual norm at each sweep for the
+case of ILU(0) for matrix \texttt{bcsstk18}. The values in parentheses indicate
+the total number of IR iterations performed before convergence under the given
+configuration. Results are shown for varying thread counts and number of sweeps
+performed.
+\begin{table}[h]
+  \centering
+  \newrobustcmd\iter[1]{%
+    (#1)
+  }
+  \sisetup{table-format = 1.1e4 \iter{a}}
+  \begin{tabular}{
+    c
+    S % 1
+    S % 2
+    S % 3
+    S % 4
+    S % 5
+    }
+    \toprule
+    Thread & \multicolumn{5}{c}{Sweeps (Iterations)}                                                                    \\
+           & \text{1}          & \text{2}          & \text{3}          & \text{4}          & \text{5}          \\
+    \midrule
+    1      & 4.0e-13 \iter{32} & 4.0e-13 \iter{32} & 4.0e-13 \iter{32} & 4.0e-13 \iter{32} & 4.0e-13 \iter{32} \\
+    2      & 4.9e+01 \iter{36} & 5.9e-01 \iter{32} & 1.5e-03 \iter{34} & 3.7e-06 \iter{32} & 1.7e-08 \iter{32} \\
+    4      & 8.9e+01 \iter{38} & 1.5e+00 \iter{32} & 5.0e-02 \iter{34} & 3.9e-03 \iter{32} & 2.3e-05 \iter{32} \\
+    8      & 1.3e+02 \iter{41} & 3.4e+00 \iter{34} & 1.9e-01 \iter{34} & 1.4e-02 \iter{31} & 3.9e-04 \iter{32} \\
+    16     & 1.9e+02 \iter{36} & 6.0e+00 \iter{30} & 3.7e-01 \iter{32} & 3.7e-02 \iter{32} & 2.3e-03 \iter{32} \\
+    \bottomrule
+  \end{tabular}
+  \caption[Nonlinear residual norms for matrix \texttt{bcsstk18}]{Nonlinear residual
+    norms for matrix \texttt{bcsstk18} across sweeps and thread counts. Values
+    in parentheses denote the number of IR iterations required for convergence.}
+  \label{tab:sweeps}
+\end{table}
+
+From these results, it is evident that the number of IR iterations required for
+convergence stabilizes after approximately 5 sweeps, regardless of the thread
+count. Consequently, all subsequent experiments are conducted with the maximum
+number of sweeps set to 5.
+
+\section{Accuracy}
+\label{sec:accuracy}
+
+Table~\ref{tab:res-accuracy} reports the relative forward error and relative
+backward error for each test matrix across three mixed-precision settings: SDD,
+DDD, and DDQ. The IR outer iteration count was capped at 200, and the Krylov
+subspace dimension for GMRES (inner iteration) was limited to 50. Level 0 ILU
+preconditioning was performed with up to 5 sweeps, executed in parallel with 16
+threads. A tolerance of \(\num{1e-18}\) was used throughout. Entries marked with
+an asterisk indicate cases where the IR process reached the maximum of 200
+iterations without convergence, and the reported residual corresponds to the
+final iteration.
+
+\begin{table}[h]
+  \centering
+  \newrobustcmd\iter[1]{(#1)}
+  \begin{threeparttable}
+    \begin{tabular}{ l S[table-format = 1.1e3] % SDD
+      S[table-format = 1.1e3] % DDD
+      S[table-format = 1.1e3] % DDQ
+      | S[table-format = 1.1e4 \iter{12}] % SDD
+      S[table-format = 1.1e4 \iter{12}] % DDD
+      S[table-format = 1.1e4 \iter{12}] % DDQ
+      }
+      \toprule
+      Matrix \tnote{\(\dagger\)}                      & \multicolumn{3}{c}{Relative Error}            & \multicolumn{3}{c}{Relative Residual (Iterations)}                  \\
+      \midrule
+                                   & \text{SDD} & \text{DDD} & \text{DDQ} & \text{SDD}         & \text{DDD}         & \text{DDQ}         \\
+      {\footnotesize \texttt{1138\_bus}} & 9.3e-12    & 8.9e-12    & 6.6e-12    & 6.2e-15 \iter{187} & 3.7e-15 \iter{43}  & 2.5e-15 \iter{48}  \\
+      {\footnotesize \texttt{2cubes\_s}} & 1.8e-15    & 1.8e-15    & 1.3e-15    & 3.2e-16 \iter{2}   & 3.2e-16 \iter{2}   & 2.1e-16 \iter{2}   \\
+      {\footnotesize \texttt{494\_bus}}  & 2.6e-12    & 2.0e-12    & 1.5e-12    & 1.7e-15 \iter{47}  & 1.7e-15 \iter{94}  & 3.3e-15 \iter{16}  \\
+      {\footnotesize \texttt{Dubcova3}}  & 1.4e-13    & 1.4e-13    & 1.7e-13    & 7.9e-16 \iter{9}   & 7.9e-16 \iter{9}   & 5.3e-16 \iter{10}  \\
+      {\footnotesize \texttt{G3\_circu}} & 1.0e-11    & 2.7e-11    & 4.8e-12    & 5.0e-16 \iter{63}  & 5.0e-16 \iter{60}  & 5.0e-16 \iter{64}  \\
+      {\footnotesize \texttt{bcsstk08}}  & 3.0e-12    & 1.1e-12    & 6.7e-12    & 4.0e-15 \iter{2}   & 2.1e-15 \iter{19}  & 6.3e-16 \iter{2}   \\
+      {\footnotesize \texttt{bcsstk09} \tnote{\(\ddag\)}}  & 1.3e+00    & 1.6e+00    & 1.6e+00    & 5.3e-01 \iter{*}   & 6.1e-01 \iter{*}   & 6.0e-01 \iter{*}   \\
+      {\footnotesize \texttt{bcsstk14}}  & 2.3e-08    & 3.1e-09    & 2.5e-09    & 1.2e-12 \iter{*}   & 1.6e-13 \iter{*}   & 1.3e-13 \iter{*}   \\
+      {\footnotesize \texttt{bcsstk18}}  & 7.7e-11    & 8.6e-11    & 8.3e-11    & 4.9e-16 \iter{30}  & 3.9e-16 \iter{34}  & 3.0e-16 \iter{32}  \\
+      {\footnotesize \texttt{bloweybq}}  & 1.1e+00    & 1.5e-01    & 1.6e-01    & 6.1e-15 \iter{*}   & 2.9e-19 \iter{2}   & 3.3e-19 \iter{4}   \\
+      {\footnotesize \texttt{cbuckle}}   & 2.0e-12    & 2.8e-12    & 1.7e-12    & 2.2e-15 \iter{49}  & 2.7e-15 \iter{9}   & 1.7e-15 \iter{7}   \\
+      {\footnotesize \texttt{crystm01}}  & 4.9e-15    & 5.1e-15    & 3.9e-15    & 5.4e-16 \iter{3}   & 6.7e-16 \iter{4}   & 4.0e-16 \iter{2}   \\
+      {\footnotesize \texttt{ct20stif} \tnote{\(\ddag\)}}  & 1.0e+00    & 7.2e+00    & 7.1e+00    & 1.0e+00 \iter{1}   & 3.4e-08 \iter{*}   & 3.2e-08 \iter{*}   \\
+      {\footnotesize \texttt{ecology2}}  & 7.3e-01    & 7.3e-01    & 7.1e-01    & 2.6e-06 \iter{*}   & 2.4e-06 \iter{*}   & 1.9e-05 \iter{*}   \\
+      {\footnotesize \texttt{lund\_a}}   & 3.6e-12    & 2.9e-12    & 8.3e-13    & 6.2e-16 \iter{4}   & 5.0e-16 \iter{2}   & 5.0e-16 \iter{2}   \\
+      {\footnotesize \texttt{offshore}}  & 8.7e-10    & 1.0e-08    & 3.0e-09    & 4.3e-16 \iter{18}  & 4.3e-16 \iter{16}  & 3.8e-16 \iter{17}  \\
+      {\footnotesize \texttt{paraboli}}  & 1.1e-11    & 1.1e-11    & 4.1e-12    & 7.4e-11 \iter{151} & 7.3e-11 \iter{115} & 5.8e-11 \iter{124} \\
+      {\footnotesize \texttt{plat362}}   & 4.8e+00    & 4.4e+00    & 4.4e+00    & 6.7e-04 \iter{199} & 5.1e-04 \iter{*}   & 5.1e-04 \iter{*}   \\
+      \bottomrule
+    \end{tabular}
+    \caption[Relative forward error and relative residual]{Relative forward
+      error and relative residual for test matrices under three MP
+      configurations. Rows are sorted by matrix name. Residuals are shown with
+      the number of IR outer iterations in parentheses. Asterisks indicate cases
+      where the maximum IR iteration limit was reached.}
+    \label{tab:res-accuracy}
+
+    \begin{tablenotes}
+    \item[\(\dagger\)] Matrix identifiers have been truncated to 8 characters (see
+      Table~\ref{tab:test-matrices} for full names).
+    \item[\(\ddag\)] ILU factorization diverged.
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\subsection{Discussion}
+
+The results in Table~\ref{tab:res-accuracy} highlight several key aspects of
+accuracy behavior across the mixed-precision configurations. First, since the
+reference solution used to compute the relative forward error is exact, the
+relative error is consistently larger than the relative residual. This
+discrepancy generally aligns with the condition number of the tested matrix.
+
+Across most test cases, the relative error and residual are consistent across
+the three MP configurations (SDD, DDD, DDQ). A slight trend of improved accuracy
+is observed as higher precision is employed, though the reduction is
+modest---typically within one order of magnitude. Notably, for extremely
+ill-conditioned problems such as \texttt{bloweybq}, the shift from single to
+double precision in factorization yields a significant improvement in relative
+residual reduction.
+
+The iteration counts further illustrate the effect of precision change. Moving
+from \texttt{single} to \texttt{double} in factorization generally reduces the
+number of IR iterations required for convergence. Increasing the residual
+precision from \texttt{double} to \texttt{octuple} slightly increases the
+iteration count in many cases, despite achieving comparable or better accuracy.
+This suggests that higher factorization generally accelerates convergence, while
+higher residual precision stabilizes the residual but does not necessarily
+accelerate convergence.
+
+For the problematic cases marked with asterisks, different convergence behaviors
+were observed. For \texttt{bcsstk14} and \texttt{plat362}, the method showed
+steady progress but failed to converge within the iteration limit, indicating
+that additional IR iterations could lead to eventual convergence. In contrast,
+for \texttt{ecology2}, the residual stagnated entirely, suggesting that
+increasing the Krylov subspace dimension or employing a more robust
+preconditioner is necessary. For \texttt{bcsstk09} and \texttt{ct20stif}, the
+ILU(0) preconditioner diverged, which in turn rendered the subsequent GMRES
+solve nearly unusable and resulted in large forward errors and residuals.
+Interestingly, in the case of \texttt{bcsstk09}, a development run of GMRES with
+the preconditioner manually removed converged to a substantially lower residual,
+indicating that the breakdown originates in the ILU factorization itself rather
+than in the Krylov solver. \textcite{chow_fine-grained_2015} provides a
+theoretical guarantee of convergence, which stands in contrast with the
+experimental failures observed here. The inconsistency suggests that the
+divergence is likely due to a flaw in our current ILU implementation rather than
+a fundamental limitation of the method. Multiple attempts were made to isolate
+the source of the issue, but we were unable to definitively identify the cause
+within the scope of this work.
+
+\section{Timing}
+\label{sec:timing}
+
+Table~\ref{tab:timing} summarizes the factorization and solve times measured for
+the same set of tests reported in Section~\ref{sec:accuracy}. Factorization time
+refers to the ILU factorization, while solve time includes the cost of iterative
+refinement, GMRES iterations, and residual evaluations. As before, an asterisk
+denotes cases where the solver reached the maximum of 200 IR iterations, and the
+timing corresponds to the capped run.
+
+\begin{table}[h]
+  \centering
+  \newrobustcmd\iter[1]{#1}
+  \sisetup{
+    table-format = 3.3,
+    print-zero-exponent = false,
+    table-align-text-after = false
+  }
+  \begin{tabular}{
+    l
+    S % SDD
+    S % DDD
+    S % DDQ
+    |
+    S % SDD
+    S % DDD
+    S % DDQ
+    }
+    \toprule
+    Matrix                            & \multicolumn{3}{c}{Factorization Time (s)}    & \multicolumn{3}{c}{Solve Time (s)}                          \\
+    \midrule
+                                      & \text{SDD} & \text{DDD} & \text{DDQ} & \text{SDD}      & \text{DDD}      & \text{DDQ}       \\
+    {\footnotesize \texttt{1138\_bus}}      & 0.02       & 0.01       & 0.01       & 0.59            & 0.15            & 0.19             \\
+    {\footnotesize \texttt{2cubes\_sphere}} & 0.50       & 0.48       & 0.48       & 1.59            & 1.62            & 2.70             \\
+    {\footnotesize \texttt{494\_bus}}       & 0.01       & 0.01       & 0.01       & 0.06            & 0.12            & 0.03             \\
+    {\footnotesize \texttt{Dubcova3}}       & 10.94      & 11.96      & 11.87      & 15.95           & 17.41           & 27.67            \\
+    {\footnotesize \texttt{G3\_circuit}}    & 0.42       & 0.47       & 0.46       & 588.19          & 566.95          & 711.52           \\
+    {\footnotesize \texttt{bcsstk08}}       & 0.02       & 0.01       & 0.01       & 0.01            & 0.07            & 0.03             \\
+    {\footnotesize \texttt{bcsstk09}}       & 0.03       & 0.01       & 0.03       & 0.69 \iter{*}   & 1.04 \iter{*}   & 1.91 \iter{*}    \\
+    {\footnotesize \texttt{bcsstk14}}       & 0.03       & 0.02       & 0.02       & 1.87 \iter{*}   & 1.92 \iter{*}   & 4.84 \iter{*}    \\
+    {\footnotesize \texttt{bcsstk18}}       & 0.05       & 0.09       & 0.05       & 1.43            & 1.69            & 2.65             \\
+    {\footnotesize \texttt{bloweybq}}       & 0.03       & 0.04       & 0.03       & 5.45 \iter{*}   & 0.09            & 0.23             \\
+    {\footnotesize \texttt{cbuckle}}        & 0.22       & 0.24       & 0.23       & 5.21            & 1.08            & 2.03             \\
+    {\footnotesize \texttt{crystm01}}       & 0.04       & 0.03       & 0.04       & 0.08            & 0.08            & 0.09             \\
+    {\footnotesize \texttt{ct20stif}}       & 0.77       & 1.72       & 3.40       & 0.01            & 231.85 \iter{*} & 461.94 \iter{*}  \\
+    {\footnotesize \texttt{ecology2}}       & 0.55       & 0.44       & 0.45       & 899.84 \iter{*} & 908.84 \iter{*} & 1132.97 \iter{*} \\
+    {\footnotesize \texttt{lund\_a}}        & 0.02       & 0.01       & 0.01       & 0.00            & 0.00            & 0.01             \\
+    {\footnotesize \texttt{offshore}}       & 1.24       & 1.25       & 1.27       & 25.90           & 23.64           & 42.34            \\
+    {\footnotesize \texttt{parabolic\_fem}} & 0.20       & 0.23       & 0.23       & 318.05          & 246.96          & 372.64           \\
+    {\footnotesize \texttt{plat362}}        & 0.01       & 0.02       & 0.01       & 0.25            & 0.25 \iter{*}   & 0.53 \iter{*}    \\
+    \bottomrule
+  \end{tabular}
+  \caption[Runtime performance for mixed-precision IR]{Factorization and solve
+    times (in seconds) for test matrices under three precision configurations:
+    SDD, DDD, and DDQ. Rows are sorted by matrix name. Asterisks indicate runs
+    that reached the IR iteration cap of 200.}
+  \label{tab:timing}
+\end{table}
+
+\subsection{Timing Discussion}
+
+The results in Table~\ref{tab:timing} show that, across all test matrices, the
+solve phase is consistently far more expensive than the factorization phase.
+This stands in contrast to the findings of \textcite{wong_exploring_2024}, where
+factorization dominated the runtime. The discrepancy arises primarily from
+methodological differences: while \citeauthor{wong_exploring_2024} employed a
+complete LDL\textsuperscript{T} factorization, we rely on an incomplete
+factorization (ILU) which has substantially less unknowns to compute. In our
+implementation the factorization is additionally parallelized across multiple
+threads. The GMRES iterations that dominate the solve phase are limited to
+sequential execution, thereby shifting the runtime heavily toward the solve
+stage.
+
+Another observation is that the time gain from performing factorization in
+\texttt{single} precision versus \texttt{double} precision is minimal. This
+outcome is consistent with the small contribution of factorization time relative
+to the overall runtime. As solve time dominates, reducing factorization cost has
+little impact on total runtime.
+
+Finally, improving the residual computation from \texttt{double} precision to
+\texttt{quadruple} precision results in a marked increase in runtime. This
+slowdown arises from two sources. First, \texttt{quadruple} precision arithmetic
+is intrinsically more expensive than \texttt{double} precision. Second,
+higher-precision residuals demand additional GMRES iterations to converge as
+observed in Section \ref{sec:accuracy}, further amplifying the computational
+burden. Together, these factors explain the consistent timing increase observed
+in the DDQ configuration compared to SDD and DDD.

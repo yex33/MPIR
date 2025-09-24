@@ -1,0 +1,254 @@
+\makeatletter
+\usepackage[
+  top=1in,            % top margin
+  bottom=1in,         % bottom margin
+  inner=1.5in,        % left margin (odd pages)
+  outer=1in,          % right margin (odd pages)
+  headsep=0.5in,      % space between header and text
+  textheight=8.1in,   % force text block height
+  textwidth=6in,      % force text block width
+  marginparwidth=40pt,
+  marginparsep=10pt
+]{geometry}
+\brokenpenalty=10000
+\setlength{\headheight}{14.5pt}
+
+%------------- Footnote ----------------
+\def\cl@chapter{\@elt{section}\@elt{footnote}}
+%\def\thefigure{\@arabic\c@figure}
+%\def\thetable{\@arabic\c@table}
+%\def\theequation{\arabic{equation}}
+
+\long\def\@footnotetext#1{\insert\footins{\def\baselinestretch{1}\footnotesize
+    \interlinepenalty\interfootnotelinepenalty
+    \splittopskip\footnotesep
+    \splitmaxdepth \dp\strutbox \floatingpenalty \@MM
+    \hsize\columnwidth \@parboxrestore
+   \edef\@currentlabel{\csname p@footnote\endcsname\@thefnmark}\@makefntext
+    {\rule{\z@}{\footnotesep}\ignorespaces
+      #1\strut}}}
+
+%------------- Define the Definitions ----------------
+% https://tex.stackexchange.com/questions/353138/what-are-the-differences-between-def-edef-gdef-and-xdef
+\def\shortauthor#1{\gdef\shortauthor{#1}}
+\def\author#1{\gdef\author{#1}}
+\def\field#1{\gdef\field{#1}}
+\def\dept#1{\gdef\dept{#1}}
+\def\degreename#1{\gdef\degreename{#1}}
+\def\gschoolname#1{\gdef\gschoolname{#1}}
+\def\univname#1{\gdef\univname{#1}}
+\def\macaddress#1{\gdef\macaddress{#1}}
+
+\def\title#1{\gdef\title{#1}}
+\def\halftitle#1{\gdef\halftitle{#1}}
+\def\submitmonthyear#1{\gdef\@submitmonthyear{#1}}
+\def\submitdate#1{\gdef\@submitdate{#1}}
+\def\copyrightyear#1{\gdef\@copyrightyear{#1}} % \author, \title in report
+
+\def\prevdegreeone#1{\gdef\@prevdegreeone{#1}}
+\def\prevdegreetwo#1{\gdef\@prevdegreetwo{#1}}
+
+% others
+\def\datasource#1{\gdef\datasource{#1}}
+\def\principaladvisershort#1{\gdef\principaladvisershort{#1}}
+\def\mreb#1{\gdef\mreb{#1}}
+
+% Need to check later
+\def\principaladviser#1{\gdef\@principaladviser{#1}}
+\def\advis@r{Adviser}
+\def\principaladvisor#1{\gdef\@principaladviser{#1}\gdef\advis@r{Advisor}}
+\def\firstreader#1{\gdef\@firstreader{#1}}
+\def\secondreader#1{\gdef\@secondreader{#1}}
+
+% ??? what are these for???
+\begin{comment}
+    \def\@title{}
+    \def\@dept{Computing \& Software}
+    \def\@halftitle{\@title}
+    \def\@prevdegreeone{B.Sc.}
+    \def\@prevdegreetwo{B.Sc.}
+    \def\@degreename{\@dept}
+    \def\@principaladviser{}
+    \def\@firstreader{}
+    \def\@secondreader{}
+\end{comment}
+
+\def\@submitdate{\ifcase\the\month\or
+  January\or February\or March\or April\or May\or June\or
+  July\or August\or September\or October\or November\or December\fi
+  \space \number\the\year}
+\ifnum\month=12
+    \@tempcnta=\year \advance\@tempcnta by 1
+    \edef\@copyrightyear{\number\the\@tempcnta}
+\else
+    \def\@copyrightyear{\number\the\year}
+\fi
+\newif\ifcopyright \newif\iffigurespage \newif\iftablespage \newif\ifsignature
+\copyrighttrue \figurespagetrue \tablespagetrue \signaturefalse
+
+%------------- Half-title Page ----------------
+\def\halftitlep{
+    \thispagestyle{empty}
+   \null\vfill
+    \begin{center}
+       \LARGE \uppercase\expandafter{\halftitle}
+    \end{center}
+      \vfill
+    \vskip1in\newpage\setcounter{page}{1}}
+
+%------------- Title Page ----------------
+% The top and left margins should be 3.8 cm (1.5 inches)
+% and the right and bottom margins should be 2.5 cm (1.0 inch). The copyright line should be placed as the last line of the page. This page must not be numbered.
+\def\titlep{
+    \thispagestyle{empty}
+    \null\vskip0.01in % the top margin is about 2 inches now
+    \begin{center}
+        \large\uppercase\expandafter{\title}
+    \end{center}
+\vfill
+        \begin{center}
+                \rm{By}
+                \uppercase\expandafter{\author, \@prevdegreetwo}\\
+         \end{center}\vskip.1in
+    \vfill
+    \begin{center}
+    \large{A Thesis Submitted to the \gschoolname\ in Partial Fulfillment of the Requirements for \\the Degree \degreename}
+    \end{center}
+    \vfill
+
+
+%------------- Signature Note ----------------
+  \begin{center}
+   \large
+   \univname\ \copyright\ Copyright\ by \author, \@submitmonthyear\\
+   %\small{All Rights Reserved}
+    \end{center}
+    %\vskip.5in
+    \newpage}
+
+\def\copyrightpage{%
+    \begin{center}
+        \Large\copyright\ Copyright \@copyrightyear\\
+        by\\
+        \author\\
+    \end{center}
+    \vfill\vskip1in\newpage} \normalsize
+
+\long\def\signature#1{%
+\begin{center}
+\begin{minipage}{4in}
+\parindent=0pt
+I certify that I have read this thesis and that in my opinion
+it is fully adequate, in scope and in quality, as a dissertation for the degree
+of \degreename.
+\par
+\vspace{.5in}
+\hbox to 4in{\hfil\shortstack{\vrule width 3in height 0.4pt\\#1}}
+\end{minipage}
+\end{center}}
+
+%------------- Descriptive Note ----------------
+ \def\signaturepage{%
+        \noindent
+        \univname \\ % \@degree\ (\@copyrightyear) \hfill  McMaster University \\
+        \MakeUppercase{\degreename}\ (\@copyrightyear) \\
+        \macaddress\ (\dept)
+
+        \vspace{1in}
+        \noindent
+        \begin{tabular}{ll}
+        TITLE:           & \parbox[t]{4in}{\title} \\ \\
+        AUTHOR:          & \parbox[t]{4in}{\author \\ \@prevdegreeone} \\ \\
+        SUPERVISOR:      & \parbox[t]{4in}{\@principaladviser} \\ \\
+        NUMBER OF PAGES: & \parbox[t]{4in}{\pageref{NumPrefacePages}, \pageref{NumDocumentPages}}
+        \end{tabular}
+}
+
+%------------- Before Preface ----------------
+\def\beforepreface{
+	\hypersetup{pageanchor=false}
+	\doublespacing
+    \pagenumbering{roman}
+    \pagestyle{plain}
+    \halftitlep
+    \titlep
+%    \ifcopyright\copyrightpage\fi
+    \signaturepage
+    }
+
+%------------- Preface ----------------
+\def\prefacesection#1{
+    \chapter*{#1}
+    \addcontentsline{toc}{chapter}{#1}}
+
+%------------- Notations ----------------
+\def\referencepageswithnotations#1{\newpage
+	\doublespacing
+	\tableofcontents
+
+	\iffigurespage
+	{\newpage
+		\addvspace{10pt}
+		\let\saveaddvspace=\addvspace
+		\def\addvspace##1{}
+		\listoffigures
+		\let\addvspace=\saveaddvspace}
+	\fi
+
+	\iftablespage
+	{\newpage
+		\addvspace{10pt}
+		\let\saveaddvspace=\addvspace
+		\def\addvspace##1{}
+		\listoftables
+		\let\addvspace=\saveaddvspace}
+	\fi
+	\input{#1}
+	\label{NumPrefacePages}}
+
+%------------- Reference Pages ----------------
+\def\referencepages{\newpage
+\doublespacing
+    \tableofcontents
+
+    \iffigurespage
+        {\newpage
+        \addvspace{10pt}
+        \let\saveaddvspace=\addvspace
+        \def\addvspace##1{}
+        \listoffigures
+        \let\addvspace=\saveaddvspace}
+    \fi
+
+    \iftablespage
+        {\newpage
+    	\addvspace{10pt}
+    	\let\saveaddvspace=\addvspace
+    	\def\addvspace##1{}
+    	\listoftables
+    	\let\addvspace=\saveaddvspace}
+    \fi
+    \label{NumPrefacePages}}
+
+% ----------------- Header -----------------------
+% https://www.overleaf.com/learn/latex/Headers_and_footers
+\def\afterpreface{
+	\hypersetup{pageanchor=true}
+	\newpage
+    \pagenumbering{arabic}
+    \doublespacing
+    \pagestyle{fancy} % "fancy" style is set
+    \fancyhf{} % clears the header and footer, otherwise the elements of the default "plain" page style will appear.
+
+% For the headers in each page as per the GS guidelines
+\lhead[{\small{M.A.Sc. Thesis -- \shortauthor; \univname\ -- \dept}}] {{\small{M.A.Sc. Thesis -- \shortauthor; \univname\ -- \dept}}}
+\chead[{}]  {{}}
+\rhead[{}]  {{}}
+
+%\rhead[{McMaster University -- \@field}] {{McMaster University -- \@dept}}
+
+\lfoot[{}] {{}} \cfoot[{\thepage}]  {{\thepage}} \rfoot[ {}]{{}} }
+
+% Start with pagestyle{headings} in case front matter isn't processed
+\pagestyle{headings}
+\makeatother

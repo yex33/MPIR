@@ -1,0 +1,279 @@
+\chapter{Implementation}
+\label{cha:implementation}
+
+he implementation of the solver combines modern C++ template programming with
+numerical linear algebra techniques to support mixed-precision iterative
+refinement on sparse systems. The overall design emphasizes three guiding
+principles:
+
+\begin{description}
+\item[Interface compatibility] The solver interface mimics that of Eigen’s sparse
+  solvers, ensuring ease of adoption and familiarity for users already working
+  within this ecosystem.
+\item[Precision flexibility] All arithmetic operations are templated over precision
+  types, enabling seamless use of IEEE and extended floating-point formats in
+  mixed-precision workflows.
+\item[Modularity] Numerical kernels such as sparse matrix-vector multiplication,
+  triangular solves, and vector operations are implemented in a modular
+  BLAS-like layer, separating solver logic from low-level computations.
+\end{description}
+
+This chapter presents the solver interface design, the template and concept
+infrastructure supporting mixed precision, extensions made to an external
+library for extended floating-point types, and the modular BLAS-like kernels. It
+then details the key numerical algorithms implemented: the preconditioned GMRES
+kernel, the fine-grained parallel ILU factorization, and the mixed-precision
+iterative refinement driver that integrates them into a complete solver
+pipeline.
+
+\section{Solver Inetrface Design}
+\label{sec:solv-inetrf-design}
+
+A central design objective is to expose an interface resembling that of Eigen's
+\footnote{\href{https://eigen.tuxfamily.org/index.php?title=Main_Page}{Eigen: a
+    C++ template library for linear algebra.}} sparse solvers. The solver is
+implemented as a class template parameterized by three precision types:
+\begin{center}
+  \texttt{Solver<UF, UW, UR>}
+\end{center}
+where:
+\begin{description}
+\item[\texttt{UF}] factorization precision, used for incomplete LU computations,
+\item[\texttt{UW}] working precision, used within GMRES iterations,
+\item[\texttt{UR}] residual precision, used for residual evaluation during iterative
+  refinement.
+\end{description}
+
+The solver class owns a copy of the input matrix, which can be passed by value
+or moved into the solver instance to avoid unnecessary copies. The interface
+provides two key methods:
+\begin{description}
+\item[\texttt{compute()}] accepts a sparse matrix in compressed storage format and performs
+  ILU factorization in precision UF;
+\item[\texttt{solve()}] accepts a right-hand side vector \(\vec{b}\), executes the mixed-precision
+  iterative refinement algorithm, and returns the solution vector \(\vec{x}\).
+\end{description}
+
+\section{C++ Templates and Mixed Precision Concepts}
+\label{sec:c++-templates-mixed}
+
+The implementation makes extensive use of C++ templates to support type-generic
+arithmetic. To ensure correctness and avoid invalid instantiations, variadic
+concepts are introduced.
+
+The \texttt{FloatingPoint} concept ensures that all participating types are valid
+floating-point types, including both IEEE types (\texttt{float},
+\texttt{double}, \texttt{long double}) and extended types (\texttt{dd\_real} for
+quadruple precision, \texttt{qd\_real} for octuple precision) from the QD
+\footnote{\href{https://github.com/BL-highprecision/QD}{QD: A double-double and
+    quad-double package for Fortran and C++}} library.
+
+To control precision hierarchies, the \texttt{PartialOrdered} concept enforces a
+monotonic ordering of machine epsilon values:
+\begin{center}
+  \(\epsilon(\texttt{UF}) \ge \epsilon(\texttt{UW}) \ge \epsilon(\texttt{UR}),\)
+\end{center}
+where \(\epsilon(\texttt{T}) = \texttt{std::numeric\_limits<T>::epsilon()}.\)
+
+The \texttt{Refinable} concept combines the two concepts above and guarantees that
+only valid triples (\texttt{UF}, \texttt{UW}, \texttt{UR}) can instantiate the solver, ensuring
+that factorization occurs in the lowest precision and residuals are always
+computed in the highest available precision.
+
+\section{Extensions to the QD Library}
+\label{sec:extens-qd-libr}
+
+The QD package provides double-double (\texttt{dd\_real}) and quad-double
+(\texttt{qd\_real}) floating-point types, but lacks some functionality required
+for modern C++ interoperability. To integrate QD seamlessly into the solver,
+several extensions were developed.
+
+\begin{description}
+\item[\texttt{std::numeric\_limits} Specializations] Corresponding machine epsilon, max,
+  min values were made \texttt{constexpr}, allowing QD types to participate in
+  template metaprogramming and concept checks.
+\item[Explicit Conversion Functions] Bidirectional explicit conversion functions
+  were implemented between QD types and both built-in IEEE types
+  (\texttt{float}, \texttt{double}) and fixed-width standard floating types
+  (\texttt{std::float16\_t}, \texttt{std::float32\_t},
+  \texttt{std::float64\_t}).
+\item [Formatting and I/O] Implementations of std::formatter were provided,
+  enabling direct use of std::print and std::format with QD types.
+\end{description}
+
+\section{Modular BLAS-like Kernels}
+\label{sec:modular-blas-like}
+
+To decouple solver logic from low-level numerical kernels, all matrix and vector
+operations are organized in a separate module, following the philosophy of BLAS
+\footnote{\href{https://www.netlib.org/blas/}{Basic Linear Algebra
+    Subprograms}}.
+
+Each kernel is templated not only on element type but also on input/output type.
+This allows, for example, a multiplication of a CSC matrix stored in
+\texttt{single} precision against a \texttt{double} precision vector, producing
+results in \texttt{double} while the arithmetic is carried out in
+\texttt{dd\_real} (quadruple). Explicit \texttt{std::static\_cast} ensures
+precision hierarchies are respected.
+
+\section{Implemented Algorithms}
+\label{sec:impl-algo}
+
+The solver integrates three core algorithmic components: a preconditioned GMRES
+method, an incomplete LU factorization (ILU), and an iterative refinement (IR)
+driver. Each component was fully templated in C++ and implemented with explicit
+attention to mixed-precision arithmetic.
+
+\subsection{Preconditioned GMRES}
+\label{sec:preconditioned-gmres}
+
+Algorithm \ref{algo:gmres} implements the preconditioned GMRES procedure, following
+the algorithm presented in \cite{lindquist_improving_2020}. In this work, the
+restarting mechanism in the original work is omitted, since the IR driver
+described in Section~\ref{sec:mixed-precision-ir} naturally enforces a restart
+after each refinement cycle. Thus, the GMRES kernel operates as a building block
+within the mixed-precision IR pipeline, focusing solely on Krylov subspace
+construction, orthogonalization, and residual minimization in the preconditioned
+space.
+
+\begin{singlespace}
+  \begin{algorithm}[h]
+    \caption{GMRES with left preconditioning, given tolerance \(\epsilon\), maximum
+      number of inner iterations \(n_{\text{inner}}\)}
+    \label{algo:gmres}
+    \begin{algorithmic}[1]
+      \State \(\matr{A} \in \mathbb{R}^{n \times n}, \quad \vec{x}_0, \vec{b} \in \mathbb{R}^n, \quad \matr{M}^{-1} \approx \matr{A}^{-1}\)
+      \State \(\vec{z} \gets \vec{b} - \matr{A}\vec{x}_0\) \Comment{Compute residual}
+      \State \(\vec{r} \gets \matr{M}^{-1}\vec{z}\) \Comment{Apply preconditioner}
+      \State \(\beta \gets \norm{\vec{r}}_2, \quad \vec{v}_1 = \vec{r} / \beta, \quad \matr{V}_1 \gets [\vec{v}_1]\) \Comment{Setup for Arnoldi process}
+      \For{\(k = 1, 2, \dots, n_{\text{inner}}\)}
+        \State \(\vec{w} \gets \matr{M}^{-1} \matr{A} \vec{v}_k\) \Comment{Apply preconditioner}
+        \State \(\beta_1 = \norm{\vec{w}}_2\)
+        \State \(\vec{w}, h_{1,k}, \dots, h_{k,k} \gets \text{MGS}(\vec{w}, \matr{V}_k)\) \Comment{Orthogonalization}
+        \State \(\beta_2 = \norm{\vec{w}}_2\)
+        \If{\(\beta_1 + 0.001 \times \beta_2 = \beta_1\)} \Comment{Brown/Hindmarsh condition}
+          \State \(\vec{w}, h_{1,k}, \dots, h_{k,k} \gets [\vec{w}, h_{1,k}, \dots, h_{k,k}] +
+          \text{MGS}(\vec{w}, \matr{V}_k)\) \Comment{Reorthogonalize}
+        \EndIf
+        \State \(h_{k+1,k} \gets \norm{\vec{w}}_2\)
+        \State \(\vec{v}_{k+1} \gets \vec{w} / h_{k+1,k}\)
+        \State \(\matr{V}_{k+1} \gets [\matr{V}_k, \vec{v}_{k+1}]\) \Comment{Stack basis horizontally}
+        \State Apply Givens rotation
+        \State Form and store the rotation parameter for the next iteration
+      \EndFor
+      \State \(\bar{\matr{H}}_k \gets \{h_{i,j}\}_{1 \le i,j \le k}\) \Comment{Form upper
+      Hessenberg matrix}
+      \State Solve the least square problem \[\vec{y}_k = \argmin_{\vec{y}\in\mathbb{R}^k} \norm{\beta e_1 - \bar{\matr{H}}_k \vec{y}}_2\]
+      where \(e_1 \in \mathbb{R}^{k + 1}\) is the first standard basis vector \(e_1 = [1, 0, 0, \dots, 0]\transpose\)
+      \State \(\vec{x} = \vec{x} + \matr{V}_k \vec{y}_k\) \Comment{Apply correction}
+      \State \Return \(\vec{x}\)
+
+      \vspace{10pt}
+
+      \Procedure{MGS}{$\vec{w}, \matr{V}_k$} \Comment{Modified Gram-Schmidt}
+        \State \([\vec{v}_1, \dots, \vec{v}_k] \gets \matr{V}_k\)
+        \For{\(i = 1, 2, \dots, k\)}
+          \State \(h_{i,k} \gets \vec{w} \cdot \vec{v}_i\)
+          \State \(\vec{w} \gets \vec{w} - h_{i,k} \vec{v}_i\)
+        \EndFor
+        \State \Return \(\vec{w}, h_{1,k}, \dots, h_{k,k}\)
+      \EndProcedure
+    \end{algorithmic}
+  \end{algorithm}
+\end{singlespace}
+
+\subsection{Fine-Grained Parallel ILU}
+\label{sec:fine-grain-parall-1}
+
+Algorithm \ref{algo:fgpilu} follows the fine-grained parallel ILU procedure for
+non-symmetric matrices described in \cite{chow_fine-grained_2015}. Although the
+input matrix is assumed to be SPD, the non-symmetric ILU variant was implemented
+because it proved more robust during development. In particular, the symmetric
+ILU formulation occasionally suffered from NaN collapse, caused by square-root
+evaluations of the non-linear residual when the residual became negative.
+
+Despite this, the underlying matrix symmetry was still exploited when computing
+the unknowns \(u_{i,j}, l_{i,j}\). Only the upper-triangular entries \(u_{i,j}\)
+were explicitly iterated, while the corresponding lower-triangular entries
+\(l_{i,j}\) were recovered by symmetry.
+
+For construction of the sparsity pattern with a given fill-in level, a
+\texttt{std::bitset} was used to efficiently track the nonzero positions. Since
+\texttt{std::bitset} requires its size to be fixed at compile time, its length was
+chosen larger than the problem size \(n\) to ensure coverage for all rows and
+columns.
+
+\begin{singlespace}
+  \begin{algorithm}[h]
+    \caption{Fine-Grained Parallel ILU, given \(\matr{A} \in \mathbb{R}^{n \times n}\), fill-in
+      level \(k\), maximum number of sweeps \(n_{\text{sweep}}\)}
+    \label{algo:fgpilu}
+    \begin{algorithmic}[1]
+      \State \(\matr{d_{i,i}} \gets 1 / \sqrt{|a_{i,i}|},\quad \matr{D} \gets \{d_{i,i}\}_{1
+        \le i \le n}\) \Comment{Diagonal scaling factors of \(\matr{A}\)}
+      \State \(\matr{A} \gets \matr{D} \matr{A} \matr{D}\)
+      \Comment{Symmetrically scales \(\matr{A}\) such that \(a_{i,i} = 1\)}
+      \State \(S \gets \text{sparsity pattern of } \matr{A}\)
+      \For{\(i = 1, 2, \dots, k\)}
+        \State \(S \gets S^2\) \Comment{Compute sparsity pattern symbolically}
+      \EndFor
+      \State \(u_{i,j} = a_{i, j},\quad \matr{U} \gets \{u_{i,j}\}\) \Comment{Copy
+        \(\matr{A}\) as initial guesses}
+      \State \(l_{i,j} = a_{i, j},\quad \matr{L} \gets \{l_{i,j}\}\)
+      \For{\(\text{sweep} = 1, 2, \dots n_{\text{sweep}}\) or until convergence}
+        \For{\((i, j) \in S\) \textbf{in parallel}}
+          \If{\(i > j\)}
+            \State \(l_{i,j} \gets (a_{i,j} - \Sigma{k=1}^{j-1} l_{i,k}u_{k,j}) / u_{j,j}\)
+          \Else
+            \State \(u_{i,j} \gets a_{i,j} - \Sigma{k=1}^{i-1} l_{i,k}u_{k,j}\)
+          \EndIf
+        \EndFor
+      \EndFor
+    \end{algorithmic}
+  \end{algorithm}
+\end{singlespace}
+
+\subsection{Mixed-Precision IR}
+\label{sec:mixed-precision-ir}
+
+Algorithm \ref{algo:ir} outlines the IR procedure in a MP setting: after
+factorization, an initial solution is obtained and iteratively refined by
+solving preconditioned correction equations. Convergence is monitored through
+both update and residual norms, terminating once refinements fall below machine
+precision or residual stagnation is detected.
+
+The algorithm design distinguishes three precisions: the factorization precision
+\(u_f\) for ILU decomposition and triangular solves, the working precision
+\(u_w\) for GMRES iterations, and the residual precision \(u_r\) for recomputing
+residuals. As previously mention in Section~\ref{sec:c++-templates-mixed}, this
+triplet \((u_f, u_w, u_r)\) is enforced through C++ templates and concepts, with
+explicit conversion operators for exchange between given types.
+
+\begin{singlespace}
+  \begin{algorithm}[h]
+    \caption{GMRES-IR with ILU factorization in MP, given factorization
+      precision \(u_f\), working precision \(u_w\), residual precision \(u_r\),
+      maximum number of outer iterations \(n_{\text{outer}}\)}
+    \label{algo:ir}
+    \begin{algorithmic}[1]
+      \State Perform ILU factorization of \(\matr{A}\) \Comment{at \(u_f\)}
+      \State Solve \(\matr{L}\matr{U} \vec{x}_0 = \vec{b}\) \Comment{at \(u_f\)}
+      \State \(\vec{r} \gets \vec{b} - \matr{A}\vec{x}_0\) \Comment{at \(u_r\)}
+      \State \(\alpha \gets \infty, \quad \beta \gets \norm{\vec{r}}\)
+      \For{\(i \gets 0, \dots, n_{\text{outer}} - 1\) and \(\norm{r_i} \geq \epsilon\)}
+        \State \(\gamma \gets \norm{\vec{x}_i}\)
+        \State Solve \((\matr{L}\matr{U})^{-1}\matr{A}\vec{d}_i =
+        (\matr{L}\matr{U})^{-1}\vec{r_i}\) with preconditioned GMRES \par
+        where \(\matr{M}^{-1} = (\matr{L}\matr{U})^{-1}\) \Comment{at \(u_w\)}
+        \State \(\vec{x}_{i+1} = \vec{x}_i + \vec{d}_i\) \Comment{at \(u_w\)}
+        \State \(\vec{r}_i \gets \vec{b} - \matr{A}\vec{x}_i\) \Comment{at \(u_r\)}
+        \State \(\alpha' \gets \norm{\vec{d}_i}, \quad \beta' \gets \norm{\vec{r}_i}\)
+        \If{\(\alpha' \le \gamma \times (10 \times \epsilon_{\text{mach}}(u_w))\) or \(|\beta' - \beta| < \epsilon\)}
+          \State break
+        \EndIf
+        \State \(\alpha \gets \alpha', \quad \beta \gets \beta'\)
+      \EndFor
+      \State \Return \(\vec{x}_{i+1}\)
+    \end{algorithmic}
+  \end{algorithm}
+\end{singlespace}

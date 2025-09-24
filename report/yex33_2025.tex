@@ -1,0 +1,168 @@
+%------------------ About -----------------------
+% McMaster Master's/Doctoral Thesis
+% LaTeX Template, Version 1.1 (07 Aug 2022)
+% Works for only Double Spaced Thesis
+% Compiler: pdfLaTeX
+% TeX Live version: 2020 (Legacy)
+
+% First modifications according to McMaster SGS 2016 Guideline:
+% Dr. Omar Boursalie
+%
+% Updated according to McMaster SGS 2021 Guideline and made compatible to Overleaf:
+% Asif Khan (https://www.linkedin.com/in/asif-k/)
+% will occasionally update on Overleaf template page
+%
+% Thanks to Sajjad Rashidiani for help in rechecking
+
+%---------------- V1.1 --------------------------
+% matched updated style format for double spacing by Mac SGS guideline (Aug 2021)
+% Removed manual packages (in backup: fancyheadings, natbib) and added packages in preamble to work well in Overleaf
+% Organized files, folders and renamed a few to match overall format
+% Added hyperlinks and made it dynamic
+% Other minor changes
+
+% License:
+% CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+%----------------- preamble ------------------
+\documentclass[letterpaper, 12pt]{report}                  % Letter paper, Times New Roman, 12pt, twoside or oneside
+
+% new packages
+\usepackage{lipsum}
+\usepackage[utf8]{inputenc}
+\usepackage{comment}
+\renewcommand{\contentsname}{Table of Contents} % to rename it from Contents to Table of Contents % https://tex.stackexchange.com/questions/28516/how-to-change-the-title-of-toc
+\usepackage[backend=biber,style=numeric-comp]{biblatex} % Bibliography formatting
+\addbibresource{../refs/References.bib}
+\usepackage{fancyhdr}                           % Header and footer styling
+
+\usepackage{gscale_thesis_doublespace}          % Double spaced thesis
+
+\usepackage{setspace}    % Allows double spacing but skips headers/footers
+\include{definitions}    % LaTeX variables for preface pages/headers
+\setcounter{tocdepth}{1} % Limits the TOC to chapter and section names
+
+% Additional packages
+\usepackage{graphicx}                         % Allows the inclusion of figures
+\usepackage{subcaption}                       % Allows captions to be added to subfigures
+% \usepackage[justification=centering]{caption} % Centres caption text
+\usepackage{caption}                          % Caption text
+\usepackage[hidelinks]{hyperref}              % Linking to LaTeX labels and external URLs
+\usepackage{array}                            % Used for table formatting
+\newcolumntype{P}[1]{>{\raggedright\let\newline \\\arraybackslash\hspace{0pt}}m{#1}}
+\usepackage{booktabs}                         % Fancy-style tables
+\usepackage{longtable}                        % Allows for tables that are more than one page long
+\usepackage{float}                            % Better figure placement control
+\usepackage{enumerate}
+\usepackage[shortlabels]{enumitem}            % Numbered lists
+\usepackage[shortcuts]{extdash}               % Allows manual hyphenation of hypenated words
+\usepackage{amsmath}                          % Non-standard math symbols
+\usepackage{amssymb}
+\usepackage{amsfonts}                         % Extended fonts for mathematics
+\usepackage{mathtools}
+\numberwithin{equation}{section}              % Numbers equations based on their section
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{algpseudocode,algorithm}
+\usepackage{threeparttable}
+\usepackage{siunitx}
+\sisetup{exponent-product = \cdot}
+\sisetup{print-zero-exponent = true}
+\sisetup{tight-spacing = true}
+
+\DeclareMathOperator{\ILU}{ILU}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+%----------------- Document Begins ------------------
+\begin{document}
+
+% --------------------Before Preface-------------------------
+\beforepreface                                       % Half title page, title page, declaration page
+% \include{chapters_before_preface/1_lay_abstract}     % Lay Abstract
+\include{chapters_before_preface/2_abstract}         % Abstract
+% \include{chapters_before_preface/3_dedication}       % Dedication
+\include{chapters_before_preface/4_acknowledgements} % Acknowledgements
+\referencepageswithnotations{notation}               % Table of Contents, List of Figures, List of Tables, Notations
+% \referencepages % No notations version (choose one)???
+\include{chapters_before_preface/6_declaration_of_academic_achievement}  % declaration of Academic Achievement
+
+% add your new chapters here according to your text file name
+% --------------------After Preface-------------------------
+\afterpreface
+\include{chapters_after_preface/1_introduction}
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+
+\include{chapters_after_preface/2_literature_review}
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+
+\include{chapters_after_preface/3_mathematical_formulation}
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+
+\include{chapters_after_preface/4_implementation}
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+
+\include{chapters_after_preface/5_experiment_and_evaluation}
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+
+\include{chapters_after_preface/6_conclusion}
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+
+% --------------------Appendix-------------------------
+% \begin{appendix}
+% 	\include{chapters_after_preface_appendix/appendix_A}
+%   \setcounter{figure}{0}
+%   \setcounter{equation}{0}
+%   \setcounter{table}{0}
+
+% 	\include{chapters_after_preface_appendix/appendix_B}
+%   \setcounter{figure}{0}
+%   \setcounter{equation}{0}
+%   \setcounter{table}{0}
+% \end{appendix}
+
+% --------------------Bibliography-------------------------
+% check which bibliography style your department prefers
+\printbibliography{}
+
+\label{NumDocumentPages}
+
+\end{document}
+%----------------- Document Ended ------------------
+
+
+% system requirements and design needed? Briefly, not in details
+% contribution of this work? Experiments
+% mention of previous reports? QDLDL?
+% Parallelism in literature review? No
+
+% 2020 Precond GMRES
+% Fine-grained ILU
+% Mixed precision arithmetic for HPC slides
+
+
+% Experiments env Sharcnet? PC is fine
+
+% Intel 10700K
+
+% what experiments to do?
+% Kims? vs. QDLDL? vs. LUIR
+% against MPIR itself, mixed precision
+
+
+% include changes to the QD package
+
+
+% dynamic stopping criterion for ILU
