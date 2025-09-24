@@ -259,12 +259,23 @@ class GmresLDLIR {
    * input matrix A. Defaults to 1 << 21. Used to size the bitset for tracking
    * visited row indices efficiently. Ensure this value is greater than the
    * dimension of your largest expected matrix.
+   * @tparam MAX_SWEEPS Maximum number of sweeps. Defaults to 10.
+   * @tparam BATCH_SIZE Number of columns assigned to each OpenMP thread in a
+   * single chunk during the parallel factorization. Controls the granularity of
+   * work distribution:
+   *         - Larger values reduce scheduling overhead but may reduce load
+   * balancing efficiency.
+   *         - Smaller values improve load balancing for irregular sparsity
+   * patterns but increase overhead.
    */
-  template <typename TAx, std::size_t MAX_MATRIX_SIZE = 1 << 21>
+  template <typename TAx,
+            std::size_t MAX_MATRIX_SIZE = 1 << 21,
+            std::size_t MAX_SWEEPS      = 10,
+            std::size_t BATCH_SIZE      = 4096>
   void Compute(std::vector<std::size_t> Ap,
                std::vector<std::size_t> Ai,
                std::vector<TAx>         Ax,
-               std::size_t              IC_k);
+               std::size_t              ILU_k);
   /**
    * @brief Solves the linear system Ax = b using GMRES with LDLT-based
    * refinement.
@@ -292,23 +303,27 @@ class GmresLDLIR {
   void SetTolerance(UR tol) { tol_ = tol; }
 
 #ifdef VERBOSE
-  void DumpLog() {
+  nlohmann::json DumpLog() {
     log_solver_["max_outer_iterations"] = ir_iter_;
     log_solver_["max_inner_iterations"] = gmres_iter_;
     log_solver_["tolerance"]            = tol_;
-    std::cout << log_solver_.dump(2) << std::endl;
+    nlohmann::json log                  = log_solver_;
     log_solver_.clear();
+    return log;
   }
 #endif
 };
 
 template <typename UF, typename UW, typename UR>
   requires Refinable<UF, UW, UR>
-template <typename TAx, std::size_t MAX_MATRIX_SIZE>
+template <typename TAx,
+          std::size_t MAX_MATRIX_SIZE,
+          std::size_t MAX_SWEEPS,
+          std::size_t BATCH_SIZE>
 void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
                                      std::vector<std::size_t> Ai,
                                      std::vector<TAx>         Ax,
-                                     const std::size_t        IC_k) {
+                                     const std::size_t        ILU_k) {
   // TODO assert Ax.size() <= MAX_MATRIX_SIZE, possible case for solver error
   n_  = Ap.size() - 1;
   Ap_ = std::move(Ap);
@@ -330,7 +345,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   // #########################################################################//
 
   // Compute scaling factor
-  AD_.resize(n_);
+  AD_.assign(n_, 1);
   for (std::size_t col = 0; col < n_; col++) {
     for (std::size_t idx = Ap_[col]; idx < Ap_[col + 1]; idx++) {
       const std::size_t row = Ai_[idx];
@@ -354,7 +369,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   Up_ = Ap_;
   Ui_ = Ai_;
 
-  for (std::size_t _ = 0; _ < IC_k; _++) {
+  for (std::size_t _ = 0; _ < ILU_k; _++) {
     std::vector<std::size_t> Up_segments(n_ + 1);
     Up_segments[0] = 0;
     std::vector<std::vector<std::size_t>> Ui_segments(n_);
@@ -445,15 +460,14 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
   std::string stop_reason = "max_iterations_reached";
 #endif
 
-  std::size_t           sweep;
-  constexpr std::size_t NUM_SWEEPS = 10;
-  for (sweep = 0; sweep < NUM_SWEEPS; sweep++) {
-#pragma omp parallel for schedule(dynamic, 4096)
+  std::size_t sweep;
+  for (sweep = 1; sweep <= MAX_SWEEPS; sweep++) {
+#pragma omp parallel for schedule(dynamic, BATCH_SIZE)
     for (std::size_t U_col = 0; U_col < n_; U_col++) {
       for (std::size_t idx = Up_[U_col]; idx < Up_[U_col + 1]; idx++) {
         const std::size_t U_row = Ui_[idx];
-        const UF          ax    = static_cast<UF>(ValueAt(U_row, U_col));
         // Find A(row, col)
+        const UF ax = static_cast<UF>(ValueAt(U_row, U_col));
         {
           const UF sum = SparseLDotU(U_row, U_col, U_row);
           // Fill non-linear solution
@@ -483,7 +497,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
         std::chrono::duration<double, std::milli>(t_now - t_start).count();
 
     nlohmann::json log_iter;
-    log_iter["iteration"]    = sweep + 1;
+    log_iter["iteration"]    = sweep;
     log_iter["nl_residual"]  = nl_res_norm;
     log_iter["timestamp_ms"] = elapsed_ms;
 
@@ -505,7 +519,7 @@ void GmresLDLIR<UF, UW, UR>::Compute(std::vector<std::size_t> Ap,
       std::chrono::duration<double, std::milli>(t_end - t_start).count();
 
   log_ilu["stop_reason"]      = stop_reason;
-  log_ilu["total_iterations"] = sweep;
+  log_ilu["total_iterations"] = std::min(sweep, MAX_SWEEPS);
   log_ilu["total_time_ms"]    = total_ms;
 
   // append to the global solver log structure (if present), otherwise print
@@ -539,12 +553,12 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
   UR r_norm_prev = std::numeric_limits<UR>::max();
 
 #ifdef VERBOSE
-  log_ir["initial_residual"]    = InfNrm(r);
-  std::string stop_reason = "max_iterations_reached";
+  log_ir["initial_residual"] = InfNrm(r);
+  std::string stop_reason    = "max_iterations_reached";
 #endif
 
   std::size_t iter;
-  for (iter = 0; iter < ir_iter_; iter++) {
+  for (iter = 1; iter <= ir_iter_; iter++) {
     UR              scale = InfNrm(r);
     std::vector<UW> b     = VectorScale<UW, UR>(r, static_cast<UR>(1) / scale);
 #ifdef VERBOSE
@@ -563,15 +577,16 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
     x         = VectorAdd<UW>(x, d);
     b0        = MatrixMultiply<UR>(Ap_, Ai_, Ax_, x);
     r         = VectorSubtract<UR>(b_scaled, b0);
-    UR r_norm = InfNrm(r);
+    UR r_norm = InfNrm(r) / static_cast<UR>(InfNrm(b_scaled));
+    std::println("relative residual @ iter {} = {}", iter, r_norm);
 
 #ifdef VERBOSE
-    auto   now  = std::chrono::high_resolution_clock::now();
+    auto   now = std::chrono::high_resolution_clock::now();
     double elapsed_ms =
         std::chrono::duration<double, std::milli>(now - outer_t_start).count();
 
     nlohmann::json log_iter;
-    log_iter["iteration"]    = iter + 1;
+    log_iter["iteration"]    = iter;
     log_iter["residual"]     = r_norm;
     log_iter["d_norm"]       = d_norm;
     log_iter["timestamp_ms"] = elapsed_ms;
@@ -583,14 +598,14 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
 
     if (d_norm <= x_norm * (10 * std::numeric_limits<UW>::epsilon())) {
 #ifdef VERBOSE
-      stop_reason            = "converged_small_update";
+      stop_reason                  = "converged_small_update";
       log_ir["stop_reason_detail"] = "d_norm <= x_norm * (10*eps)";
 #endif
       break;
     }
     if (abs(r_norm - r_norm_prev) < tol_) {
 #ifdef VERBOSE
-      stop_reason            = "converged_residual_stagnation";
+      stop_reason                  = "converged_residual_stagnation";
       log_ir["stop_reason_detail"] = "abs(r_norm - r_norm_prev) < tol";
 #endif
       break;
@@ -605,7 +620,7 @@ std::vector<UW> GmresLDLIR<UF, UW, UR>::Solve(const std::vector<UW> &b) {
           .count();
 
   log_ir["stop_reason"]      = stop_reason;
-  log_ir["total_iterations"] = iter;
+  log_ir["total_iterations"] = std::min(iter, ir_iter_);
   log_ir["total_time_ms"]    = total_ms;
 
   // append to the global solver log structure (if present), otherwise print
