@@ -7,67 +7,68 @@ scientific computing, optimization, and engineering simulations. Traditional
 double precision direct solvers, though robust, often suffer from high memory
 demands and computational cost, particularly due to fill-in during factorization
 of sparse matrices. This has motivated the development of iterative methods and
-preconditioning strategies that strike a balance between efficiency and
-accuracy. Concretely, we are concerned with solving linear systems of the
-form \[\matr{A} \vec{x} = \vec{b}, \] where \(\matr{A} \in \mathbb{R}^{n \times
-  n}\) is a symmetric, nonsingular, sparse matrix and \(\vec{b} \in
-\mathbb{R}^n\) is a given right-hand side vector.
+preconditioning strategies that aim to balance efficiency and accuracy.
+Concretely, we are concerned with solving linear systems of the form \[\matr{A}
+  \vec{x} = \vec{b}, \] where \(\matr{A} \in \mathbb{R}^{n \times n}\) is a
+symmetric, nonsingular, sparse matrix and \(\vec{b} \in \mathbb{R}^n\) is a
+specified right-hand side vector.
 
 One promising approach is mixed-precision iterative refinement (IR), which
 leverages lower precision arithmetic for speed while retaining high precision
-steps to ensure stability and accuracy. In particular, the GMRES-based IR
-(GMRES-IR) method combines iterative refinement with the Generalized Minimal
-Residual method (GMRES), enabling robust convergence even for ill-conditioned
-systems \cite{lindquist_improving_2020,mary_mixed_2023}. Mixed-precision
-algorithms have been shown to significantly reduce time-to-solution by
-exploiting modern hardware accelerators and memory hierarchies, while
-maintaining accuracy comparable to traditional double-precision solvers
-\cite{mary_mixed_2023}.
+steps to ensure stability and accuracy. In particular, the GMRES-based iterative
+refinement (GMRES-IR) method combines iterative refinement with the Generalized
+Minimal Residual method (GMRES), enabling robust convergence even for
+ill-conditioned systems \cite{lindquist_improving_2020,mary_mixed_2023}.
+Mixed-precision algorithms have been shown to significantly reduce the
+time-to-solution by exploiting modern hardware accelerators and memory
+hierarchies, while maintaining accuracy comparable to traditional
+double-precision solvers \cite{mary_mixed_2023}.
 
-This project continues prior work by \textcite{wong_exploring_2024}, who developed
+This project builds on prior work by \textcite{wong_exploring_2024}, who developed
 a prototype GMRES-IR solver with theoretical analysis in a five-precision
 setting. Building on this foundation, the present work explores and experiments
 with a practical implementation of GMRES-IR in C++, emphasizing both algorithmic
-and software design improvements. The solver supports mixed precision across
-different stages of the refinement process, enforced via C++ templates and
-concepts to explicitly separate factorization, working, and residual precisions.
-In contrast to the earlier implementation, the codebase has been modernized with
-a cleaner interface, CMake build integration, and improved modularity.
+advances and software design improvements. The solver supports mixed precision
+across different stages of the refinement process, enforced through C++
+templates and concepts that explicitly separate factorization, working, and
+residual precisions. Compared to the earlier implementation, the codebase has
+been modernized with a cleaner interface, integrated CMake build integration,
+and improved modularity.
 
 A key obstacle in earlier GMRES-IR implementations was the reliance on
 LDL\textsuperscript{T} factorization (via a modified QDLDL package
 \cite{shahrooz_derakhshan_using_2023}) for preconditioning, which incurred
-substantial fill-in and dominated runtime. To address this, we replace
+substantial fill-in and dominated the runtime. To address this, we replace
 LDL\textsuperscript{T} with a fine-grained parallel incomplete LU (ILU)
-factorization \cite{chow_fine-grained_2015}, which provides a less accurate yet
+factorization \cite{chow_fine-grained_2015}, which provides a less accurate but
 effective preconditioner with significantly reduced memory overhead.
-Implementing ILU in parallel within a mixed-precision framework required careful
+Implementing ILU in parallel within a mixed-precision framework requires careful
 design but enables scalability to much larger sparse problems. In the present
-implementation, ILU is applied only to symmetric matrices. These are
-predominantly symmetric positive definite (SPD), though some are indefinite.
-While ILU is in principle applicable to general nonsymmetric systems, robust use
-in that setting typically requires reordering or pivoting to ensure stability,
-which would be beyond the scope of this project. Restricting attention to
-symmetric (mostly SPD) matrices keeps the implementation tractable while still
-allowing us to evaluate the effectiveness of a mixed-precision GMRES-IR solver
-with parallel ILU preconditioning.
+implementation, ILU is applied only to symmetric matrices. Most of these are
+symmetric positive definite (SPD), though some are indefinite. While ILU is, in
+principle, applicable to general nonsymmetric systems, robust application in
+that setting typically requires reordering or pivoting to ensure stability,
+which is beyond the scope of this project. Restricting attention to symmetric
+(mostly SPD) matrices keeps the implementation tractable while still allowing
+evaluation of the effectiveness of a mixed-precision GMRES-IR solver with
+parallel ILU preconditioning.
 
-The main contribution of this report is an experimental study of performance
+The main contribution of this report is an experimental study of the performance
 trade-offs in mixed-precision GMRES-IR with parallel ILU preconditioning. We
 investigate the effects of precision choice, Krylov subspace size, and
-preconditioning quality on both runtime and accuracy for large sparse systems.
-While the implementation is not yet a polished solver intended for production
-use, it provides insight into practical aspects of mixed-precision iterative
-refinement and contributes toward the broader goal of robust, efficient
-open-source solvers.
+preconditioning quality on both runtime and accuracy when solving large sparse
+systems. While the implementation is not yet a polished solver intended for
+production use, it provides insight into practical aspects of mixed-precision
+iterative refinement and contributes to the broader goal of developing robust,
+efficient open-source solvers.
 
 The remainder of this report is structured as follows:
 
 \begin{itemize}
-\item Chapter \ref{cha:literature-review} provides a review of the relevant
-  literature, covering the foundations of iterative solvers, preconditioning
-  techniques, and mixed-precision computing.
-\item Chapter \ref{cha:math-form} details the mathematical formulation of the core
+\item Chapter \ref{cha:literature-review} reviews the relevant literature, covering
+  the foundations of iterative solvers, preconditioning techniques, and
+  mixed-precision computing.
+\item Chapter \ref{cha:math-form} presents the mathematical formulation of the core
   algorithms, including the GMRES method, the iterative refinement framework,
   and the fine-grained parallel ILU factorization.
 \item The C++ implementation of the solver is described in Chapter

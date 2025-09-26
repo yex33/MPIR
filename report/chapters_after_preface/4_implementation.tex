@@ -1,15 +1,15 @@
 \chapter{Implementation}
 \label{cha:implementation}
 
-The implementation of the solver combines modern C++ template programming with
+The solver implementation combines modern C++ template programming with
 numerical linear algebra techniques to support mixed-precision iterative
-refinement on sparse systems. The overall design emphasizes three guiding
+refinement on sparse systems. Its overall design emphasizes three guiding
 principles:
 
 \begin{description}
 \item[Interface compatibility] The solver interface mimics that of Eigen’s sparse
-  solvers \cite{noauthor_eigen_nodate}, ensuring ease of adoption and
-  familiarity for users already working within this ecosystem.
+  solvers \cite{noauthor_eigen_nodate}, ensuring easy adoption and familiarity
+  for users already working within this ecosystem.
 \item[Precision flexibility] All arithmetic operations are templated over precision
   types, enabling seamless use of IEEE 754 and extended floating-point formats
   in mixed-precision workflows.
@@ -19,9 +19,9 @@ principles:
 \end{description}
 
 This chapter presents the solver interface design, the template and concept
-infrastructure supporting mixed precision, extensions made to an external
-library for extended floating-point types, and the modular BLAS-like kernels. It
-then details the key numerical algorithms implemented: the preconditioned GMRES
+infrastructure supporting mixed precision, extensions to an external library for
+extended floating-point types, and the modular BLAS-like kernels. It then
+details the key numerical algorithms implemented: the preconditioned GMRES
 kernel, the fine-grained parallel ILU factorization, and the mixed-precision
 iterative refinement driver that integrates them into a complete solver
 pipeline.
@@ -30,12 +30,12 @@ pipeline.
 \label{sec:solv-inetrf-design}
 
 A central design objective is to expose an interface resembling that of Eigen's
-sparse solvers. The solver is implemented as a class, template parameterized by
+sparse solvers. The solver is implemented as a class template parameterized by
 three precision types:
 \begin{center}
   \texttt{Solver<UF, UW, UR>}
 \end{center}
-where:
+where the template parameters are defined as below:
 \begin{description}
 \item[\texttt{UF}] factorization precision, used for incomplete LU computations,
 \item[\texttt{UW}] working precision, used within GMRES iterations; this is also the
@@ -50,15 +50,16 @@ provides two key methods:
 \begin{description}
 \item[\texttt{compute()}] accepts a sparse matrix in compressed storage format and performs
   ILU factorization in precision UF;
-\item[\texttt{solve()}] accepts a right-hand side vector \(\vec{b}\), executes the mixed-precision
-  iterative refinement algorithm, and returns the solution vector \(\vec{x}\).
+\item[\texttt{solve()}] accepts a right-hand side vector \(\vec{b}\), executes the
+  mixed-precision iterative refinement algorithm, and returns the solution
+  vector \(\vec{x}\).
 \end{description}
 
 \section{C++ Templates and Mixed Precision Concepts}
 \label{sec:c++-templates-mixed}
 
 The implementation makes extensive use of C++ templates to support type-generic
-arithmetic. To ensure correctness and avoid invalid instantiations, variadic
+arithmetic. To ensure correctness and prevent invalid instantiations, variadic
 concepts are introduced.
 
 The \texttt{FloatingPoint} concept ensures that all participating types are valid
@@ -67,7 +68,7 @@ floating-point types, including both IEEE 754 types (\texttt{float},
 \texttt{qd\_real} for octuple precision) from the QD
 \cite{david_bailey_bl-highprecisionqd_2025} library.
 
-To control precision hierarchies, the \texttt{PartialOrdered} concept enforces a
+To enforce precision hierarchies, the \texttt{PartialOrdered} concept requires a
 monotonic ordering of machine epsilon values:
 \begin{center}
   \(\epsilon(\texttt{UF}) \ge \epsilon(\texttt{UW}) \ge \epsilon(\texttt{UR}),\)
@@ -76,28 +77,28 @@ where \(\epsilon(\texttt{T}) = \texttt{std::numeric\_limits<T>::epsilon()}\) is 
 epsilon of precision type \texttt{T}.
 
 The \texttt{Refinable} concept combines the two concepts above and guarantees that
-only valid triples (\texttt{UF}, \texttt{UW}, \texttt{UR}) can instantiate the solver, ensuring
-that factorization occurs in the lowest precision and residuals are always
-computed in the highest available precision.
+only valid triples (\texttt{UF}, \texttt{UW}, \texttt{UR}) can instantiate the
+solver. It ensures that factorization occurs in the lowest precision and
+residuals are always computed in the highest precision.
 
 \section{Extensions to the QD Library}
 \label{sec:extens-qd-libr}
 
 The QD package provides quadruple and octuple precision through the data types
-\texttt{dd\_real} and \texttt{qd\_real}, respectively. However, it lacks some
+\texttt{dd\_real} and \texttt{qd\_real}, respectively. However, it lacks certain
 functionality required for modern C++ interoperability. To integrate QD
-seamlessly into the solver, several extensions were developed.
+seamlessly into the solver, several extensions were implemented.
 
 \begin{description}
-\item[\texttt{std::numeric\_limits} Specializations] Corresponding machine epsilon, max,
-  min values were made \texttt{constexpr}, allowing QD types to participate in
-  template metaprogramming and concept checks.
+\item[\texttt{std::numeric\_limits} Specializations] The corresponding machine epsilon,
+  maximum, minimum values were made \texttt{constexpr}, allowing QD types to
+  participate in template metaprogramming and concept checks.
 \item[Explicit Conversion Functions] Bidirectional explicit conversion functions
   were implemented between QD types and both built-in IEEE types
   (\texttt{float}, \texttt{double}) and fixed-width standard types
   (\texttt{std::float16\_t}, \texttt{std::float32\_t},
   \texttt{std::float64\_t}).
-\item [Formatting and I/O] Implementations of \texttt{std::formatter} were provided,
+\item [Formatting and I/O] Implementations of \texttt{std::formatter} were added,
   enabling direct use of \texttt{std::print} and \texttt{std::format} with QD
   types.
 \end{description}
@@ -106,22 +107,22 @@ seamlessly into the solver, several extensions were developed.
 \label{sec:modular-blas-like}
 
 To decouple solver logic from low-level numerical kernels, all matrix and vector
-operations are organized in a separate module, following the philosophy of BLAS
-\cite{blackford_2002_updated}.
+operations are organized into a separate module, following the philosophy of
+BLAS \cite{blackford_2002_updated}.
 
-Each kernel is templated not only on element type but also on input/output type.
-This allows, for example, a multiplication of a Compressed Sparse Column (CSC)
-matrix stored in \texttt{single} precision against a dense \texttt{double}
-precision vector, producing results in \texttt{double} while the arithmetic is
-carried out in \texttt{dd\_real} (quadruple). Explicit
-\texttt{std::static\_cast} ensures precision hierarchies are respected.
+Each kernel is templated not only on the element type but also on the
+input/output type. For example, this design allows multiplying a Compressed
+Sparse Column (CSC) matrix stored in \texttt{single} precision by a dense
+\texttt{double} precision vector, producing results in \texttt{double} while the
+arithmetic is carried out in \texttt{dd\_real} (quadruple). Explicit
+\texttt{std::static\_cast} ensures that precision hierarchies are respected.
 
 \section{Implemented Algorithms}
 \label{sec:impl-algo}
 
 The solver integrates three core algorithmic components: a preconditioned GMRES
 method, an incomplete LU factorization (ILU), and an iterative refinement (IR)
-driver. Each component was fully templated in C++ and implemented with explicit
+driver. Each component is fully templated in C++ and implemented with explicit
 attention to mixed-precision arithmetic.
 
 \subsection{Preconditioned GMRES}
@@ -129,12 +130,12 @@ attention to mixed-precision arithmetic.
 
 Algorithm \ref{algo:gmres} implements the preconditioned GMRES procedure, following
 the algorithm presented in \cite{lindquist_improving_2020}. In this work, the
-restarting mechanism in the original work is omitted, since the IR driver
+restarting mechanism from the original version is omitted, since the IR driver
 described in Section~\ref{sec:mixed-precision-ir} naturally enforces a restart
-after each refinement cycle. Thus, the GMRES kernel operates as a building block
-within the mixed-precision IR pipeline, focusing solely on Krylov subspace
-construction, orthogonalization, and residual minimization in the preconditioned
-space.
+after each refinement cycle. As a result, the GMRES kernel functions as a
+building block within the mixed-precision IR pipeline, focusing solely on Krylov
+subspace construction, orthogonalization, and residual minimization in the
+preconditioned space.
 
 \begin{singlespace}
   \begin{algorithm}[h]
@@ -189,23 +190,22 @@ space.
 \label{sec:fine-grain-parall-1}
 
 Algorithm \ref{algo:fgpilu} follows the fine-grained parallel ILU procedure for
-non-symmetric matrices described in \cite{chow_fine-grained_2015}. Although the
-input matrix is assumed to be symmetric, the non-symmetric ILU variant was
+nonsymmetric matrices described in \cite{chow_fine-grained_2015}. Although the
+input matrix is assumed to be symmetric, the nonsymmetric ILU variant was
 implemented because it proved more robust during development. In particular, the
-symmetric ILU formulation occasionally suffered from NaN collapse, caused by
-square-root evaluations of the non-linear residual when the residual became
-negative.
+symmetric ILU formulation occasionally suffered from NaN collapse due to
+square-root evaluations of the nonlinear residual when it became negative.
 
 Despite this, the underlying matrix symmetry was still exploited when computing
-the unknowns \(u_{i,j}, l_{i,j}\). Only the upper-triangular entries \(u_{i,j}\)
-were explicitly iterated, while the corresponding lower-triangular entries
-\(l_{i,j}\) were recovered by symmetry.
+the unknowns \(u_{i,j}\) and \(l_{i,j}\). Only the upper-triangular entries
+\(u_{i,j}\) were explicitly iterated, while the corresponding lower-triangular
+entries \(l_{i,j}\) were recovered by symmetry.
 
-For construction of the sparsity pattern with a given fill-in level, a
-\texttt{std::bitset} was used to efficiently track the nonzero positions. Since
-\texttt{std::bitset} requires its size to be fixed at compile time, its length was
-chosen larger than the problem size \(n\) to ensure coverage for all rows and
-columns.
+To construct the sparsity pattern with a given fill-in level, a
+\texttt{std::bitset} was used to efficiently track the nonzero positions.
+Because \texttt{std::bitset} requires its size to be fixed at compile time, its
+length was chosen to be larger than the problem size \(n\) to ensure coverage
+for all rows and columns.
 
 \begin{singlespace}
   \begin{algorithm}[h]
@@ -260,12 +260,12 @@ solving preconditioned correction equations. Convergence is monitored through
 both update and residual norms, terminating once refinements fall below machine
 precision or residual stagnation is detected.
 
-The algorithm design distinguishes three precisions: the factorization precision
+The algorithm distinguishes three precisions: the factorization precision
 \(u_f\) for ILU decomposition and triangular solves, the working precision
 \(u_w\) for GMRES iterations, and the residual precision \(u_r\) for recomputing
-residuals. As previously mentioned in Section~\ref{sec:c++-templates-mixed},
-this triplet \((u_f, u_w, u_r)\) is enforced through C++ templates and concepts,
-with explicit conversion operators for exchange between given types.
+residuals. As mentioned earlier in Section~\ref{sec:c++-templates-mixed}, this
+triplet \((u_f, u_w, u_r)\) is enforced through C++ templates and concepts, with
+explicit conversion operators to enable exchange between types.
 
 \begin{singlespace}
   \begin{algorithm}[h]

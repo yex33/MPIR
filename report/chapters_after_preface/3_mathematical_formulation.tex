@@ -2,24 +2,24 @@
 \label{cha:math-form}
 
 This chapter presents the mathematical foundations underlying the solver
-developed in this work. We begin with a derivation of the Generalized Minimal
+developed in this work. It begins with a derivation of the Generalized Minimal
 Residual (GMRES) method, including the construction of Krylov subspaces, the
 Arnoldi orthogonalization process, the use of Givens rotations to solve the
-resulting Hessenberg least-squares problem, as well as the preconditioning
-technique and restarting strategies. We then describe iterative refinement in
-the mixed-precision setting, highlighting the error correction model and the
-distinct roles of factorization precision, working precision, and residual
-precision. The chapter continues with a treatment of incomplete factorization
-techniques, including incomplete LU with level-of-fill (\texttt{ILU(k)}) and the
-fine-grained parallel ILU method.
+resulting Hessenberg least-squares problem, together with preconditioning
+techniques and restarting strategies. The chapter then describes iterative
+refinement in the mixed-precision setting, highlighting the error correction
+model and the distinct roles of factorization precision, working precision, and
+residual precision. The chapter concludes with a discussion of incomplete
+factorization techniques, including incomplete LU with level-of-fill
+(\texttt{ILU(k)}) and the fine-grained parallel ILU method.
 
 \section{GMRES Method}
 \label{sec:gmres-algorithm}
 
-As a member of the Krylov subspace methods, GMRES approximates the solution by
-finding a vector within a constructed Krylov subspace that minimizes the
-residual. This is achieved by building an orthogonal basis for the Krylov
-subspace, commonly through the Arnoldi process.
+As a Krylov subspace method, GMRES approximates the solution by finding a vector
+within a constructed Krylov subspace that minimizes the residual. This is
+achieved by building an orthogonal basis for the Krylov subspace, typically
+using the Arnoldi process.
 
 \subsection{Krylov Subspace Basis Construction}
 \label{sec:kryl-subsp-basis}
@@ -29,7 +29,7 @@ Consider a nonsingular linear system of the form
   \label{eq:axb}
   \matr{A} \vec{x} = \vec{b}, \quad \matr{A} \in \mathbb{R}^{n \times n}, \vec{b} \in \mathbb{R}^n
 \end{equation}
-where \(\matr{A}\) is generally non-symmetric and sparse. Starting with an
+where \(\matr{A}\) is generally nonsymmetric and sparse. Starting with an
 initial guess \(\vec{x}_0\) and residual \(\vec{r}_0 = \vec{b} - \matr{A}
 \vec{x}_0\), GMRES constructs the Krylov subspace
 \begin{equation}
