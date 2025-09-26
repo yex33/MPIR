@@ -7,7 +7,7 @@ implemented in modern C++ with extensive use of templates and concepts to
 enforce precision hierarchies, providing flexibility to employ IEEE 754 and
 extended floating-point formats. To support extended precision, functionality
 was added to the QD library. A modular BLAS-like kernel layer decouples
-low-level arithmetic from solver logic, enabling mixed-precision operations
+low-level operations from solver logic, enabling mixed-precision operations
 across factorization, Krylov iterations, and residual computations.
 
 Experimental evaluation across a set of sparse matrices highlights the accuracy
@@ -16,11 +16,6 @@ increasing factorization precision accelerates convergence, while higher
 residual precision stabilizes residual computation without significantly
 reducing iteration counts. However, the overall performance is dominated by the
 GMRES solve phase, limiting the observed gains from reduced-precision
-factorization.
-
-The study concludes that while mixed-precision arithmetic offers potential
-runtime advantages, the benefits in the current GMRES-IR pipeline remain modest.
-Future work should investigate lower-precision factorization with hardware
-acceleration, improved error mitigation strategies, and more robust
-preconditioning schemes to better realize the promise of mixed-precision
-iterative refinement.
+factorization. The study concludes that while mixed-precision arithmetic offers
+potential runtime advantages, the benefits in the current GMRES-IR pipeline
+remain modest.

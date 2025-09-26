@@ -9,11 +9,10 @@ computing and several preconditioning strategies.
 \section{Iterative Solvers and MP Computing}
 \label{sec:iterative-solvers}
 
-The Generalized Minimum Residual (GMRES) method, introduced by
-\citeauthor{saad_gmres_1986} in \citeyear{saad_gmres_1986}, is a widely used
-iterative, Krylov subspace method for solving sparse, non-symmetric systems of
-linear equations arising from many scientific applications
-\cite{saad_gmres_1986}. As a Krylov subspace method, GMRES constructs an
+The GMRES method, introduced by \textcite{saad_gmres_1986} in
+\citeyear{saad_gmres_1986}, is a widely used iterative, Krylov subspace method
+for solving sparse, non-symmetric systems of linear equations arising from many
+scientific applications. As a Krylov subspace method, GMRES constructs an
 orthogonal basis using Arnoldi’s procedure and then finds a solution vector
 within that subspace such that the resulting residual is minimized.
 
@@ -23,32 +22,32 @@ and then restarts with an empty Krylov subspace, using the newly computed
 solution as the new initial guess \cite{lindquist_improving_2020}. This
 technique is vital for limiting the number of basis vectors required for the
 Krylov subspace, thereby reducing storage and computation costs associated with
-orthogonalizing new vectors. It is important to note that restarted GMRES can be
-seen as equivalent to iterative refinement where a non-restarted GMRES computes
-the error correction \cite{lindquist_improving_2020,mary_mixed_2023}.
+orthogonalizing new vectors. Notably, restarted GMRES is functionally equivalent
+to iterative refinement where a non-restarted GMRES computes the error
+correction \cite{lindquist_improving_2020,mary_mixed_2023}. We will revisit this
+equivalence relationship later in Section~\ref{sec:restarting} in a formal
+context.
 
 Iterative refinement (IR) is an established technique designed to improve the
 accuracy of a computed solution to a linear system by iteratively computing and
 correcting errors based on the system's residuals.
 \textcite{moler_iterative_1967} advanced the understanding of IR in the context
-of floating-point arithmetic. \citeauthor{moler_iterative_1967} highlighted that
-iterative refinement is effective in reducing roundoff errors and noted that
-only one step in the process, computing the residuals, requires higher precision
-arithmetic to achieve accurate final results.
+of floating-point arithmetic. He highlighted that iterative refinement is
+effective in reducing roundoff errors and noted that computing the residuals
+requires higher precision arithmetic to achieve accurate final results.
 
 Another major advancement in IR came with the adoption of mixed-precision (MP)
 arithmetic. This approach typically involves performing computationally
 intensive tasks, such as matrix factorization, in lower precision to gain speed
-and memory efficiency, while accuracy-critical operations, like residual
-computation and solution updates, are carried out in higher precision to
-maintain overall numerical stability and accuracy. As reported by
-\textcite{wong_exploring_2024}, early applications of MP IR utilized
-single-precision for LU factorization and double precision for residual and
-correction updates, improving computational efficiency while preserving
-numerical stability. This concept was then extended to preconditioned GMRES
-within the MP iterative refinement framework, where correction updates are
-computed using the GMRES method and done in double precision.
-\textcite{lindquist_improving_2020} have proven that this approach is
+and memory efficiency, while accuracy-critical operations like residual
+computation are carried out in higher precision to maintain overall numerical
+stability and accuracy. As reported by \textcite{wong_exploring_2024}, early
+applications of MP IR utilized single precision for LU factorization and double
+precision for residual and correction updates, improving computational
+efficiency while preserving numerical stability. This concept was then extended
+to preconditioned GMRES within the MP iterative refinement framework, where
+correction updates are computed using the GMRES method and done in double
+precision. \textcite{lindquist_improving_2020} have shown that this approach is
 particularly effective for ill-conditioned linear systems.
 
 \section{Preconditioning}
@@ -57,38 +56,40 @@ particularly effective for ill-conditioned linear systems.
 Preconditioning is a technique used to improve the convergence behavior of
 iterative linear system solvers. It works by transforming the original linear
 system into an equivalent one that has a more favorable spectrum—--typically a
-smaller spectral condition number or eigenvalues clustered closer to 1
+smaller spectral condition number or eigenvalues clustered closer to one
 \cite[p.~187]{ascher_first_2011}. The preconditioning matrix, \(\matr{M}\),
 serves as an approximation to the original matrix \(\matr{A}\). Common
 preconditioning strategies include left preconditioning (\(\matr{M}^{-1}
-\matr{A} \vec{x} = \matr{M}^{-1} \vec{b}\)) and right preconditioning (\(\matr{A}
-\matr{M}^{-1} \vec{y} = \vec{b}, \vec{x} = \matr{M}^{-1} \vec{y}\)).
+\matr{A} \vec{x} = \matr{M}^{-1} \vec{b}\)) and right preconditioning
+(\(\matr{A} \matr{M}^{-1} \vec{y} = \vec{b}, \vec{x} = \matr{M}^{-1} \vec{y}\)).
 
-Standard preconditioners include LU factorization (\(\matr{A} = \matr{L}
-\matr{U}\)). A similar concept for symmetric positive definite (SPD) matrices is
-Cholesky factorization (\(\matr{A} = \matr{U} \matr{U}\transpose{}\) or
-\(\matr{A} = \matr{L} \matr{D} \matr{L}\transpose{}\)). The QDLDL package
-modified by \textcite{shahrooz_derakhshan_using_2023} provides an \(\matr{L}
-\matr{D} \matr{L}\transpose{}\) factorization routine with MP support for
-quasi-definite matrices. These are symmetric matrices of a specific block form
-guaranteed to have an \(\matr{L} \matr{D} \matr{L}\transpose{}\) factorization.
-\textcite{wong_exploring_2024}'s work establishes a concrete C++ implementation
-of a preconditioned GMRES-IR solver that supports MP arithmetic. This solver
-leverages the QDLDL package for computing the \(\matr{L} \matr{D}
-\matr{L}\transpose{}\) factorization of quasi-definite matrices as the
-preconditioners.
+Standard preconditioners include the LU factors of \(\matr{A}\) (\(\matr{A} =
+\matr{L} \matr{U}\)). A similar concept for symmetric positive definite (SPD)
+matrices is Cholesky factorization (\(\matr{A} = \matr{U} \matr{U}\transpose{}\)
+or \(\matr{A} = \matr{L} \matr{D} \matr{L}\transpose{}\) for symmetric
+matrices). The QDLDL package \cite{stellato_osqp_2020} computes the
+LDL\textsuperscript{T} factorization of a quasi-definite matrix.
+\textcite{shahrooz_derakhshan_using_2023} have adopted it to work using mixed
+precision, by templating it on the floating point data type. These are symmetric
+matrices of a specific block form guaranteed to have an LDL\textsuperscript{T}
+factorization. \textcite{wong_exploring_2024}'s work establishes a concrete C++
+implementation of a preconditioned GMRES-IR solver that supports MP arithmetic.
+This solver leverages the QDLDL package for computing the LDL\textsuperscript{T}
+factorization of quasi-definite matrices as the preconditioners.
 
-However, in the context of solving large sparse linear systems, direct methods
-such as LU factorization often suffer from substantial fill-in, making them
-computationally expensive both in terms of memory and time. This is evident in
-\cite{wong_exploring_2024} that factorization time is a dominant component of
-the total runtime for large sparse matrices where \(\matr{L} \matr{D}
-\matr{L}\transpose{}\) factorization is used. Since preconditioning does not
+In the context of solving large sparse linear systems, direct methods such as LU
+and LDL\textsuperscript{T} factorization usually suffer from substantial
+fill-in, making them computationally expensive both in terms of memory and time.
+As shown in \cite{wong_exploring_2024}, factorization time is a dominant
+component of the total runtime for large sparse matrices where
+LDL\textsuperscript{T} factorization is used. Since preconditioning does not
 require an exact factorization but only an approximation that accelerates
 convergence, incomplete factorizations such as incomplete LU (ILU) (\(\matr{A}
-\approx \tilde{\matr{L}} \tilde{\matr{U}}\)) and incomplete Cholesky (IC)
-(\(\matr{A} \approx \tilde{\matr{U}} \tilde{\matr{U}}\transpose\)) are commonly
-employed. A fine-grained parallel ILU algorithm, proposed by
+\approx \widetilde{\matr{L}} \widetilde{\matr{U}}\)) and incomplete Cholesky
+(IC) (\(\matr{A} \approx \widetilde{\matr{U}} \widetilde{\matr{U}}\transpose\))
+are commonly employed.
+
+A fine-grained parallel ILU algorithm, proposed by
 \textcite{chow_fine-grained_2015}, offers a distinct approach to computing ILU
 factorizations in parallel. Their method reformulates ILU factorization as the
 solution of a system of bilinear equations \((\matr{L} \matr{U})_{i,j} =
@@ -98,7 +99,4 @@ component of the new iterate can be computed asynchronously, often implemented
 with OpenMP. A symmetric variant is available for IC factorization. A key
 finding is that very few sweeps are needed to construct an effective
 preconditioner.
-
-% This fine-grained parallel approach for ILU factorization is utilized in this
-% project for computing the incomplete factorizations employed as preconditioners.
 

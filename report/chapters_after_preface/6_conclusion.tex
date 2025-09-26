@@ -1,79 +1,68 @@
 \chapter{Conclusion}
 \label{cha:conclusion}
 
-This report presented the mathematical theories, design, implementation, and
-evaluation of a mixed-precision iterative refinement solver for sparse linear
-systems, with a focus on combining a fine-grained parallel incomplete LU
+This work presented the mathematical foundations, software design,
+implementation, and evaluation of a mixed-precision iterative refinement solver
+for large sparse linear systems, combining a fine-grained parallel ILU
 factorization with a preconditioned GMRES kernel. The solver was implemented in
-modern C++ with a strong emphasis on modularity, precision flexibility, and
-interface compatibility. Through a combination of template programming,
-concept-driven type safety, and extensions to the QD library, the implementation
-supports seamless use of both IEEE 754 and extended floating-point formats
-across different solver components.
+modern C++ with emphasis on modularity, template-based precision flexibility,
+and interface compatibility with existing linear algebra ecosystems. Extensions
+to the QD library were introduced to enable seamless integration of quadruple
+and octuple precision types within this framework.
 
-The numerical experiments demonstrated that mixed precision can deliver
-improvements in both runtime and accuracy, though the extent of these gains is
-sensitive to the interplay between factorization quality and Krylov convergence.
-In particular, while moving from \texttt{single} to \texttt{double} precision in the
-factorization consistently improved convergence rates, the timing advantage of
-using lower-precision arithmetic in this solver architecture was modest.
-Similarly, computing residuals in extended precision stabilized the refinement
-process but incurred significant runtime penalties due to both slower arithmetic
-and increased iteration counts. These results suggest that the benefits of mixed
-precision in this setting are more nuanced than expected and depend heavily on
-the balance of computational costs across the solver pipeline.
+The experimental results demonstrated that mixed precision can improve both
+accuracy and robustness, though the gains are subtler than anticipated. Moving
+from single to double precision in the factorization consistently accelerated
+convergence and reduced iteration counts, while raising the residual precision
+from double to quadruple stabilized the refinement process but significantly
+increased runtime. Overall, the runtime advantage of lower precision
+factorization was modest, since solve time was consistently dominated by GMRES
+iterations.
 
-Several pathological cases revealed limitations in the current implementation.
-For some test matrices, the \texttt{ILU(0)} preconditioner diverged, undermining
-the effectiveness of the subsequent GMRES solve and leading to large forward
-errors. This behavior stands in contradiction to existing theoretical guarantees
-of ILU-based refinement, pointing toward flaws in the current implementation of
-the factorization. Although repeated attempts were made to isolate the root
-cause, a definitive resolution was not achieved within the scope of this work.
-This underscores the inherent complexity of incomplete factorization algorithms
-and their sensitivity to both numerical stability and implementation detail.
+Several pathological cases highlighted limitations of the current approach. For
+some matrices, the \texttt{ILU(0)} preconditioner failed to converge, producing
+stagnation or divergence in the subsequent GMRES solve. Although
+\textcite{chow_fine-grained_2015} established convergence guarantees for the ILU
+fixed-point sweeps used in factorization, these guarantees do not extend to the
+full GMRES-IR solver. The observed breakdowns therefore point to weaknesses in
+the present \texttt{ILU(0)} implementation and the inherent fragility of level-0
+incomplete factorizations, rather than a fundamental flaw in the iterative
+refinement framework itself.
 
-In terms of performance analysis, the factorization phase was consistently much
-cheaper than the solve phase, which was dominated by sequential GMRES
-iterations. This result contrasts with prior work using complete LDLT
-factorizations, where factorization dominated runtime. The disparity highlights
-the effect of both algorithmic choice (incomplete vs.\ complete factorization)
-and parallelization strategy (parallel factorization vs.\ sequential Krylov
-iterations). These findings reinforce the importance of considering the overall
-solver pipeline when evaluating mixed-precision strategies.
+The performance profile further emphasizes this distinction. Factorization was
+consistently cheaper than the solve stage, in contrast to earlier LDLT-based
+implementations where factorization dominated runtime. This shift arises from
+the use of parallel \texttt{ILU(0)}, which reduces factorization cost, while
+GMRES iterations remained sequential and therefore became the bottleneck.
 
 \section*{Future Directions}
-\label{sec:future-directions}
 
-Several promising directions emerge from this work:
+Two practical extensions follow directly from the limitations observed in this
+work:
 
-\begin{itemize}
-\item Lower precision arithmetic on accelerators. While this work focused on
-  \texttt{single}, \texttt{double}, and \texttt{quadruple} precision, future
-  research could investigate half-precision or other lower-precision formats,
-  particularly in the context of GPU acceleration. Such approaches could yield
-  significant runtime improvements, but they also introduce challenges such as
-  limited dynamic range, overflow and underflow risks, and numerical
-  instability. Techniques such as scaling, iterative refinement safeguards, and
-  early breakdown detection could help mitigate these issues
-  \cite{scott_note_2024}.
-\item More robust preconditioners. The divergence of \texttt{ILU(0)} on certain matrices
-  suggests the need for more reliable preconditioning strategies. Potential
-  avenues include higher-level \texttt{ILU(k)}, and \texttt{ILU(T)} with
-  threshold-based dropping. Such alternatives may improve stability without
-  sacrificing the parallelism and efficiency achieved in this work.
-\item Expanded parallelism in Krylov solvers. Since GMRES iterations dominate the
-  runtime and remain sequential in the current implementation, future work could
-  explore, parallel Krylov methods reduce this bottleneck and better align with
-  the parallelized factorization.
-\end{itemize}
+\begin{description}
+\item[Parallel ILU for nonsymmetric systems] Extend the current fine-grained
+  parallel ILU implementation beyond symmetric/SPD matrices to fully
+  nonsymmetric cases. This would require stability safeguards such as diagonal
+  scaling, threshold dropping, or optional pivoting/reordering, but would
+  broaden applicability to a wider range of real-world problems such as
+  convection-dominated PDEs and circuit models.
 
-In summary, this thesis contributes a modern C++ solver framework for
-mixed-precision iterative refinement with parallel incomplete factorizations,
-demonstrates its performance and accuracy characteristics, and identifies key
-challenges that motivate future advances. While the immediate gains from mixed
-precision in this solver design were more modest than anticipated, the results
-provide important insights into the conditions under which mixed precision is
-effective, and they lay the groundwork for further exploration of precision
-hierarchies, preconditioning robustness, and algorithmic parallelism in sparse
-linear system solvers.
+\item[Stronger ILU variants] Investigate \texttt{ILU(k)} and threshold-based \texttt{ILU(T)}
+  factorizations within the same parallel framework. These approaches may
+  provide more robust preconditioning for ill-conditioned systems where
+  \texttt{ILU(0)} failed (e.g., \texttt{ct20stif}, \texttt{ecology2}), without
+  sacrificing too much efficiency.
+\end{description}
+
+\section*{Closing Remarks}
+
+In summary, this project developed and evaluated a modern C++ solver framework
+for mixed-precision iterative refinement with parallel incomplete
+factorizations. The results confirm that mixed precision can enhance solver
+accuracy and robustness, but also show that the benefits depend critically on
+the interplay between factorization quality, preconditioner reliability, and
+Krylov convergence. While the immediate performance improvements were modest,
+the implementation provides insights into precision hierarchies, highlights the
+importance of preconditioner design, and establishes a foundation for future
+advances in mixed-precision sparse linear solvers.
